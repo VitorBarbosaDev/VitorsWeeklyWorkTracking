@@ -1,5 +1,8 @@
+using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace VitorsWeeklyWorkTracking;
@@ -13,17 +16,86 @@ public enum ScreenCorner
 public partial class MiniTimerWidget : Window
 {
     public ScreenCorner CurrentCorner { get; private set; } = ScreenCorner.BottomRight;
+    public bool IsPinnedOnTop { get; private set; } = true;
 
     public event Action? StartClicked;
     public event Action? StopClicked;
     public event Action? ToggleCountModeClicked;
     public event Action? RestoreRequested;
     public event Action? ClosedByUser;
+    public event Action? CheerRequested;
     public event Action<ScreenCorner>? CornerChanged;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_SHOWWINDOW = 0x0040;
 
     public MiniTimerWidget()
     {
         InitializeComponent();
+
+        Loaded += (s, e) => EnforceTopmost();
+        Deactivated += (s, e) => EnforceTopmost();
+        Activated += (s, e) => EnforceTopmost();
+        MiniVisualCompanion.Clicked += () =>
+        {
+            MiniVisualCompanion.TriggerCheer();
+            CheerRequested?.Invoke();
+        };
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        EnforceTopmost();
+    }
+
+    public void SetPinnedOnTop(bool pinned)
+    {
+        IsPinnedOnTop = pinned;
+        Topmost = pinned;
+        PinOnTopButton.Content = pinned ? "📌 Pinned" : "📌 Unpinned";
+        PinOnTopButton.ToolTip = pinned
+            ? "Always on Top: Active (Draws above all apps) • Click to unpin"
+            : "Always on Top: Inactive • Click to pin on top";
+
+        try
+        {
+            var helper = new WindowInteropHelper(this);
+            if (helper.Handle != IntPtr.Zero)
+            {
+                var targetHwnd = pinned ? HWND_TOPMOST : HWND_NOTOPMOST;
+                SetWindowPos(helper.Handle, targetHwnd, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            }
+        }
+        catch
+        {
+            // Ignore interop exceptions
+        }
+    }
+
+    public void EnforceTopmost()
+    {
+        if (!IsPinnedOnTop) return;
+        try
+        {
+            Topmost = true;
+            var helper = new WindowInteropHelper(this);
+            if (helper.Handle != IntPtr.Zero)
+            {
+                SetWindowPos(helper.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
     }
 
     public void SetCorner(ScreenCorner corner)
@@ -47,6 +119,8 @@ public partial class MiniTimerWidget : Window
             Left = workArea.Left + 16;
             Top = workArea.Bottom - Height - 16;
         }
+
+        EnforceTopmost();
     }
 
     public void UpdateDisplay(
@@ -62,7 +136,13 @@ public partial class MiniTimerWidget : Window
         string goalStatsText,
         Brush? goalProgressBrush = null,
         string? companionMiniLine = null,
-        string? alertMessage = null)
+        string? alertMessage = null,
+        string? sceneId = null,
+        double progressFraction = 0.0,
+        bool isGoalReached = false,
+        bool isRestPhase = false,
+        int focusXp = 0,
+        int petHappiness = 100)
     {
         MiniTimerText.Text = timerText;
         MiniStatusText.Text = statusText;
@@ -73,6 +153,17 @@ public partial class MiniTimerWidget : Window
         MiniActivityText.Text = string.IsNullOrWhiteSpace(activity) ? "No Activity" : activity;
 
         MiniTimerModeButton.Content = isCountDownMode ? "⏳ DOWN" : "⏱ UP";
+
+        // Update Mini Visual Animated Companion
+        MiniVisualCompanion.UpdateState(
+            sceneId ?? "cycling",
+            progressFraction,
+            isTracking,
+            isGoalReached,
+            isRestPhase,
+            string.IsNullOrWhiteSpace(projectName) ? "Work" : projectName,
+            focusXp,
+            petHappiness);
 
         if (!string.IsNullOrEmpty(companionMiniLine))
         {
@@ -119,6 +210,8 @@ public partial class MiniTimerWidget : Window
         {
             MiniGoalContainer.Visibility = Visibility.Collapsed;
         }
+
+        EnforceTopmost();
     }
 
     private void MiniAlertBanner_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -143,6 +236,17 @@ public partial class MiniTimerWidget : Window
     {
         var newCorner = CurrentCorner == ScreenCorner.BottomRight ? ScreenCorner.BottomLeft : ScreenCorner.BottomRight;
         SetCorner(newCorner);
+    }
+
+    private void PinOnTopButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetPinnedOnTop(!IsPinnedOnTop);
+    }
+
+    private void MiniVisualBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        MiniVisualCompanion.TriggerCheer();
+        CheerRequested?.Invoke();
     }
 
     private void RestoreButton_Click(object sender, RoutedEventArgs e)

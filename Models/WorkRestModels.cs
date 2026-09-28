@@ -21,6 +21,7 @@ public class WorkRestSettings
     public bool SoundAlertEnabled { get; set; } = true;
     public bool AutoAdvancePhases { get; set; } = false;
     public string SelectedSceneId { get; set; } = "cycling";
+    public string ArtMode { get; set; } = "graphics"; // "graphics" or "ascii"
     public bool CompanionVisible { get; set; } = true;
     public bool CompanionExpanded { get; set; } = true;
     public int FocusXp { get; set; } = 0;

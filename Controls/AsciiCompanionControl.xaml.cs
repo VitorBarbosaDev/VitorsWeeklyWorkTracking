@@ -38,6 +38,8 @@ public partial class AsciiCompanionControl : UserControl
         SceneComboBox.ItemsSource = ArtSceneOption.AvailableScenes;
         SceneComboBox.SelectedIndex = 0;
 
+        VisualCompanionDisplay.Clicked += () => TriggerCheer();
+
         _animTimer.Interval = TimeSpan.FromMilliseconds(250);
         _animTimer.Tick += (s, e) =>
         {
@@ -58,6 +60,7 @@ public partial class AsciiCompanionControl : UserControl
             SceneComboBox.SelectedItem = savedScene;
         }
 
+        ApplyArtModeState(_intervalManager.Settings.ArtMode);
         ApplyExpandedState(_intervalManager.Settings.CompanionExpanded);
         UpdateIntervalModeUi();
     }
@@ -91,6 +94,16 @@ public partial class AsciiCompanionControl : UserControl
         var rendered = AsciiArtEngine.Render(
             selectedScene.Id,
             _frameTick,
+            progress,
+            _isTracking,
+            goalReached,
+            isRestPhase,
+            _currentDetails,
+            _intervalManager.Settings.FocusXp,
+            _petHappiness);
+
+        VisualCompanionDisplay.UpdateState(
+            selectedScene.Id,
             progress,
             _isTracking,
             goalReached,
@@ -205,12 +218,14 @@ public partial class AsciiCompanionControl : UserControl
         TriggerCheer();
     }
 
-    private void TriggerCheer()
+    public void TriggerCheer()
     {
         if (_intervalManager == null) return;
 
         _petHappiness = Math.Min(100, _petHappiness + 10);
         _lastCheerTime = DateTime.Now;
+
+        VisualCompanionDisplay.TriggerCheer();
 
         var selectedScene = SceneComboBox.SelectedItem as ArtSceneOption ?? ArtSceneOption.AvailableScenes[0];
         _customCheerMessage = selectedScene.Id switch
@@ -226,6 +241,38 @@ public partial class AsciiCompanionControl : UserControl
 
         FocusIntervalManager.PlayAlertSound();
         RenderCurrentFrame();
+    }
+
+    private void ArtModeToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_intervalManager == null) return;
+
+        var newMode = _intervalManager.Settings.ArtMode == "ascii" ? "graphics" : "ascii";
+        _intervalManager.Settings.ArtMode = newMode;
+        FocusCompanionStorage.Save(_intervalManager.Settings);
+
+        ApplyArtModeState(newMode);
+        RenderCurrentFrame();
+        SettingsChanged?.Invoke(_intervalManager.Settings);
+    }
+
+    private void ApplyArtModeState(string mode)
+    {
+        bool isAscii = string.Equals(mode, "ascii", StringComparison.OrdinalIgnoreCase);
+        if (isAscii)
+        {
+            VisualArtBorder.Visibility = Visibility.Collapsed;
+            AsciiArtBorder.Visibility = Visibility.Visible;
+            ArtModeToggleButton.Content = "📟 ASCII";
+            ArtModeToggleButton.ToolTip = "Current: Retro ASCII Art • Click to switch to Rich Animated Graphics";
+        }
+        else
+        {
+            VisualArtBorder.Visibility = Visibility.Visible;
+            AsciiArtBorder.Visibility = Visibility.Collapsed;
+            ArtModeToggleButton.Content = "🎨 Graphics";
+            ArtModeToggleButton.ToolTip = "Current: Rich Animated Graphics • Click to switch to Retro ASCII Art";
+        }
     }
 
     private void IntervalModeToggleButton_Click(object sender, RoutedEventArgs e)

@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:VitorsWeeklyWorkTracking.Controls"
              mc:Ignorable="d" 
              d:DesignWidth="800" d:DesignHeight="220">
     <Border Background="{DynamicResource Theme.CardBackground}"
@@ -70,6 +71,18 @@
 
                 <!-- Right: Quick Action Buttons -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Art Mode Toggle (Graphics vs ASCII) -->
+                    <Button x:Name="ArtModeToggleButton"
+                            Content="🎨 Graphics"
+                            ToolTip="Switch between Rich Animated Graphics and Retro ASCII mode"
+                            Style="{StaticResource GhostButton}"
+                            Padding="8,2"
+                            Height="24"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Margin="0,0,4,0"
+                            Click="ArtModeToggleButton_Click"/>
+
                     <!-- Fun Interact / Cheer Button -->
                     <Button x:Name="CheerButton"
                             Content="✨ Cheer!"
@@ -117,21 +130,36 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: ASCII Art Display & Story narration -->
+            <!-- Row 1: Art Display & Story narration -->
             <Grid x:Name="ArtDisplayContainer" Grid.Row="1" Margin="0,2,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- ASCII Canvas Box -->
-                <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                <!-- 1. Rich Vector & Animated Visual Canvas Box -->
+                <Border x:Name="VisualArtBorder"
+                        Background="{DynamicResource Theme.CardBackgroundAlt}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Height="140"
+                        Cursor="Hand"
+                        ToolTip="Click to interact with art companion!"
+                        MouseLeftButtonUp="ArtBox_MouseLeftButtonUp">
+                    <local:VisualCompanionControl x:Name="VisualCompanionDisplay" IsMiniMode="False"/>
+                </Border>
+
+                <!-- 2. Retro ASCII Text Box (Toggleable) -->
+                <Border x:Name="AsciiArtBorder"
+                        Background="{DynamicResource Theme.CardBackgroundAlt}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="12,8"
                         Cursor="Hand"
                         ToolTip="Click to interact with art companion!"
+                        Visibility="Collapsed"
                         MouseLeftButtonUp="ArtBox_MouseLeftButtonUp">
                     <TextBlock x:Name="AsciiArtTextBlock"
                                FontFamily="Consolas, Lucida Console, Courier New, monospace"

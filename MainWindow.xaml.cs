@@ -355,6 +355,10 @@ public partial class MainWindow : Window
             {
                 RestoreMainWindow();
             };
+            _miniWidget.CheerRequested += () =>
+            {
+                CompanionControl.TriggerCheer();
+            };
             _miniWidget.CornerChanged += (corner) =>
             {
                 _miniCorner = corner;
@@ -802,6 +806,10 @@ public partial class MainWindow : Window
                     ? (_intervalManager.IsRestPhase ? "☕ REST" : "🎯 FOCUS")
                     : (goalReached ? "GOAL" : "RECORDING");
 
+                double progressFraction = isIntervalMode
+                    ? (_intervalManager.ProgressPercentage / 100.0)
+                    : (goalProgressPercentage / 100.0);
+
                 _miniWidget.UpdateDisplay(
                     isTracking: true,
                     timerText: displayTime,
@@ -815,7 +823,12 @@ public partial class MainWindow : Window
                     goalStatsText: goalStatsText,
                     goalProgressBrush: goalBarBrush,
                     companionMiniLine: miniScene.MiniLine,
-                    alertMessage: alertText);
+                    alertMessage: alertText,
+                    sceneId: _intervalManager.Settings.SelectedSceneId,
+                    progressFraction: progressFraction,
+                    isGoalReached: goalReached,
+                    isRestPhase: isIntervalMode && _intervalManager.IsRestPhase,
+                    focusXp: _intervalManager.Settings.FocusXp);
             }
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
@@ -857,7 +870,13 @@ public partial class MainWindow : Window
                     goalProgressPercentage: 0,
                     goalStatsText: "",
                     goalProgressBrush: null,
-                    companionMiniLine: "[Session Recorded - Ready to Save]");
+                    companionMiniLine: "[Session Recorded - Ready to Save]",
+                    alertMessage: null,
+                    sceneId: _intervalManager.Settings.SelectedSceneId,
+                    progressFraction: 1.0,
+                    isGoalReached: true,
+                    isRestPhase: false,
+                    focusXp: _intervalManager.Settings.FocusXp);
             }
         }
         else
@@ -890,6 +909,16 @@ public partial class MainWindow : Window
 
             if (_miniWidget != null && _miniWidget.IsVisible)
             {
+                var idleScene = AsciiArtEngine.Render(
+                    _intervalManager.Settings.SelectedSceneId,
+                    0,
+                    0.0,
+                    isTracking: false,
+                    isGoalReached: false,
+                    isRestPhase: false,
+                    contextDetails: $"{projectName}{activitySuffix}",
+                    focusXp: _intervalManager.Settings.FocusXp);
+
                 _miniWidget.UpdateDisplay(
                     isTracking: false,
                     timerText: "00:00:00",
@@ -898,11 +927,17 @@ public partial class MainWindow : Window
                     projectName: projectName,
                     activity: activity,
                     isCountDownMode: _isCountDownMode,
-                    hasGoal: false,
+                    hasGoal: hasGoal || isIntervalMode,
                     goalProgressPercentage: 0,
-                    goalStatsText: "",
+                    goalStatsText: isIntervalMode ? $"🍅 {_intervalManager.Settings.FocusMinutes}m Focus" : (hasGoal ? $"🎯 Goal: {FormatCompact(goalDuration)}" : ""),
                     goalProgressBrush: null,
-                    companionMiniLine: isIntervalMode ? $"[🍅 {_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest]" : null);
+                    companionMiniLine: isIntervalMode ? $"[🍅 {_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest]" : idleScene.MiniLine,
+                    alertMessage: null,
+                    sceneId: _intervalManager.Settings.SelectedSceneId,
+                    progressFraction: 0.0,
+                    isGoalReached: false,
+                    isRestPhase: false,
+                    focusXp: _intervalManager.Settings.FocusXp);
             }
         }
     }
