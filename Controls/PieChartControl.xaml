@@ -1,0 +1,49 @@
+<UserControl x:Class="VitorsWeeklyWorkTracking.Controls.PieChartControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="260" d:DesignWidth="300"
+             SizeChanged="UserControl_SizeChanged">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Chart Title (Optional) -->
+        <TextBlock x:Name="ChartTitleTextBlock" 
+                   Grid.Row="0"
+                   FontWeight="Bold" 
+                   FontSize="13" 
+                   Foreground="#37474F" 
+                   HorizontalAlignment="Center" 
+                   Margin="0 0 0 6"
+                   Visibility="Collapsed"/>
+
+        <!-- Canvas for the Pie -->
+        <Grid Grid.Row="1" MinHeight="160" MinWidth="160">
+            <Canvas x:Name="ChartCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True"/>
+            <TextBlock x:Name="EmptyMessageTextBlock" 
+                       Text="No data for selected period" 
+                       Foreground="#9E9E9E" 
+                       FontStyle="Italic"
+                       HorizontalAlignment="Center" 
+                       VerticalAlignment="Center"
+                       Visibility="Collapsed"/>
+        </Grid>
+
+        <!-- Legend (Scrollable if many items) -->
+        <ScrollViewer Grid.Row="2" 
+                      MaxHeight="110" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="0 8 0 0">
+            <WrapPanel x:Name="LegendPanel" 
+                       Orientation="Horizontal" 
+                       HorizontalAlignment="Center"/>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

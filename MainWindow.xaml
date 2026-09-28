@@ -1,0 +1,239 @@
+﻿<Window x:Class="VitorsWeeklyWorkTracking.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Freelance Time Tracker"
+        Height="580"
+        Width="980"
+        MinHeight="500"
+        MinWidth="850">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <WrapPanel Orientation="Horizontal" Margin="0 0 0 10" VerticalAlignment="Center">
+            <TextBlock Text="Project:" VerticalAlignment="Center" Margin="0 0 5 0"/>
+            <ComboBox x:Name="ProjectComboBox"
+                      DisplayMemberPath="Name"
+                      Width="140"
+                      Margin="0 0 5 0"/>
+
+            <Button x:Name="AddProjectQuickButton"
+                    Content="+"
+                    ToolTip="Manage / Add Projects"
+                    FontWeight="Bold"
+                    Width="26"
+                    Margin="0 0 8 0"
+                    Click="AddNewProjectButton_Click"/>
+
+            <TextBlock Text="Activity:" VerticalAlignment="Center" Margin="0 0 5 0"/>
+            <ComboBox x:Name="ActivityComboBox"
+                      DisplayMemberPath="Name"
+                      IsEditable="True"
+                      Width="120"
+                      Margin="0 0 5 0"/>
+
+            <Button x:Name="AddActivityQuickButton"
+                    Content="+"
+                    ToolTip="Manage / Add Activities"
+                    FontWeight="Bold"
+                    Width="26"
+                    Margin="0 0 8 0"
+                    Click="AddNewActivityButton_Click"/>
+
+            <TextBlock Text="Description:" VerticalAlignment="Center" Margin="0 0 5 0"/>
+            <TextBox x:Name="DescriptionTextBox"
+                     Width="150"
+                     Margin="0 0 8 0"/>
+
+            <Button x:Name="StartButton"
+                    Content="Start"
+                    Width="70"
+                    Click="StartButton_Click"/>
+
+            <Button x:Name="StopButton"
+                    Content="Stop"
+                    Width="70"
+                    Margin="8 0 0 0"
+                    Click="StopButton_Click"
+                    IsEnabled="False"/>
+
+            <Button x:Name="SaveEntryButton"
+                    Content="Save Entry"
+                    Width="85"
+                    Margin="8 0 0 0"
+                    Click="SaveEntryButton_Click"
+                    Visibility="Collapsed"
+                    Background="#4CAF50"
+                    Foreground="White"/>
+
+            <Button x:Name="DiscardButton"
+                    Content="Discard"
+                    Width="65"
+                    Margin="5 0 0 0"
+                    Click="DiscardButton_Click"
+                    Visibility="Collapsed"
+                    Background="#F44336"
+                    Foreground="White"/>
+        </WrapPanel>
+
+        <Grid Grid.Row="1" Margin="0 0 0 10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Notes:" Margin="0 0 0 5"/>
+            <TextBox x:Name="NoteTextBox"
+                     Grid.Row="1"
+                     Height="60"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"/>
+        </Grid>
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="2"
+                   Text="Status: Idle"
+                   Margin="0 0 0 10"
+                   FontWeight="Bold"
+                   Foreground="#333333"/>
+
+        <WrapPanel Grid.Row="3" Margin="0 0 0 10" VerticalAlignment="Center">
+            <TextBlock Text="From:" VerticalAlignment="Center" Margin="0 0 5 0" FontWeight="SemiBold"/>
+            <DatePicker x:Name="FilterStartDatePicker"
+                        Width="110"
+                        Margin="0 0 8 0"
+                        SelectedDateChanged="Filter_Changed"/>
+
+            <TextBlock Text="To:" VerticalAlignment="Center" Margin="0 0 5 0" FontWeight="SemiBold"/>
+            <DatePicker x:Name="FilterEndDatePicker"
+                        Width="110"
+                        Margin="0 0 8 0"
+                        SelectedDateChanged="Filter_Changed"/>
+
+            <TextBlock Text="Project:" VerticalAlignment="Center" Margin="4 0 5 0" FontWeight="SemiBold"/>
+            <ComboBox x:Name="FilterProjectComboBox"
+                      Width="130"
+                      Margin="0 0 8 0"
+                      SelectionChanged="Filter_Changed"/>
+
+            <TextBlock Text="Activity:" VerticalAlignment="Center" Margin="4 0 5 0" FontWeight="SemiBold"/>
+            <ComboBox x:Name="FilterActivityComboBox"
+                      Width="130"
+                      Margin="0 0 8 0"
+                      SelectionChanged="Filter_Changed"/>
+
+            <Button Content="Today"
+                    Width="55"
+                    Margin="0 0 4 0"
+                    Click="TodayButton_Click"/>
+
+            <Button Content="Show All"
+                    Width="65"
+                    Margin="0 0 4 0"
+                    Click="ShowAllButton_Click"/>
+        </WrapPanel>
+
+        <DataGrid x:Name="EntriesDataGrid"
+                  Grid.Row="4"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  AlternatingRowBackground="#F0F0F0"
+                  PreviewKeyDown="EntriesDataGrid_PreviewKeyDown">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="130"/>
+                <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="110"/>
+                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="80"/>
+                <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="80"/>
+                <DataGridTextColumn Header="Duration" Binding="{Binding Duration, StringFormat=\{0:hh\\:mm\\:ss\}}" Width="80"/>
+                <DataGridTemplateColumn Header="Action" Width="70">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Delete"
+                                    Foreground="#D32F2F"
+                                    FontWeight="SemiBold"
+                                    Padding="4 1"
+                                    Margin="2"
+                                    Click="DeleteEntryButton_Click"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Summary Statistics Bar -->
+        <Border Grid.Row="5"
+                Background="#F4F6F9"
+                BorderBrush="#D9DFE8"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12 8"
+                Margin="0 10 0 0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Total Time:" FontWeight="Bold" Foreground="#333333" Margin="0 0 6 0"/>
+                    <TextBlock x:Name="StatsTotalTimeTextBlock" Text="0h 00m 00s" FontWeight="Bold" Foreground="#1976D2"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="Sessions:" FontWeight="Bold" Foreground="#333333" Margin="0 0 6 0"/>
+                    <TextBlock x:Name="StatsTotalSessionsTextBlock" Text="0" FontWeight="Bold" Foreground="#388E3C"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="Top Project:" FontWeight="Bold" Foreground="#333333" Margin="0 0 6 0"/>
+                    <TextBlock x:Name="StatsTopProjectTextBlock" Text="None" FontWeight="Bold" Foreground="#7B1FA2" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Text="Top Activity:" FontWeight="Bold" Foreground="#333333" Margin="0 0 6 0"/>
+                    <TextBlock x:Name="StatsTopActivityTextBlock" Text="None" FontWeight="Bold" Foreground="#D84315" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="6" Margin="0 10 0 0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Content="Manage Projects"
+                        Width="120"
+                        Margin="0 0 10 0"
+                        Click="AddNewProjectButton_Click"/>
+                <Button Content="Manage Activities"
+                        Width="125"
+                        Margin="0 0 10 0"
+                        Click="AddNewActivityButton_Click"/>
+                <Button Content="Analytics"
+                        Width="100"
+                        Background="#1976D2"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        Click="AnalyticsButton_Click"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="DeleteSelectedButton"
+                        Content="Delete Selected"
+                        Width="120"
+                        Margin="0 0 10 0"
+                        Foreground="#D32F2F"
+                        Click="DeleteSelectedButton_Click"/>
+                <Button Content="Export CSV"
+                        Width="120"
+                        Click="ExportButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

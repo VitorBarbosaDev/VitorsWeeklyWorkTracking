@@ -1,0 +1,63 @@
+<Window x:Class="VitorsWeeklyWorkTracking.ProjectManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Manage Projects"
+        Height="400"
+        Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Add Project Section -->
+        <GroupBox Header="Add New Project" Margin="0 0 0 10" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Project Name:" VerticalAlignment="Center" Margin="0 0 10 0"/>
+                <TextBox x:Name="NewProjectTextBox" Grid.Column="1" Margin="0 0 10 0" KeyDown="NewProjectTextBox_KeyDown"/>
+                <Button Grid.Column="2" Content="Add" Width="70" Click="AddProjectButton_Click"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Projects Lists (Active & Inactive tabs or side-by-side) -->
+        <TabControl Grid.Row="1">
+            <TabItem Header="Active Projects">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="ActiveProjectsListBox" DisplayMemberPath="Name" Margin="0 0 0 5"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Archive (Mark Inactive)" Padding="8 4" Click="ArchiveProjectButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Inactive / Archived Projects">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="InactiveProjectsListBox" DisplayMemberPath="Name" Margin="0 0 0 5"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Activate (Mark Active)" Padding="8 4" Click="ActivateProjectButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Close Section -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 10 0 0">
+            <Button Content="Close" Width="80" Click="CloseButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
