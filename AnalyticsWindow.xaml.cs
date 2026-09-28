@@ -196,6 +196,18 @@ public partial class AnalyticsWindow : Window
         RecalculateAnalytics();
     }
 
+    private void OpenCalendarPlanner_Click(object sender, RoutedEventArgs e)
+    {
+        var targetDate = StartDatePicker.SelectedDate ?? DateTime.Today;
+        var dialog = new CalendarPlannerWindow(_allEntries, _allProjects, _allActivities, targetDate)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+        RecalculateAnalytics();
+    }
+
     private void DatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing)
@@ -316,6 +328,7 @@ public partial class AnalyticsWindow : Window
 
         ProjectsDataGrid.ItemsSource = null;
         ProjectsDataGrid.ItemsSource = _currentProjectAnalytics;
+        ProjectsEmptyStatePanel.Visibility = _currentProjectAnalytics.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var projectPieSlices = _currentProjectAnalytics.Select(p => new PieSliceItem
         {
@@ -362,6 +375,7 @@ public partial class AnalyticsWindow : Window
 
         ActivitiesDataGrid.ItemsSource = null;
         ActivitiesDataGrid.ItemsSource = _currentActivityAnalytics;
+        ActivitiesEmptyStatePanel.Visibility = _currentActivityAnalytics.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var activityPieSlices = _currentActivityAnalytics.Select(a => new PieSliceItem
         {
@@ -413,6 +427,7 @@ public partial class AnalyticsWindow : Window
 
         TasksDataGrid.ItemsSource = null;
         TasksDataGrid.ItemsSource = _currentTaskAnalytics;
+        TasksEmptyStatePanel.Visibility = _currentTaskAnalytics.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var taskPieSlices = _currentTaskAnalytics.Select(t => new PieSliceItem
         {
@@ -444,9 +459,13 @@ public partial class AnalyticsWindow : Window
                     return $"{desc}{act} ({(int)x.Duration.TotalHours}h {x.Duration.Minutes:D2}m)";
                 });
 
+                var dayPlans = CalendarPlanStorage.Instance.GetPlansForDate(g.Key);
+                double plannedHours = dayPlans.Sum(p => p.PlannedHours);
+
                 return new DailyAnalyticsItem
                 {
                     Date = g.Key,
+                    PlannedHours = plannedHours,
                     TotalDuration = duration,
                     EntryCount = g.Count(),
                     ProjectsSummary = string.Join(", ", projectSummaries),
@@ -459,10 +478,77 @@ public partial class AnalyticsWindow : Window
 
         DailyDataGrid.ItemsSource = null;
         DailyDataGrid.ItemsSource = _currentDailyAnalytics;
+        DailyEmptyStatePanel.Visibility = _currentDailyAnalytics.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Planned Goal Calculation for Selected Period
+        var rangePlans = CalendarPlanStorage.Instance.GetPlansForRange(startDate.Date, (EndDatePicker.SelectedDate ?? startDate).Date);
+        double totalPlannedHours = rangePlans.Sum(p => p.PlannedHours);
+        double goalProgressPercentage = totalPlannedHours > 0
+            ? (totalDuration.TotalHours / totalPlannedHours) * 100.0
+            : (totalDuration.TotalHours > 0 ? 100.0 : 0.0);
+        double remainingHours = Math.Max(0, totalPlannedHours - totalDuration.TotalHours);
+
+        PlannedGoalTextBlock.Text = totalPlannedHours > 0
+            ? $"{totalPlannedHours:F1}h ({goalProgressPercentage:F0}%)"
+            : (totalDuration.TotalHours > 0 ? "No plan set" : "0.0 hrs");
+
+        // Goal Tab Headline & Progress Bar
+        if (totalPlannedHours > 0)
+        {
+            GoalTabHeadlineText.Text = $"{totalPlannedHours:F1}h planned • {totalDuration.TotalHours:F1}h worked ({goalProgressPercentage:F1}%) • {remainingHours:F1}h remaining";
+        }
+        else
+        {
+            GoalTabHeadlineText.Text = totalDuration.TotalHours > 0
+                ? $"Worked {totalDuration.TotalHours:F1}h in this period (No planned target set)"
+                : "No planned sessions scheduled for this period";
+        }
+        GoalTabProgressBar.Value = Math.Min(100, goalProgressPercentage);
+
+        // Daily Goal Comparison for Goal Tab
+        var dailyGoalList = new List<DailyGoalSummary>();
+        var sDate = startDate.Date;
+        var eDate = (EndDatePicker.SelectedDate ?? startDate).Date;
+        if (sDate != DateTime.MinValue && eDate != DateTime.MaxValue)
+        {
+            for (var day = sDate; day <= eDate; day = day.AddDays(1))
+            {
+                dailyGoalList.Add(CalendarPlanStorage.Instance.CalculateDailySummary(day, _currentFilteredEntries));
+            }
+        }
+        GoalsDailyDataGrid.ItemsSource = null;
+        var orderedDailyGoals = dailyGoalList.OrderByDescending(d => d.Date).ToList();
+        GoalsDailyDataGrid.ItemsSource = orderedDailyGoals;
+        GoalsDailyEmptyStatePanel.Visibility = orderedDailyGoals.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Project Goal Comparison for Goal Tab
+        var projectGoalList = new List<ProjectGoalComparison>();
+        var distinctProjects = rangePlans.Select(p => p.ProjectName)
+            .Union(_currentFilteredEntries.Select(e => e.ProjectName))
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct()
+            .OrderBy(p => p)
+            .ToList();
+
+        foreach (var proj in distinctProjects)
+        {
+            double planned = rangePlans.Where(p => p.ProjectName.Equals(proj, StringComparison.OrdinalIgnoreCase)).Sum(p => p.PlannedHours);
+            double actual = _currentFilteredEntries.Where(e => e.ProjectName.Equals(proj, StringComparison.OrdinalIgnoreCase)).Sum(e => e.Duration.TotalHours);
+            projectGoalList.Add(new ProjectGoalComparison
+            {
+                ProjectName = proj,
+                PlannedHours = planned,
+                ActualHours = actual
+            });
+        }
+        GoalsProjectDataGrid.ItemsSource = null;
+        GoalsProjectDataGrid.ItemsSource = projectGoalList;
+        GoalsProjectEmptyStatePanel.Visibility = projectGoalList.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // Detailed Entries Log
         EntriesDataGrid.ItemsSource = null;
         EntriesDataGrid.ItemsSource = _currentFilteredEntries;
+        EntriesEmptyStatePanel.Visibility = _currentFilteredEntries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ExportReportButton_Click(object sender, RoutedEventArgs e)
@@ -488,6 +574,7 @@ public partial class AnalyticsWindow : Window
         sb.AppendLine($"Project Filter,{ProjectFilterComboBox.SelectedItem}");
         sb.AppendLine($"Activity Filter,{ActivityFilterComboBox.SelectedItem}");
         sb.AppendLine($"Total Time,{TotalTimeTextBlock.Text}");
+        sb.AppendLine($"Planned Goal Target,{PlannedGoalTextBlock.Text}");
         sb.AppendLine($"Total Sessions,{TotalSessionsTextBlock.Text}");
         sb.AppendLine($"Daily Average,{DailyAverageTextBlock.Text}");
         sb.AppendLine($"Top Project,{TopProjectTextBlock.Text}");
@@ -518,11 +605,11 @@ public partial class AnalyticsWindow : Window
         }
         sb.AppendLine();
 
-        sb.AppendLine("=== Daily Breakdown ===");
-        sb.AppendLine("Date,DayOfWeek,DurationFormatted,TotalHours,Sessions,Projects,Activities,Tasks");
+        sb.AppendLine("=== Daily Breakdown & Goal Accomplishment ===");
+        sb.AppendLine("Date,DayOfWeek,PlannedHours,DurationFormatted,TotalHours,Variance,GoalStatus,Sessions,Projects,Activities,Tasks");
         foreach (var item in _currentDailyAnalytics)
         {
-            sb.AppendLine($"\"{item.FormattedDate}\",\"{item.DayOfWeekName}\",\"{item.FormattedDuration}\",{item.TotalHours:F2},{item.EntryCount},\"{Escape(item.ProjectsSummary)}\",\"{Escape(item.ActivitiesSummary)}\",\"{Escape(item.TasksSummary)}\"");
+            sb.AppendLine($"\"{item.FormattedDate}\",\"{item.DayOfWeekName}\",{item.PlannedHours:F1},\"{item.FormattedDuration}\",{item.TotalHours:F2},\"{item.FormattedVariance}\",\"{item.GoalStatusText}\",{item.EntryCount},\"{Escape(item.ProjectsSummary)}\",\"{Escape(item.ActivitiesSummary)}\",\"{Escape(item.TasksSummary)}\"");
         }
         sb.AppendLine();
 

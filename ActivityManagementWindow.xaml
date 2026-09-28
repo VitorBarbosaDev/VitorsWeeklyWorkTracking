@@ -4,7 +4,7 @@
         Title="Manage Activities"
         Icon="VitorWeeklyWorkTracking.ico"
         Height="450"
-        Width="520"
+        Width="460"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource Theme.WindowBackground}">
@@ -57,7 +57,20 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <ListBox x:Name="ActiveActivitiesListBox" DisplayMemberPath="Name" Margin="0 0 0 8"/>
+                    <Grid Grid.Row="0" Margin="0 0 0 8">
+                        <ListBox x:Name="ActiveActivitiesListBox" DisplayMemberPath="Name"/>
+                        <Border x:Name="ActiveActivitiesEmptyState"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="🏷️" FontSize="22" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
+                                <TextBlock Text="There are no active activities currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Add a new activity above to get started" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 2 0 0" Opacity="0.8"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="📦 Archive (Mark Inactive)"
                                 Style="{StaticResource GhostDangerButton}"
@@ -72,7 +85,19 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <ListBox x:Name="InactiveActivitiesListBox" DisplayMemberPath="Name" Margin="0 0 0 8"/>
+                    <Grid Grid.Row="0" Margin="0 0 0 8">
+                        <ListBox x:Name="InactiveActivitiesListBox" DisplayMemberPath="Name"/>
+                        <Border x:Name="InactiveActivitiesEmptyState"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="📦" FontSize="22" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
+                                <TextBlock Text="There are no archived activities currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="🟢 Activate (Mark Active)"
                                 Style="{StaticResource SuccessButton}"

@@ -36,7 +36,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🎨 Scene:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <ComboBox x:Name="SceneComboBox"
-                              Width="180"
+                              Width="150"
                               Height="26"
                               DisplayMemberPath="DisplayName"
                               SelectionChanged="SceneComboBox_SelectionChanged"/>
@@ -76,7 +76,7 @@
                             Content="🎨 Graphics"
                             ToolTip="Switch between Rich Animated Graphics and Retro ASCII mode"
                             Style="{StaticResource GhostButton}"
-                            Padding="8,2"
+                            Padding="6,2"
                             Height="24"
                             FontSize="10"
                             FontWeight="SemiBold"
@@ -88,7 +88,7 @@
                             Content="✨ Cheer!"
                             ToolTip="Cheer on companion or pet! (+Happiness)"
                             Style="{StaticResource GhostButton}"
-                            Padding="8,2"
+                            Padding="6,2"
                             Height="24"
                             FontSize="10"
                             FontWeight="SemiBold"
@@ -100,7 +100,7 @@
                             Content="🍅 Work/Rest"
                             ToolTip="Toggle Work &amp; Rest Interval Mode (Pomodoro / Study Cycles)"
                             Style="{StaticResource GhostButton}"
-                            Padding="8,2"
+                            Padding="6,2"
                             Height="24"
                             FontSize="10"
                             FontWeight="SemiBold"

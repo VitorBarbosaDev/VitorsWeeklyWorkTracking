@@ -21,11 +21,15 @@ public partial class ActivityManagementWindow : Window
 
     private void RefreshLists()
     {
+        var active = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
         ActiveActivitiesListBox.ItemsSource = null;
-        ActiveActivitiesListBox.ItemsSource = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
+        ActiveActivitiesListBox.ItemsSource = active;
+        ActiveActivitiesEmptyState.Visibility = active.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        var inactive = _activities.Where(a => !a.IsActive).OrderBy(a => a.Name).ToList();
         InactiveActivitiesListBox.ItemsSource = null;
-        InactiveActivitiesListBox.ItemsSource = _activities.Where(a => !a.IsActive).OrderBy(a => a.Name).ToList();
+        InactiveActivitiesListBox.ItemsSource = inactive;
+        InactiveActivitiesEmptyState.Visibility = inactive.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void AddActivityButton_Click(object sender, RoutedEventArgs e)

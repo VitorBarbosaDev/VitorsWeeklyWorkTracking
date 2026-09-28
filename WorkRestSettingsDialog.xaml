@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Work &amp; Rest Interval Settings"
         Icon="VitorWeeklyWorkTracking.ico"
-        Width="500"
+        Width="460"
         Height="540"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"

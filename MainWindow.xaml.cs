@@ -83,6 +83,9 @@ public partial class MainWindow : Window
 
         _isInitializing = false;
         RefreshGrid();
+        UpdateGoalProgressCard();
+
+        CalendarPlanStorage.Instance.PlansChanged += () => Dispatcher.Invoke(UpdateGoalProgressCard);
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
@@ -1042,8 +1045,92 @@ public partial class MainWindow : Window
 
         EntriesDataGrid.ItemsSource = null;
         EntriesDataGrid.ItemsSource = _filteredEntries;
+        EntriesEmptyStatePanel.Visibility = _filteredEntries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         UpdateSummaryStats();
+        UpdateGoalProgressCard();
+    }
+
+    private void UpdateGoalProgressCard()
+    {
+        var weeklySummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
+        var todaySummary = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
+
+        // Weekly goal text
+        if (weeklySummary.TotalPlannedHours > 0)
+        {
+            GoalSummaryHeadlineText.Text = $"{weeklySummary.TotalPlannedHours:F1}h planned • {weeklySummary.TotalActualHours:F1}h worked ({weeklySummary.FormattedCompletionPercentage}) • {weeklySummary.FormattedRemainingHours}";
+        }
+        else
+        {
+            GoalSummaryHeadlineText.Text = weeklySummary.TotalActualHours > 0 
+                ? $"Worked {weeklySummary.TotalActualHours:F1}h this week (No weekly plan set)" 
+                : "No weekly plan scheduled yet (Click Planner to set goals)";
+        }
+
+        GoalWeeklyProgressBar.Value = Math.Min(100, weeklySummary.CompletionPercentage);
+        GoalWeeklyProgressPctText.Text = weeklySummary.FormattedCompletionPercentage;
+
+        // Today's badge text
+        if (todaySummary.PlannedHours > 0)
+        {
+            GoalTodayBadgeText.Text = $"📅 Today: {todaySummary.PlannedHours:F1}h plan • {todaySummary.ActualHours:F1}h act ({todaySummary.FormattedCompletionPercentage})";
+        }
+        else
+        {
+            GoalTodayBadgeText.Text = todaySummary.ActualHours > 0
+                ? $"📅 Today: {todaySummary.ActualHours:F1}h worked (No goal)"
+                : "📅 Today: 0.0h (No plan)";
+        }
+
+        // Mini 7-day indicators (Mon to Sun)
+        var miniTexts = new[] { MiniDay0Text, MiniDay1Text, MiniDay2Text, MiniDay3Text, MiniDay4Text, MiniDay5Text, MiniDay6Text };
+        var miniBorders = new[] { MiniDay0Border, MiniDay1Border, MiniDay2Border, MiniDay3Border, MiniDay4Border, MiniDay5Border, MiniDay6Border };
+        var dayShortNames = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
+        for (int i = 0; i < 7; i++)
+        {
+            var daySummary = weeklySummary.DailySummaries[i];
+            bool isToday = daySummary.Date.Date == DateTime.Today;
+
+            string planStr = daySummary.PlannedHours > 0 ? $"{daySummary.PlannedHours:0.#}h" : "0h";
+            string actStr = daySummary.ActualHours > 0 ? $"{daySummary.ActualHours:0.#}h" : "0h";
+            miniTexts[i].Text = $"{dayShortNames[i]}: {actStr}/{planStr}";
+
+            if (isToday)
+            {
+                miniBorders[i].BorderBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+                miniBorders[i].BorderThickness = new Thickness(1.5);
+                miniTexts[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+            }
+            else if (daySummary.IsGoalMet)
+            {
+                miniBorders[i].BorderBrush = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+                miniBorders[i].BorderThickness = new Thickness(1);
+                miniTexts[i].Foreground = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+            }
+            else
+            {
+                miniBorders[i].BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray;
+                miniBorders[i].BorderThickness = new Thickness(1);
+                miniTexts[i].Foreground = TryFindResource(i < 5 ? "Theme.ForegroundMuted" : "Theme.ForegroundSubtle") as Brush ?? Brushes.Gray;
+            }
+        }
+
+        // Sync with floating mini timer widget
+        _miniWidget?.UpdateWeeklyAndDailyGoals(weeklySummary, todaySummary);
+    }
+
+    private void OpenCalendarPlanner_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new CalendarPlannerWindow(_entries, _projects, _activities)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+        UpdateGoalProgressCard();
+        RefreshGrid();
     }
 
     private void UpdateSummaryStats()

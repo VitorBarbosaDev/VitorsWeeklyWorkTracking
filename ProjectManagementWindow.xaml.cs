@@ -21,11 +21,15 @@ public partial class ProjectManagementWindow : Window
 
     private void RefreshLists()
     {
+        var active = _projects.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
         ActiveProjectsListBox.ItemsSource = null;
-        ActiveProjectsListBox.ItemsSource = _projects.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
+        ActiveProjectsListBox.ItemsSource = active;
+        ActiveProjectsEmptyState.Visibility = active.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        var inactive = _projects.Where(p => !p.IsActive).OrderBy(p => p.Name).ToList();
         InactiveProjectsListBox.ItemsSource = null;
-        InactiveProjectsListBox.ItemsSource = _projects.Where(p => !p.IsActive).OrderBy(p => p.Name).ToList();
+        InactiveProjectsListBox.ItemsSource = inactive;
+        InactiveProjectsEmptyState.Visibility = inactive.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void AddProjectButton_Click(object sender, RoutedEventArgs e)

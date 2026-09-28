@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using VitorsWeeklyWorkTracking.Models;
 
 namespace VitorsWeeklyWorkTracking;
 
@@ -235,6 +236,33 @@ public partial class MiniTimerWidget : Window
         }
 
         EnforceTopmost();
+    }
+
+    public void UpdateWeeklyAndDailyGoals(WeeklyGoalSummary weekly, DailyGoalSummary today)
+    {
+        if (weekly.TotalPlannedHours > 0)
+        {
+            MiniWeeklyGoalLabel.Text = $"🎯 Week: {weekly.TotalActualHours:0.#}h/{weekly.TotalPlannedHours:0.#}h ({weekly.FormattedCompletionPercentage})";
+        }
+        else
+        {
+            MiniWeeklyGoalLabel.Text = weekly.TotalActualHours > 0
+                ? $"🎯 Week: {weekly.TotalActualHours:0.#}h worked"
+                : "🎯 Week: No plan set";
+        }
+
+        MiniWeeklyProgressBar.Value = Math.Clamp(weekly.CompletionPercentage, 0.0, 100.0);
+
+        if (today.PlannedHours > 0)
+        {
+            MiniTodayGoalLabel.Text = $"📅 {today.ActualHours:0.#}h/{today.PlannedHours:0.#}h ({today.FormattedCompletionPercentage})";
+        }
+        else
+        {
+            MiniTodayGoalLabel.Text = today.ActualHours > 0
+                ? $"📅 {today.ActualHours:0.#}h"
+                : "📅 Today: 0.0h";
+        }
     }
 
     private void MiniAlertBanner_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)

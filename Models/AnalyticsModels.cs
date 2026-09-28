@@ -47,4 +47,39 @@ public class DailyAnalyticsItem
     public string ProjectsSummary { get; set; } = string.Empty;
     public string ActivitiesSummary { get; set; } = string.Empty;
     public string TasksSummary { get; set; } = string.Empty;
+
+    // Calendar Planned Work & Goal tracking properties
+    public double PlannedHours { get; set; }
+    public string FormattedPlannedHours => PlannedHours > 0 ? $"{PlannedHours:F1} hrs" : "—";
+    public double VarianceHours => TotalHours - PlannedHours;
+    public string FormattedVariance
+    {
+        get
+        {
+            if (PlannedHours <= 0 && TotalHours <= 0) return "—";
+            if (VarianceHours >= 0) return $"+{VarianceHours:F2} hrs";
+            return $"{VarianceHours:F2} hrs";
+        }
+    }
+    public double CompletionPercentage
+    {
+        get
+        {
+            if (PlannedHours <= 0) return TotalHours > 0 ? 100.0 : 0.0;
+            return (TotalHours / PlannedHours) * 100.0;
+        }
+    }
+    public string FormattedCompletionPercentage => PlannedHours > 0 ? $"{CompletionPercentage:F0}%" : (TotalHours > 0 ? "100%" : "—");
+    public bool IsGoalMet => PlannedHours > 0 && TotalHours >= PlannedHours;
+    public string GoalStatusText
+    {
+        get
+        {
+            if (PlannedHours <= 0 && TotalHours <= 0) return "💤 Rest Day";
+            if (PlannedHours <= 0 && TotalHours > 0) return $"✨ +{TotalHours:F1}h Unplanned";
+            if (TotalHours >= PlannedHours) return $"🎯 Goal Met ({CompletionPercentage:F0}%)";
+            if (TotalHours > 0) return $"⏳ In Progress ({CompletionPercentage:F0}%)";
+            return "⚠️ Not Started";
+        }
+    }
 }

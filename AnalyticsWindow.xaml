@@ -5,12 +5,13 @@
         Title="Work Analytics &amp; Reports"
         Icon="VitorWeeklyWorkTracking.ico"
         Height="720"
-        Width="1100"
-        MinHeight="580"
-        MinWidth="900"
+        Width="960"
+        MinHeight="540"
+        MinWidth="800"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Theme.WindowBackground}">
-    <Grid Margin="18">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+    <Grid Margin="14 12" MinHeight="540">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -32,7 +33,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Row 1: Period and Week navigation -->
+                <!-- Row 1: Period, Week navigation & Planner shortcut -->
                 <WrapPanel Grid.Row="0" VerticalAlignment="Center" Margin="0 0 0 8">
                     <TextBlock Text="Period:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
                     <ComboBox x:Name="PeriodComboBox" Width="125" Margin="0 0 8 0" SelectionChanged="PeriodComboBox_SelectionChanged">
@@ -46,13 +47,15 @@
 
                     <Button Content="◀ Prev Week" Width="85" Height="28" Margin="0 0 4 0" Click="PrevWeekButton_Click"/>
                     <Button Content="Current Week" Width="90" Height="28" Margin="0 0 4 0" Click="CurrentWeekButton_Click"/>
-                    <Button Content="Next Week ▶" Width="85" Height="28" Margin="0 0 14 0" Click="NextWeekButton_Click"/>
+                    <Button Content="Next Week ▶" Width="85" Height="28" Margin="0 0 10 0" Click="NextWeekButton_Click"/>
+
+                    <Button Content="📅 Work Planner" Style="{StaticResource PrimaryButton}" Height="28" Padding="10 0" Margin="0 0 14 0" Click="OpenCalendarPlanner_Click"/>
 
                     <TextBlock Text="Project:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
-                    <ComboBox x:Name="ProjectFilterComboBox" Width="140" Margin="0 0 10 0" SelectionChanged="Filter_SelectionChanged"/>
+                    <ComboBox x:Name="ProjectFilterComboBox" Width="135" Margin="0 0 10 0" SelectionChanged="Filter_SelectionChanged"/>
 
                     <TextBlock Text="Activity:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
-                    <ComboBox x:Name="ActivityFilterComboBox" Width="140" SelectionChanged="Filter_SelectionChanged"/>
+                    <ComboBox x:Name="ActivityFilterComboBox" Width="135" SelectionChanged="Filter_SelectionChanged"/>
                 </WrapPanel>
 
                 <!-- Row 2: Date Pickers & Range Label -->
@@ -68,7 +71,7 @@
             </Grid>
         </Border>
 
-        <!-- KPI Summary Cards -->
+        <!-- KPI Summary Cards (6 Cards) -->
         <Grid Grid.Row="1" Margin="0 0 0 12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -76,75 +79,90 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Card 1: Total Time -->
+            <!-- Card 1: Total Time Worked -->
             <Border Grid.Column="0"
                     Background="{DynamicResource Theme.StatCard1Bg}"
                     BorderBrush="{DynamicResource Theme.StatCard1Border}"
                     BorderThickness="1"
                     CornerRadius="6"
-                    Padding="12 8"
-                    Margin="0 0 4 0">
+                    Padding="10 8"
+                    Margin="0 0 3 0">
                 <StackPanel>
-                    <TextBlock Text="TOTAL TIME WORKED" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
-                    <TextBlock x:Name="TotalTimeTextBlock" Text="0h 00m 00s" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 3 0 0"/>
+                    <TextBlock Text="TOTAL TIME WORKED" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
+                    <TextBlock x:Name="TotalTimeTextBlock" Text="0h 00m 00s" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 3 0 0"/>
                 </StackPanel>
             </Border>
 
-            <!-- Card 2: Daily Average -->
+            <!-- Card 2: Planned Goal Target -->
             <Border Grid.Column="1"
-                    Background="{DynamicResource Theme.StatCard2Bg}"
-                    BorderBrush="{DynamicResource Theme.StatCard2Border}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="12 8"
-                    Margin="2 0 2 0">
-                <StackPanel>
-                    <TextBlock Text="DAILY AVERAGE" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
-                    <TextBlock x:Name="DailyAverageTextBlock" Text="0h 00m / day" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0 3 0 0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Card 3: Total Sessions -->
-            <Border Grid.Column="2"
                     Background="{DynamicResource Theme.StatCard3Bg}"
                     BorderBrush="{DynamicResource Theme.StatCard3Border}"
                     BorderThickness="1"
                     CornerRadius="6"
-                    Padding="12 8"
+                    Padding="10 8"
                     Margin="2 0 2 0">
                 <StackPanel>
-                    <TextBlock Text="TOTAL SESSIONS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Title}"/>
-                    <TextBlock x:Name="TotalSessionsTextBlock" Text="0 sessions" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Text}" Margin="0 3 0 0"/>
+                    <TextBlock Text="PLANNED GOAL" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Title}"/>
+                    <TextBlock x:Name="PlannedGoalTextBlock" Text="0.0 hrs (0%)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Text}" Margin="0 3 0 0"/>
                 </StackPanel>
             </Border>
 
-            <!-- Card 4: Top Project -->
+            <!-- Card 3: Daily Average -->
+            <Border Grid.Column="2"
+                    Background="{DynamicResource Theme.StatCard2Bg}"
+                    BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10 8"
+                    Margin="2 0 2 0">
+                <StackPanel>
+                    <TextBlock Text="DAILY AVERAGE" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
+                    <TextBlock x:Name="DailyAverageTextBlock" Text="0h 00m / day" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0 3 0 0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 4: Total Sessions -->
             <Border Grid.Column="3"
                     Background="{DynamicResource Theme.StatCard4Bg}"
                     BorderBrush="{DynamicResource Theme.StatCard4Border}"
                     BorderThickness="1"
                     CornerRadius="6"
-                    Padding="12 8"
+                    Padding="10 8"
                     Margin="2 0 2 0">
                 <StackPanel>
-                    <TextBlock Text="TOP PROJECT" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
-                    <TextBlock x:Name="TopProjectTextBlock" Text="None" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 3 0 0" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="TOTAL SESSIONS" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
+                    <TextBlock x:Name="TotalSessionsTextBlock" Text="0 sessions" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 3 0 0"/>
                 </StackPanel>
             </Border>
 
-            <!-- Card 5: Top Activity -->
+            <!-- Card 5: Top Project -->
             <Border Grid.Column="4"
                     Background="{DynamicResource Theme.StatCard5Bg}"
                     BorderBrush="{DynamicResource Theme.StatCard5Border}"
                     BorderThickness="1"
                     CornerRadius="6"
-                    Padding="12 8"
-                    Margin="4 0 0 0">
+                    Padding="10 8"
+                    Margin="2 0 2 0">
                 <StackPanel>
-                    <TextBlock Text="TOP ACTIVITY" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Title}"/>
-                    <TextBlock x:Name="TopActivityTextBlock" Text="None" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Text}" Margin="0 3 0 0" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="TOP PROJECT" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Title}"/>
+                    <TextBlock x:Name="TopProjectTextBlock" Text="None" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Text}" Margin="0 3 0 0" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Card 6: Top Activity -->
+            <Border Grid.Column="5"
+                    Background="{DynamicResource Theme.StatCard1Bg}"
+                    BorderBrush="{DynamicResource Theme.StatCard1Border}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10 8"
+                    Margin="3 0 0 0">
+                <StackPanel>
+                    <TextBlock Text="TOP ACTIVITY" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
+                    <TextBlock x:Name="TopActivityTextBlock" Text="None" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 3 0 0" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
             </Border>
         </Grid>
@@ -229,12 +247,146 @@
                 </Grid>
             </TabItem>
 
-            <!-- Tab 2: Project Breakdown -->
+            <!-- Tab 2: Goal & Calendar Tracking -->
+            <TabItem Header="🎯 Goals &amp; Calendar Tracking">
+                <Grid Margin="6">
+                    <Grid.RowDefinitions>
+                        <!-- Top Goal Progress Headline -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Center Split Grid: Daily Accomplishment vs Project Goals -->
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Goal Summary & Action Bar -->
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource Theme.CardBackground}"
+                            BorderBrush="{DynamicResource Theme.CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="14 10"
+                            Margin="0 0 0 10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🎯 Target Goal (Mon-Sun):" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Primary}" Margin="0 0 8 0"/>
+                                    <TextBlock x:Name="GoalTabHeadlineText" Text="0.0h planned • 0.0h worked (0%)" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}"/>
+                                </StackPanel>
+                                <ProgressBar x:Name="GoalTabProgressBar" Height="6" Maximum="100" Value="0" Margin="0 6 20 0" Foreground="{DynamicResource Theme.Primary}"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1"
+                                    Content="📅 Open Work Planner"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Height="30"
+                                    Padding="12 0"
+                                    Click="OpenCalendarPlanner_Click"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Split Grid: Left (Day-by-Day Goal Comparison), Right (Project Goal Comparison) -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="310"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Daily Goal Accomplishment Table -->
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource Theme.CardBackground}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                Margin="0 0 6 0">
+                            <Grid>
+                                <DataGrid x:Name="GoalsDailyDataGrid"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          BorderThickness="0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="125"/>
+                                        <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="85"/>
+                                        <DataGridTextColumn Header="Planned" Binding="{Binding FormattedPlannedHours}" Width="75"/>
+                                        <DataGridTextColumn Header="Actual" Binding="{Binding FormattedActualHours}" Width="75"/>
+                                        <DataGridTextColumn Header="Variance" Binding="{Binding FormattedVariance}" Width="80"/>
+                                        <DataGridTextColumn Header="Progress" Binding="{Binding FormattedCompletionPercentage}" Width="65"/>
+                                        <DataGridTextColumn Header="Goal Status" Binding="{Binding StatusText}" Width="135"/>
+                                        <DataGridTextColumn Header="Projects / Plans" Binding="{Binding ProjectsSummary}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Empty State Overlay -->
+                                <Border x:Name="GoalsDailyEmptyStatePanel"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Margin="0 35 0 0"
+                                        IsHitTestVisible="False"
+                                        Visibility="Collapsed">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+                                        <TextBlock Text="🎯" FontSize="24" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
+                                        <TextBlock Text="No daily goals or tracked work for this period" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right: Project Goals Table -->
+                        <Border Grid.Column="1"
+                                Background="{DynamicResource Theme.CardBackground}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                Margin="6 0 0 0">
+                            <Grid>
+                                <DataGrid x:Name="GoalsProjectDataGrid"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          BorderThickness="0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="140"/>
+                                        <DataGridTextColumn Header="Planned" Binding="{Binding FormattedPlanned}" Width="65"/>
+                                        <DataGridTextColumn Header="Actual" Binding="{Binding FormattedActual}" Width="75"/>
+                                        <DataGridTextColumn Header="Progress" Binding="{Binding FormattedPercentage}" Width="65"/>
+                                        <DataGridTemplateColumn Header="Bar" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ProgressBar Value="{Binding CompletionPercentage, Mode=OneWay}" Maximum="100" Height="10" Margin="4 0" Foreground="{DynamicResource Theme.Primary}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Empty State Overlay -->
+                                <Border x:Name="GoalsProjectEmptyStatePanel"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Margin="0 35 0 0"
+                                        IsHitTestVisible="False"
+                                        Visibility="Collapsed">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+                                        <TextBlock Text="🎯" FontSize="20" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
+                                        <TextBlock Text="No project goals for this period" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 3: Project Breakdown -->
             <TabItem Header="📁 Project Breakdown">
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="340"/>
+                        <ColumnDefinition Width="290"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
@@ -242,25 +394,41 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             ClipToBounds="True">
-                        <DataGrid x:Name="ProjectsDataGrid"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  BorderThickness="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160"/>
-                                <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
-                                <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
-                                <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
-                                <DataGridTemplateColumn Header="Distribution" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <ProgressBar Value="{Binding Percentage}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Primary}" Background="{DynamicResource Theme.SecondaryBorder}"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <DataGrid x:Name="ProjectsDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
+                                    <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
+                                    <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
+                                    <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
+                                    <DataGridTemplateColumn Header="Distribution" Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ProgressBar Value="{Binding Percentage, Mode=OneWay}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Primary}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Empty State Overlay -->
+                            <Border x:Name="ProjectsEmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0 35 0 0"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12">
+                                    <TextBlock Text="📁" FontSize="26" HorizontalAlignment="Center" Margin="0 0 0 6" Opacity="0.6"/>
+                                    <TextBlock Text="There are no project entries currently" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Adjust your period or project filters to view project distribution" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 4 0 0" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                     <Border Grid.Column="1"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
@@ -279,7 +447,7 @@
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="340"/>
+                        <ColumnDefinition Width="290"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
@@ -287,25 +455,41 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             ClipToBounds="True">
-                        <DataGrid x:Name="ActivitiesDataGrid"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  BorderThickness="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="160"/>
-                                <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
-                                <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
-                                <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
-                                <DataGridTemplateColumn Header="Distribution" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <ProgressBar Value="{Binding Percentage}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Accent}" Background="{DynamicResource Theme.SecondaryBorder}"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <DataGrid x:Name="ActivitiesDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="160"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
+                                    <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
+                                    <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
+                                    <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
+                                    <DataGridTemplateColumn Header="Distribution" Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ProgressBar Value="{Binding Percentage, Mode=OneWay}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Accent}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Empty State Overlay -->
+                            <Border x:Name="ActivitiesEmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0 35 0 0"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12">
+                                    <TextBlock Text="🏷️" FontSize="26" HorizontalAlignment="Center" Margin="0 0 0 6" Opacity="0.6"/>
+                                    <TextBlock Text="There are no activity entries currently" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Adjust your period or activity filters to view activity distribution" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 4 0 0" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                     <Border Grid.Column="1"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
@@ -324,7 +508,7 @@
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="340"/>
+                        <ColumnDefinition Width="290"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
@@ -332,27 +516,43 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             ClipToBounds="True">
-                        <DataGrid x:Name="TasksDataGrid"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  BorderThickness="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
-                                <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="120"/>
-                                <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="110"/>
-                                <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="100"/>
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="80"/>
-                                <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
-                                <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
-                                <DataGridTemplateColumn Header="Distribution" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <ProgressBar Value="{Binding Percentage}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Warning}" Background="{DynamicResource Theme.SecondaryBorder}"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <DataGrid x:Name="TasksDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
+                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="120"/>
+                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="110"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="100"/>
+                                    <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="80"/>
+                                    <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
+                                    <DataGridTextColumn Header="Share (%)" Binding="{Binding FormattedPercentage}" Width="75"/>
+                                    <DataGridTemplateColumn Header="Distribution" Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ProgressBar Value="{Binding Percentage, Mode=OneWay}" Maximum="100" Height="14" Margin="5 0" Foreground="{DynamicResource Theme.Warning}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Empty State Overlay -->
+                            <Border x:Name="TasksEmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0 35 0 0"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12">
+                                    <TextBlock Text="📝" FontSize="26" HorizontalAlignment="Center" Margin="0 0 0 6" Opacity="0.6"/>
+                                    <TextBlock Text="There are no task entries currently" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Track sessions with task descriptions to view task breakdown" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 4 0 0" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                     <Border Grid.Column="1"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
@@ -366,7 +566,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- Tab 5: Daily Breakdown -->
+            <!-- Tab 6: Daily Breakdown -->
             <TabItem Header="📅 Daily Breakdown">
                 <Grid Margin="6">
                     <Border Background="{DynamicResource Theme.CardBackground}"
@@ -374,21 +574,39 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             ClipToBounds="True">
-                        <DataGrid x:Name="DailyDataGrid"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  BorderThickness="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="140"/>
-                                <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="95"/>
-                                <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="115"/>
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
-                                <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="70"/>
-                                <DataGridTextColumn Header="Projects" Binding="{Binding ProjectsSummary}" Width="140"/>
-                                <DataGridTextColumn Header="Activities" Binding="{Binding ActivitiesSummary}" Width="140"/>
-                                <DataGridTextColumn Header="Tasks / Descriptions" Binding="{Binding TasksSummary}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <DataGrid x:Name="DailyDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="120"/>
+                                    <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="85"/>
+                                    <DataGridTextColumn Header="Planned" Binding="{Binding FormattedPlannedHours}" Width="75"/>
+                                    <DataGridTextColumn Header="Actual" Binding="{Binding FormattedDuration}" Width="95"/>
+                                    <DataGridTextColumn Header="Variance" Binding="{Binding FormattedVariance}" Width="75"/>
+                                    <DataGridTextColumn Header="Goal Status" Binding="{Binding GoalStatusText}" Width="130"/>
+                                    <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
+                                    <DataGridTextColumn Header="Projects" Binding="{Binding ProjectsSummary}" Width="130"/>
+                                    <DataGridTextColumn Header="Activities" Binding="{Binding ActivitiesSummary}" Width="130"/>
+                                    <DataGridTextColumn Header="Tasks / Descriptions" Binding="{Binding TasksSummary}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Empty State Overlay -->
+                            <Border x:Name="DailyEmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0 35 0 0"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12">
+                                    <TextBlock Text="📅" FontSize="26" HorizontalAlignment="Center" Margin="0 0 0 6" Opacity="0.6"/>
+                                    <TextBlock Text="There are no daily entries currently" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Adjust your period filters to view day-by-day statistics" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 4 0 0" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                 </Grid>
             </TabItem>
@@ -401,21 +619,37 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             ClipToBounds="True">
-                        <DataGrid x:Name="EntriesDataGrid"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  BorderThickness="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Date" Binding="{Binding StartTime, StringFormat=\{0:yyyy-MM-dd\}}" Width="95"/>
-                                <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="135"/>
-                                <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="120"/>
-                                <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
-                                <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
-                                <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
-                                <DataGridTextColumn Header="Duration" Binding="{Binding Duration, StringFormat=\{0:hh\\:mm\\:ss\}}" Width="80"/>
-                                <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <DataGrid x:Name="EntriesDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Date" Binding="{Binding StartTime, StringFormat=\{0:yyyy-MM-dd\}}" Width="95"/>
+                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="135"/>
+                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="120"/>
+                                    <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
+                                    <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
+                                    <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding Duration, StringFormat=\{0:hh\\:mm\\:ss\}}" Width="80"/>
+                                    <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Empty State Overlay -->
+                            <Border x:Name="EntriesEmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0 35 0 0"
+                                    IsHitTestVisible="False"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12">
+                                    <TextBlock Text="📋" FontSize="26" HorizontalAlignment="Center" Margin="0 0 0 6" Opacity="0.6"/>
+                                    <TextBlock Text="There are no work log entries currently" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Adjust your period or project filters to view recorded sessions" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 4 0 0" Opacity="0.8"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                 </Grid>
             </TabItem>
@@ -434,4 +668,5 @@
             </StackPanel>
         </Grid>
     </Grid>
+    </ScrollViewer>
 </Window>

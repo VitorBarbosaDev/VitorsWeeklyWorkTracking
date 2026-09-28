@@ -64,6 +64,11 @@ public static class ThemeManager
         var dict = Application.Current.Resources;
 
         var palette = GetPalette(theme);
+        if (palette.TryGetValue("Theme.ForegroundSubtle", out var subtleHex) && !palette.ContainsKey("Theme.SecondaryText"))
+        {
+            palette["Theme.SecondaryText"] = subtleHex;
+        }
+
         foreach (var (key, colorHex) in palette)
         {
             var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));

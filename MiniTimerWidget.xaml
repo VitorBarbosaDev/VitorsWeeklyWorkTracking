@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:VitorsWeeklyWorkTracking.Controls"
         Title="Mini Work Timer"
         Width="330"
-        Height="265"
+        Height="285"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -221,20 +221,53 @@
                        Margin="0,0,0,2"
                        TextTrimming="CharacterEllipsis"/>
 
-            <!-- Row 5: Goal progress bar (collapsible) -->
-            <Grid x:Name="MiniGoalContainer" Grid.Row="5" Margin="0,1,0,3" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <ProgressBar x:Name="MiniGoalProgressBar" Height="4" Margin="0,0,0,2"/>
-                <TextBlock x:Name="MiniGoalStatsText"
-                           Grid.Row="1"
-                           Text="45% • 15m left"
-                           FontSize="9"
-                           Foreground="{DynamicResource Theme.ForegroundMuted}"
-                           HorizontalAlignment="Right"/>
-            </Grid>
+            <!-- Row 5: Goals (Session Goal & Weekly/Daily Target) -->
+            <StackPanel Grid.Row="5" Margin="0,1,0,3">
+                <!-- Session Goal (when active) -->
+                <Grid x:Name="MiniGoalContainer" Visibility="Collapsed" Margin="0,0,0,2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <ProgressBar x:Name="MiniGoalProgressBar" Height="4" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="MiniGoalStatsText"
+                               Grid.Row="1"
+                               Text="45% • 15m left"
+                               FontSize="9"
+                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                               HorizontalAlignment="Right"/>
+                </Grid>
+
+                <!-- Weekly & Daily Calendar Goals Bar -->
+                <Grid x:Name="MiniWeeklyGoalContainer">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <TextBlock x:Name="MiniWeeklyGoalLabel"
+                                   Text="🎯 Week: 0.0h / 0.0h"
+                                   FontSize="9"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Theme.Primary}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="160"/>
+                        <TextBlock x:Name="MiniTodayGoalLabel"
+                                   Text="📅 Today: 0.0h"
+                                   FontSize="9"
+                                   Foreground="{DynamicResource Theme.Accent}"
+                                   HorizontalAlignment="Right"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                    <ProgressBar x:Name="MiniWeeklyProgressBar"
+                                 Grid.Row="1"
+                                 Height="3.5"
+                                 Margin="0,2,0,1"
+                                 Maximum="100"
+                                 Value="0"
+                                 Foreground="{DynamicResource Theme.Primary}"/>
+                </Grid>
+            </StackPanel>
 
             <!-- Row 6: Project / Activity Info & Quick Start/Stop -->
             <Grid Grid.Row="6" Margin="0,2,0,0">
