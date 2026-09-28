@@ -60,7 +60,9 @@ public partial class MiniTimerWidget : Window
         bool hasGoal,
         double goalProgressPercentage,
         string goalStatsText,
-        Brush? goalProgressBrush = null)
+        Brush? goalProgressBrush = null,
+        string? companionMiniLine = null,
+        string? alertMessage = null)
     {
         MiniTimerText.Text = timerText;
         MiniStatusText.Text = statusText;
@@ -71,6 +73,26 @@ public partial class MiniTimerWidget : Window
         MiniActivityText.Text = string.IsNullOrWhiteSpace(activity) ? "No Activity" : activity;
 
         MiniTimerModeButton.Content = isCountDownMode ? "⏳ DOWN" : "⏱ UP";
+
+        if (!string.IsNullOrEmpty(companionMiniLine))
+        {
+            MiniCompanionLine.Text = companionMiniLine;
+            MiniCompanionLine.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            MiniCompanionLine.Visibility = Visibility.Collapsed;
+        }
+
+        if (!string.IsNullOrEmpty(alertMessage))
+        {
+            MiniAlertText.Text = alertMessage;
+            MiniAlertBanner.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            MiniAlertBanner.Visibility = Visibility.Collapsed;
+        }
 
         if (isTracking)
         {
@@ -97,6 +119,11 @@ public partial class MiniTimerWidget : Window
         {
             MiniGoalContainer.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void MiniAlertBanner_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        MiniAlertBanner.Visibility = Visibility.Collapsed;
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

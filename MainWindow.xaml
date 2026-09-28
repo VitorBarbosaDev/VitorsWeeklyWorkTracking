@@ -1,6 +1,7 @@
 ﻿<Window x:Class="VitorsWeeklyWorkTracking.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:VitorsWeeklyWorkTracking.Controls"
         Title="Freelance Work Tracker"
         Height="780"
         Width="1120"
@@ -16,17 +17,19 @@
 
     <Grid Margin="18">
         <Grid.RowDefinitions>
-            <!-- Header Bar -->
+            <!-- 0: Header Bar -->
             <RowDefinition Height="Auto"/>
-            <!-- Active Tracker Card -->
+            <!-- 1: Active Tracker & Alert Card -->
             <RowDefinition Height="Auto"/>
-            <!-- Filter Bar Card -->
+            <!-- 2: Animated Art & Focus Companion Card -->
             <RowDefinition Height="Auto"/>
-            <!-- Session Log DataGrid Card -->
+            <!-- 3: Filter Bar Card -->
+            <RowDefinition Height="Auto"/>
+            <!-- 4: Session Log DataGrid Card -->
             <RowDefinition Height="*"/>
-            <!-- Summary Stats Card -->
+            <!-- 5: Summary Stats Card -->
             <RowDefinition Height="Auto"/>
-            <!-- Bottom Action Bar -->
+            <!-- 6: Bottom Action Bar -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -66,6 +69,16 @@
 
             <!-- Right Controls: Mini Timer Corner Selector & Theme Switcher -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Companion Toggle Button -->
+                <Button x:Name="CompanionQuickToggleButton"
+                        Content="🎨 Art Companion"
+                        ToolTip="Toggle Animated Art &amp; Game Companion"
+                        Height="28"
+                        Padding="8 0"
+                        FontSize="11"
+                        Margin="0 0 10 0"
+                        Click="CompanionQuickToggleButton_Click"/>
+
                 <!-- Mini Floating Timer Options -->
                 <TextBlock Text="🗗 Mini Timer:" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 6 0" VerticalAlignment="Center"/>
                 <ComboBox x:Name="MiniCornerComboBox"
@@ -91,14 +104,59 @@
             </StackPanel>
         </Grid>
 
-        <!-- 2. Active Tracker Hero Card -->
-        <Border Grid.Row="1"
-                Background="{DynamicResource Theme.CardBackground}"
-                BorderBrush="{DynamicResource Theme.CardBorder}"
-                BorderThickness="1"
-                CornerRadius="10"
-                Padding="16"
-                Margin="0 0 0 12">
+        <!-- 2. Active Tracker Hero Card & Alert Banner -->
+        <StackPanel Grid.Row="1" Margin="0 0 0 12">
+            <!-- Rest & Focus Interval Alert Banner -->
+            <Border x:Name="IntervalAlertBanner"
+                    Background="{DynamicResource Theme.CardBackgroundAlt}"
+                    BorderBrush="{DynamicResource Theme.Primary}"
+                    BorderThickness="2"
+                    CornerRadius="10"
+                    Padding="14 10"
+                    Margin="0 0 0 10"
+                    Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="IntervalAlertIcon" Text="🔔" FontSize="26" VerticalAlignment="Center" Margin="0 0 12 0"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="IntervalAlertTitle" Text="🔔 Rest Time! Great Job!" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <TextBlock x:Name="IntervalAlertMessage" Text="You've finished your 25-minute focus session. Time for a 5-minute break!" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 2 0 2" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="IntervalAlertTip" Text="💧 Grab a refreshing glass of water and hydrate!" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Success}" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12 0 0 0">
+                        <Button x:Name="IntervalAlertPrimaryAction"
+                                Content="☕ Start Rest"
+                                Style="{StaticResource SuccessButton}"
+                                Height="28"
+                                Padding="12 0"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Margin="0 0 6 0"
+                                Click="IntervalAlertPrimaryAction_Click"/>
+                        <Button x:Name="IntervalAlertDismissButton"
+                                Content="✕ Dismiss"
+                                Style="{StaticResource GhostButton}"
+                                Height="28"
+                                Padding="10 0"
+                                FontSize="11"
+                                Click="IntervalAlertDismissButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Hero Card -->
+            <Border Background="{DynamicResource Theme.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <!-- Left Hero Section: Big Circular Button & Prominent Digital Timer & Status -->
@@ -388,10 +446,16 @@
                     </Border>
                 </Grid>
             </Grid>
-        </Border>
+            </Border>
+        </StackPanel>
 
-        <!-- 3. Filter Bar Card -->
-        <Border Grid.Row="2"
+        <!-- 3. Animated Art & Focus Companion Card -->
+        <controls:AsciiCompanionControl x:Name="CompanionControl"
+                                         Grid.Row="2"
+                                         Margin="0 0 0 12"/>
+
+        <!-- 4. Filter Bar Card -->
+        <Border Grid.Row="3"
                 Background="{DynamicResource Theme.CardBackgroundAlt}"
                 BorderBrush="{DynamicResource Theme.CardBorder}"
                 BorderThickness="1"
@@ -438,8 +502,8 @@
             </WrapPanel>
         </Border>
 
-        <!-- 4. Session Log DataGrid Card -->
-        <Border Grid.Row="3"
+        <!-- 5. Session Log DataGrid Card -->
+        <Border Grid.Row="4"
                 Background="{DynamicResource Theme.CardBackground}"
                 BorderBrush="{DynamicResource Theme.CardBorder}"
                 BorderThickness="1"
@@ -474,8 +538,8 @@
             </DataGrid>
         </Border>
 
-        <!-- 5. Summary Statistics Bar (4 KPI Cards) -->
-        <Grid Grid.Row="4" Margin="0 10 0 0">
+        <!-- 6. Summary Statistics Bar (4 KPI Cards) -->
+        <Grid Grid.Row="5" Margin="0 10 0 0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -540,8 +604,8 @@
             </Border>
         </Grid>
 
-        <!-- 6. Bottom Action Bar -->
-        <Grid Grid.Row="5" Margin="0 10 0 0">
+        <!-- 7. Bottom Action Bar -->
+        <Grid Grid.Row="6" Margin="0 10 0 0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button Content="📁 Manage Projects"
                         Width="135"

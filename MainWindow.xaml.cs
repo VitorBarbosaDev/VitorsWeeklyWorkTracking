@@ -51,9 +51,17 @@ public partial class MainWindow : Window
     private GoalOption? _selectedGoal;
     private List<GoalOption> _goalOptions = new();
 
+    private WorkRestSettings _workRestSettings;
+    private readonly FocusIntervalManager _intervalManager;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        _workRestSettings = FocusCompanionStorage.Load();
+        _intervalManager = new FocusIntervalManager(_workRestSettings);
+        _intervalManager.AlertTriggered += IntervalManager_AlertTriggered;
+        _intervalManager.PhaseChanged += IntervalManager_PhaseChanged;
 
         _entries = _storage.Load();
         _projects = _projectStorage.Load();
@@ -62,6 +70,7 @@ public partial class MainWindow : Window
         InitializeThemeSelector();
         InitializeGoalOptions();
         InitializeMiniCornerSelector();
+        InitializeCompanionControl();
 
         FilterStartDatePicker.SelectedDate = DateTime.Today;
         FilterEndDatePicker.SelectedDate = DateTime.Today;
@@ -77,6 +86,102 @@ public partial class MainWindow : Window
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
         UpdateStatus();
+    }
+
+    private void InitializeCompanionControl()
+    {
+        CompanionControl.Initialize(_intervalManager);
+        CompanionControl.SettingsChanged += (s) =>
+        {
+            _workRestSettings = s;
+            UpdateStatus();
+        };
+        CompanionControl.IntervalModeToggled += () =>
+        {
+            UpdateStatus();
+        };
+        CompanionControl.SkipPhaseRequested += () =>
+        {
+            _intervalManager.SkipToNextPhase();
+            UpdateStatus();
+        };
+        CompanionControl.ExtraRestRequested += (mins) =>
+        {
+            _intervalManager.AddExtraBreak(mins);
+            UpdateStatus();
+        };
+        CompanionControl.OpenSettingsRequested += () =>
+        {
+            OpenIntervalSettings();
+        };
+
+        CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
+        CompanionQuickToggleButton.Content = _workRestSettings.CompanionVisible ? "🎨 Companion: ON" : "🎨 Companion: OFF";
+    }
+
+    private void IntervalManager_AlertTriggered(object? sender, IntervalAlertEventArgs e)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            IntervalAlertIcon.Text = e.NewPhase == IntervalPhase.Focus ? "⚡" : "☕";
+            IntervalAlertTitle.Text = e.Title;
+            IntervalAlertMessage.Text = e.Message;
+            IntervalAlertTip.Text = e.Tip;
+            IntervalAlertPrimaryAction.Content = e.NewPhase == IntervalPhase.Focus ? "⚡ Start Focus" : "☕ Start Rest";
+            IntervalAlertBanner.Visibility = Visibility.Visible;
+            UpdateStatus();
+        });
+    }
+
+    private void IntervalManager_PhaseChanged(object? sender, IntervalPhase phase)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            UpdateStatus();
+        });
+    }
+
+    private void IntervalAlertPrimaryAction_Click(object sender, RoutedEventArgs e)
+    {
+        _intervalManager.DismissAlert();
+        IntervalAlertBanner.Visibility = Visibility.Collapsed;
+        if (!_intervalManager.Settings.AutoAdvancePhases)
+        {
+            _intervalManager.AdvanceToNextPhase();
+        }
+        UpdateStatus();
+    }
+
+    private void IntervalAlertDismissButton_Click(object sender, RoutedEventArgs e)
+    {
+        _intervalManager.DismissAlert();
+        IntervalAlertBanner.Visibility = Visibility.Collapsed;
+    }
+
+    private void CompanionQuickToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        _workRestSettings.CompanionVisible = !_workRestSettings.CompanionVisible;
+        FocusCompanionStorage.Save(_workRestSettings);
+        CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
+        CompanionQuickToggleButton.Content = _workRestSettings.CompanionVisible ? "🎨 Companion: ON" : "🎨 Companion: OFF";
+    }
+
+    private void OpenIntervalSettings()
+    {
+        var dialog = new WorkRestSettingsDialog(_workRestSettings)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _workRestSettings = dialog.Settings;
+            _intervalManager.UpdateSettings(_workRestSettings);
+            CompanionControl.Initialize(_intervalManager);
+            CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
+            CompanionQuickToggleButton.Content = _workRestSettings.CompanionVisible ? "🎨 Companion: ON" : "🎨 Companion: OFF";
+            UpdateStatus();
+        }
     }
 
     private void InitializeGoalOptions()
@@ -390,10 +495,16 @@ public partial class MainWindow : Window
         _pendingStartTime = null;
         _pendingEndTime = null;
 
+        if (_intervalManager.Settings.IntervalModeEnabled)
+        {
+            _intervalManager.StartTracking(_currentStartTime.Value);
+        }
+
         StartButton.Visibility = Visibility.Collapsed;
         StopButton.Visibility = Visibility.Visible;
         StopButton.IsEnabled = true;
         ReviewActionBar.Visibility = Visibility.Collapsed;
+        IntervalAlertBanner.Visibility = Visibility.Collapsed;
 
         _timer.Start();
         UpdateStatus();
@@ -408,6 +519,7 @@ public partial class MainWindow : Window
         _pendingEndTime = DateTime.Now;
         _currentStartTime = null;
 
+        _intervalManager.StopTracking();
         _timer.Stop();
 
         StopButton.Visibility = Visibility.Collapsed;
@@ -417,6 +529,7 @@ public partial class MainWindow : Window
         ReviewActionBar.Visibility = Visibility.Visible;
         SaveEntryButton.Visibility = Visibility.Visible;
         DiscardButton.Visibility = Visibility.Visible;
+        IntervalAlertBanner.Visibility = Visibility.Collapsed;
 
         UpdateStatus();
     }
@@ -484,22 +597,88 @@ public partial class MainWindow : Window
 
         var hasGoal = _selectedGoal?.TargetDuration != null;
         var goalDuration = _selectedGoal?.TargetDuration ?? TimeSpan.Zero;
+        bool isIntervalMode = _intervalManager.Settings.IntervalModeEnabled;
+
+        double goalProgressPercentage = 0;
+        string goalStatsText = "";
+        bool goalReached = false;
+        string displayTime = "00:00:00";
+
+        Brush primaryBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+        Brush successBrush = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+        Brush dangerBrush = TryFindResource("Theme.Danger") as Brush ?? Brushes.Crimson;
+        Brush warningBrush = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
+        Brush goalBarBrush = primaryBrush;
 
         if (_currentStartTime != null)
         {
             var elapsed = DateTime.Now - _currentStartTime.Value;
-            double goalProgressPercentage = 0;
-            string goalStatsText = "";
-            bool goalReached = false;
-            string displayTime = $"{elapsed:hh\\:mm\\:ss}";
 
-            Brush primaryBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
-            Brush successBrush = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
-            Brush dangerBrush = TryFindResource("Theme.Danger") as Brush ?? Brushes.Crimson;
-            Brush warningBrush = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
-            Brush goalBarBrush = primaryBrush;
+            if (isIntervalMode)
+            {
+                _intervalManager.CheckTick(DateTime.Now);
 
-            if (hasGoal && goalDuration > TimeSpan.Zero)
+                if (_intervalManager.IsRestPhase)
+                {
+                    var breakRemaining = _intervalManager.Remaining;
+                    var breakElapsed = _intervalManager.Elapsed;
+                    var breakTarget = _intervalManager.CurrentPhaseTargetDuration;
+                    goalProgressPercentage = _intervalManager.ProgressPercentage;
+                    displayTime = $"{breakRemaining:mm\\:ss}";
+                    goalBarBrush = successBrush;
+                    goalStatsText = $"{goalProgressPercentage:F0}% • {breakElapsed:mm\\:ss} / {breakTarget:mm\\:ss} ({breakRemaining:mm\\:ss} left in break)";
+
+                    HeroStatusBadgeText.Text = _intervalManager.CurrentPhase == IntervalPhase.LongBreak ? "🛋️ LONG REST BREAK" : "☕ SHORT REST BREAK";
+                    HeroStatusDot.Fill = successBrush;
+                    HeroStatusBadgeText.Foreground = successBrush;
+                    HeroStatusHeadline.Text = $"Rest & Recharge: {projectName} ☕";
+                    HeroStatusSubhead.Text = $"Take a breather, stretch, and hydrate! • Break {breakRemaining:mm\\:ss} left";
+
+                    GoalProgressBar.Value = goalProgressPercentage;
+                    GoalProgressBar.Foreground = goalBarBrush;
+                    GoalStatsTextBlock.Text = goalStatsText;
+                    GoalProgressContainer.Visibility = Visibility.Visible;
+
+                    StatusTextBlock.Text = $"☕ REST TIME: {projectName} ({displayTime})";
+                    Title = $"☕ [{displayTime}] Rest Break - Freelance Work Tracker";
+                    AppTaskbarItemInfo.Description = $"☕ [{displayTime}] Rest Break ({projectName})";
+                    AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
+                    AppTaskbarItemInfo.ProgressValue = Math.Clamp(_intervalManager.Elapsed.TotalSeconds / Math.Max(1, _intervalManager.CurrentPhaseTargetDuration.TotalSeconds), 0.01, 1.0);
+                    AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: false);
+                }
+                else
+                {
+                    var focusRemaining = _intervalManager.Remaining;
+                    var focusElapsed = _intervalManager.Elapsed;
+                    var focusTarget = _intervalManager.CurrentPhaseTargetDuration;
+                    goalProgressPercentage = _intervalManager.ProgressPercentage;
+                    displayTime = _isCountDownMode ? $"{focusRemaining:mm\\:ss}" : $"{focusElapsed:mm\\:ss}";
+                    goalBarBrush = primaryBrush;
+                    goalStatsText = $"{goalProgressPercentage:F0}% • {focusElapsed:mm\\:ss} / {focusTarget:mm\\:ss} ({focusRemaining:mm\\:ss} left in sprint)";
+
+                    HeroStatusBadgeText.Text = "🎯 FOCUS SPRINT";
+                    HeroStatusDot.Fill = dangerBrush;
+                    HeroStatusBadgeText.Foreground = dangerBrush;
+                    HeroStatusHeadline.Text = $"Focus Sprint: {projectName}";
+                    HeroStatusSubhead.Text = !string.IsNullOrEmpty(activity)
+                        ? $"Activity: {activity} • Session {_intervalManager.CurrentCycle}/{_intervalManager.Settings.CyclesBeforeLongBreak} ({_intervalManager.Settings.FocusMinutes}m sprint)"
+                        : $"Session {_intervalManager.CurrentCycle}/{_intervalManager.Settings.CyclesBeforeLongBreak} ({_intervalManager.Settings.FocusMinutes}m sprint)";
+
+                    GoalProgressBar.Value = goalProgressPercentage;
+                    GoalProgressBar.Foreground = goalBarBrush;
+                    GoalStatsTextBlock.Text = goalStatsText;
+                    GoalProgressContainer.Visibility = Visibility.Visible;
+
+                    StatusTextBlock.Text = $"🔴 FOCUS: {projectName}{activitySuffix} ({displayTime})";
+                    var modeLabel = _isCountDownMode ? "⏳" : "⏱️";
+                    Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                    AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
+                    AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
+                    AppTaskbarItemInfo.ProgressValue = Math.Clamp(focusElapsed.TotalSeconds / Math.Max(1, focusTarget.TotalSeconds), 0.01, 1.0);
+                    AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: false);
+                }
+            }
+            else if (hasGoal && goalDuration > TimeSpan.Zero)
             {
                 var totalSeconds = elapsed.TotalSeconds;
                 var goalSeconds = goalDuration.TotalSeconds;
@@ -558,6 +737,14 @@ public partial class MainWindow : Window
 
                 AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
                 AppTaskbarItemInfo.ProgressValue = Math.Clamp(totalSeconds / goalSeconds, 0.01, 1.0);
+
+                TimerDisplayTextBlock.Text = displayTime;
+                StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
+
+                var modeLabel = _isCountDownMode && hasGoal ? "⏳" : "⏱️";
+                Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
+                AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: goalReached);
             }
             else
             {
@@ -573,22 +760,48 @@ public partial class MainWindow : Window
                     : $"Started at {_currentStartTime.Value:hh:mm:ss tt}";
 
                 AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate;
+
+                TimerDisplayTextBlock.Text = displayTime;
+                StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
+
+                Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                AppTaskbarItemInfo.Description = $"⏱️ [{displayTime}] {projectName}{activitySuffix}";
+                AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: false);
             }
 
             TimerDisplayTextBlock.Text = displayTime;
-            StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
 
-            // Taskbar live title & description
-            var modeLabel = _isCountDownMode && hasGoal ? "⏳" : "⏱️";
-            Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
-            AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
-            AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: goalReached);
+            // Update Companion Control
+            CompanionControl.UpdateDisplay(
+                isTracking: true,
+                progressPercentage: goalProgressPercentage,
+                isGoalReached: goalReached,
+                currentTaskDetails: $"{projectName}{activitySuffix}");
 
-            // Update Mini Widget if active
+            // Mini companion line calculation
+            var miniScene = AsciiArtEngine.Render(
+                _intervalManager.Settings.SelectedSceneId,
+                0,
+                isIntervalMode ? (_intervalManager.ProgressPercentage / 100.0) : (goalProgressPercentage / 100.0),
+                isTracking: true,
+                isGoalReached: goalReached,
+                isRestPhase: isIntervalMode && _intervalManager.IsRestPhase,
+                contextDetails: $"{projectName}{activitySuffix}",
+                focusXp: _intervalManager.Settings.FocusXp);
+
+            string? alertText = (_intervalManager.IsAlertPending && _intervalManager.LastAlert != null)
+                ? _intervalManager.LastAlert.Title
+                : null;
+
             if (_miniWidget != null && _miniWidget.IsVisible)
             {
-                var statusColor = goalReached ? successBrush : dangerBrush;
-                var statusLabel = goalReached ? "GOAL" : "RECORDING";
+                var statusColor = isIntervalMode
+                    ? (_intervalManager.IsRestPhase ? successBrush : dangerBrush)
+                    : (goalReached ? successBrush : dangerBrush);
+                var statusLabel = isIntervalMode
+                    ? (_intervalManager.IsRestPhase ? "☕ REST" : "🎯 FOCUS")
+                    : (goalReached ? "GOAL" : "RECORDING");
+
                 _miniWidget.UpdateDisplay(
                     isTracking: true,
                     timerText: displayTime,
@@ -597,21 +810,23 @@ public partial class MainWindow : Window
                     projectName: projectName,
                     activity: activity,
                     isCountDownMode: _isCountDownMode,
-                    hasGoal: hasGoal,
+                    hasGoal: hasGoal || isIntervalMode,
                     goalProgressPercentage: goalProgressPercentage,
                     goalStatsText: goalStatsText,
-                    goalProgressBrush: goalBarBrush);
+                    goalProgressBrush: goalBarBrush,
+                    companionMiniLine: miniScene.MiniLine,
+                    alertMessage: alertText);
             }
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             var elapsed = _pendingEndTime.Value - _pendingStartTime.Value;
-            var displayTime = $"{elapsed:hh\\:mm\\:ss}";
+            displayTime = $"{elapsed:hh\\:mm\\:ss}";
 
             TimerDisplayTextBlock.Text = displayTime;
             HeroStatusBadgeText.Text = "SESSION RECORDED";
-            HeroStatusDot.Fill = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
-            HeroStatusBadgeText.Foreground = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
+            HeroStatusDot.Fill = warningBrush;
+            HeroStatusBadgeText.Foreground = warningBrush;
             HeroStatusHeadline.Text = "Ready to Save";
             HeroStatusSubhead.Text = $"Duration: {displayTime} — Click Save Entry or Discard.";
             GoalProgressContainer.Visibility = Visibility.Collapsed;
@@ -622,52 +837,72 @@ public partial class MainWindow : Window
             AppTaskbarItemInfo.Description = "Freelance Work Tracker";
             AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
 
+            CompanionControl.UpdateDisplay(
+                isTracking: false,
+                progressPercentage: 100.0,
+                isGoalReached: true,
+                currentTaskDetails: $"{projectName}{activitySuffix}");
+
             if (_miniWidget != null && _miniWidget.IsVisible)
             {
                 _miniWidget.UpdateDisplay(
                     isTracking: false,
                     timerText: displayTime,
                     statusText: "RECORDED",
-                    statusColor: TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod,
+                    statusColor: warningBrush,
                     projectName: projectName,
                     activity: activity,
                     isCountDownMode: _isCountDownMode,
                     hasGoal: false,
                     goalProgressPercentage: 0,
-                    goalStatsText: "");
+                    goalStatsText: "",
+                    goalProgressBrush: null,
+                    companionMiniLine: "[Session Recorded - Ready to Save]");
             }
         }
         else
         {
             TimerDisplayTextBlock.Text = "00:00:00";
-            HeroStatusBadgeText.Text = "READY";
+            HeroStatusBadgeText.Text = isIntervalMode ? "🍅 INTERVAL READY" : "READY";
             HeroStatusDot.Fill = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
             HeroStatusBadgeText.Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
-            HeroStatusHeadline.Text = "Ready to Track";
-            HeroStatusSubhead.Text = hasGoal 
-                ? $"Goal: {FormatCompact(goalDuration)} • Select project & activity to begin" 
-                : "Select project & activity to begin";
+            HeroStatusHeadline.Text = isIntervalMode
+                ? $"Ready: {_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest"
+                : "Ready to Track";
+            HeroStatusSubhead.Text = isIntervalMode
+                ? $"Click START to begin Focus Session 1 of {_intervalManager.Settings.CyclesBeforeLongBreak}"
+                : (hasGoal ? $"Goal: {FormatCompact(goalDuration)} • Select project & activity to begin" : "Select project & activity to begin");
             GoalProgressContainer.Visibility = Visibility.Collapsed;
 
-            StatusTextBlock.Text = "Status: Idle";
+            StatusTextBlock.Text = isIntervalMode
+                ? $"Status: Ready ({_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest)"
+                : "Status: Idle";
             Title = "Freelance Work Tracker";
             AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
             AppTaskbarItemInfo.Description = "Freelance Work Tracker";
-            AppTaskbarItemInfo.Overlay = null;
+            AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
+
+            CompanionControl.UpdateDisplay(
+                isTracking: false,
+                progressPercentage: 0.0,
+                isGoalReached: false,
+                currentTaskDetails: $"{projectName}{activitySuffix}");
 
             if (_miniWidget != null && _miniWidget.IsVisible)
             {
                 _miniWidget.UpdateDisplay(
                     isTracking: false,
                     timerText: "00:00:00",
-                    statusText: "READY",
+                    statusText: isIntervalMode ? "INTERVAL" : "READY",
                     statusColor: TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
                     projectName: projectName,
                     activity: activity,
                     isCountDownMode: _isCountDownMode,
-                    hasGoal: hasGoal,
+                    hasGoal: false,
                     goalProgressPercentage: 0,
-                    goalStatsText: hasGoal ? $"Goal: {FormatCompact(goalDuration)}" : "");
+                    goalStatsText: "",
+                    goalProgressBrush: null,
+                    companionMiniLine: isIntervalMode ? $"[🍅 {_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest]" : null);
             }
         }
     }
