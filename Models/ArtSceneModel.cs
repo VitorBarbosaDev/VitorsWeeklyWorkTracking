@@ -16,11 +16,13 @@ public class ArtSceneOption
 
     public static List<ArtSceneOption> AvailableScenes => new()
     {
-        new() { Id = "cycling", Name = "Boy Cycling Home", Icon = "🚴", Description = "Boy pedals his bicycle across the countryside towards home as the timer counts down." },
-        new() { Id = "rocket", Name = "Space Rocket Launch", Icon = "🚀", Description = "Rocket blasts off through stars and asteroids to land on the Moon." },
-        new() { Id = "cat", Name = "Playful Focus Kitty", Icon = "🐱", Description = "Cute kitten explores the path to reach a bowl of delicious fish." },
-        new() { Id = "cafe", Name = "Cozy Lo-Fi Cafe", Icon = "☕", Description = "Warm study desk with steaming coffee filling up and stacking books." },
-        new() { Id = "runner", Name = "Marathon Runner", Icon = "🏃", Description = "Athlete runs a marathon sprint to burst through the finish line ribbon." },
-        new() { Id = "tamagotchi", Name = "Focus Pet Tamagotchi", Icon = "👾", Description = "Cute interactive digital companion that gains XP and levels up as you focus." }
+        new() { Id = "cycling", Name = "Boy Cycling Home", Icon = "🚴", Description = "Cute boy pedals his bicycle with puppy in basket across a scenic meadow trail towards his cozy home." },
+        new() { Id = "cafe", Name = "Rainy Window Coffee", Icon = "☕", Description = "Zoomed-in 4-pane rainy window where steam rises from a cozy mug, fog builds on the glass, and reveals 'Good Job!' at the end." },
+        new() { Id = "icecream", Name = "Pastel Ice Cream Truck", Icon = "🍦", Description = "Cute pastel ice cream truck where children happily walk up to order delicious treats as focus time advances." },
+        new() { Id = "metro", Name = "Tokyo Metro Lo-Fi Girl", Icon = "🎧", Description = "Chill anime girl listening to lo-fi beats with headphones on the Tokyo metro passing glowing city lights." },
+        new() { Id = "cat", Name = "Playful Focus Kitty", Icon = "🐱", Description = "Kawaii fluffy kitten plays with yarn and scampers towards delicious fish treats." },
+        new() { Id = "rocket", Name = "Space Rocket Launch", Icon = "🚀", Description = "Chunky cute rocket blasts off through pastel stars to land on the Moon." },
+        new() { Id = "runner", Name = "Chibi Marathon Runner", Icon = "🏃", Description = "Cute energetic runner with flying sneakers sprinting to the golden trophy finish line." },
+        new() { Id = "tamagotchi", Name = "Focus Pet Tamagotchi", Icon = "👾", Description = "Kawaii virtual pocket pet that gains XP and smiles with glittering eyes as you focus." }
     };
 }

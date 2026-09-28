@@ -231,9 +231,11 @@ public partial class AsciiCompanionControl : UserControl
         _customCheerMessage = selectedScene.Id switch
         {
             "cycling" => "🚴 'Ring ring! Steady speed, you can do this!' ✨",
+            "cafe" => "☕ 'Mmm, smelling that fresh warm brew! Breathe & focus!' 🌿",
+            "icecream" => "🍦 'Ice cream for everyone! Sweet focus progress!' 🍓",
+            "metro" => "🎧 'Vibing to lo-fi beats on the Tokyo line! Stay in the groove!' 🎵",
             "rocket" => "🚀 'Thrusters boosted! Full power ahead!' 🌟",
             "cat" => "🐱 'Purrrrr! (=^･ω･^=) Kitty loves your focus!' 💖",
-            "cafe" => "☕ 'Mmm, smelling that fresh coffee aroma! Sip & focus!' 🌿",
             "runner" => "🏃 'Keep the pace! Gold medal focus sprint!' 🥇",
             "tamagotchi" => "👾 'Yay! Pet happiness +10%! Let's conquer this quest!' 💖",
             _ => "✨ Cheering you on! Fantastic focus energy!"

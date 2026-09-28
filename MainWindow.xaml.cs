@@ -359,6 +359,14 @@ public partial class MainWindow : Window
             {
                 CompanionControl.TriggerCheer();
             };
+            _miniWidget.ArtModeToggled += () =>
+            {
+                var newMode = _intervalManager.Settings.ArtMode == "ascii" ? "graphics" : "ascii";
+                _intervalManager.Settings.ArtMode = newMode;
+                FocusCompanionStorage.Save(_intervalManager.Settings);
+                CompanionControl.Initialize(_intervalManager);
+                UpdateStatus();
+            };
             _miniWidget.CornerChanged += (corner) =>
             {
                 _miniCorner = corner;
@@ -828,7 +836,10 @@ public partial class MainWindow : Window
                     progressFraction: progressFraction,
                     isGoalReached: goalReached,
                     isRestPhase: isIntervalMode && _intervalManager.IsRestPhase,
-                    focusXp: _intervalManager.Settings.FocusXp);
+                    focusXp: _intervalManager.Settings.FocusXp,
+                    petHappiness: 100,
+                    artMode: _intervalManager.Settings.ArtMode,
+                    asciiArtText: miniScene.AsciiArt);
             }
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
@@ -858,6 +869,16 @@ public partial class MainWindow : Window
 
             if (_miniWidget != null && _miniWidget.IsVisible)
             {
+                var reviewScene = AsciiArtEngine.Render(
+                    _intervalManager.Settings.SelectedSceneId,
+                    0,
+                    1.0,
+                    isTracking: false,
+                    isGoalReached: true,
+                    isRestPhase: false,
+                    contextDetails: $"{projectName}{activitySuffix}",
+                    focusXp: _intervalManager.Settings.FocusXp);
+
                 _miniWidget.UpdateDisplay(
                     isTracking: false,
                     timerText: displayTime,
@@ -876,7 +897,10 @@ public partial class MainWindow : Window
                     progressFraction: 1.0,
                     isGoalReached: true,
                     isRestPhase: false,
-                    focusXp: _intervalManager.Settings.FocusXp);
+                    focusXp: _intervalManager.Settings.FocusXp,
+                    petHappiness: 100,
+                    artMode: _intervalManager.Settings.ArtMode,
+                    asciiArtText: reviewScene.AsciiArt);
             }
         }
         else
@@ -937,7 +961,10 @@ public partial class MainWindow : Window
                     progressFraction: 0.0,
                     isGoalReached: false,
                     isRestPhase: false,
-                    focusXp: _intervalManager.Settings.FocusXp);
+                    focusXp: _intervalManager.Settings.FocusXp,
+                    petHappiness: 100,
+                    artMode: _intervalManager.Settings.ArtMode,
+                    asciiArtText: idleScene.AsciiArt);
             }
         }
     }

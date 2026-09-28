@@ -10,7 +10,7 @@ namespace VitorsWeeklyWorkTracking;
 public partial class WorkRestSettingsDialog : Window
 {
     public WorkRestSettings Settings { get; private set; }
-    private bool _isUpdatingUi = false;
+    private bool _isUpdatingUi = true;
 
     private readonly List<IntervalPreset> _presets = new()
     {
@@ -127,15 +127,19 @@ public partial class WorkRestSettingsDialog : Window
 
     private void UpdateLabels()
     {
-        FocusValueText.Text = $"{FocusSlider.Value:F0} min";
-        ShortBreakValueText.Text = $"{ShortBreakSlider.Value:F0} min";
-        LongBreakValueText.Text = $"{LongBreakSlider.Value:F0} min";
-        CyclesValueText.Text = $"{CyclesSlider.Value:F0} cycles";
+        if (FocusValueText != null && FocusSlider != null)
+            FocusValueText.Text = $"{FocusSlider.Value:F0} min";
+        if (ShortBreakValueText != null && ShortBreakSlider != null)
+            ShortBreakValueText.Text = $"{ShortBreakSlider.Value:F0} min";
+        if (LongBreakValueText != null && LongBreakSlider != null)
+            LongBreakValueText.Text = $"{LongBreakSlider.Value:F0} min";
+        if (CyclesValueText != null && CyclesSlider != null)
+            CyclesValueText.Text = $"{CyclesSlider.Value:F0} cycles";
     }
 
     private void PresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isUpdatingUi || PresetComboBox.SelectedItem is not IntervalPreset preset)
+        if (_isUpdatingUi || PresetComboBox?.SelectedItem is not IntervalPreset preset || PresetDescriptionText == null)
             return;
 
         PresetDescriptionText.Text = preset.Description;
@@ -144,17 +148,18 @@ public partial class WorkRestSettingsDialog : Window
             return;
 
         _isUpdatingUi = true;
-        FocusSlider.Value = preset.FocusMinutes;
-        ShortBreakSlider.Value = preset.ShortBreakMinutes;
-        LongBreakSlider.Value = preset.LongBreakMinutes;
-        CyclesSlider.Value = preset.CyclesBeforeLongBreak;
+        if (FocusSlider != null) FocusSlider.Value = preset.FocusMinutes;
+        if (ShortBreakSlider != null) ShortBreakSlider.Value = preset.ShortBreakMinutes;
+        if (LongBreakSlider != null) LongBreakSlider.Value = preset.LongBreakMinutes;
+        if (CyclesSlider != null) CyclesSlider.Value = preset.CyclesBeforeLongBreak;
         UpdateLabels();
         _isUpdatingUi = false;
     }
 
     private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || FocusSlider == null || ShortBreakSlider == null || LongBreakSlider == null || CyclesSlider == null || PresetComboBox == null || PresetDescriptionText == null)
+            return;
 
         UpdateLabels();
 

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:VitorsWeeklyWorkTracking.Controls"
         Title="Mini Work Timer"
-        Width="320"
-        Height="250"
+        Width="330"
+        Height="265"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -29,7 +29,7 @@
                 <RowDefinition Height="Auto"/>
                 <!-- Row 2: Digital Timer & Count mode toggle -->
                 <RowDefinition Height="Auto"/>
-                <!-- Row 3: Mini Visual Animated Companion Box -->
+                <!-- Row 3: Mini Visual Animated Companion Box OR Mini Retro ASCII Box -->
                 <RowDefinition Height="Auto"/>
                 <!-- Row 4: Mini Narrative / Status Line -->
                 <RowDefinition Height="Auto"/>
@@ -52,6 +52,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    
                     <!-- Always On Top Pin Button -->
                     <Button x:Name="PinOnTopButton"
                             Content="📌 Pinned"
@@ -144,32 +145,70 @@
                            ToolTip="Click to toggle Count Up / Count Down mode"
                            MouseLeftButtonUp="MiniTimerText_MouseLeftButtonUp"/>
 
-                <Button x:Name="MiniTimerModeButton"
-                        Grid.Column="1"
-                        Content="⏱ UP"
-                        ToolTip="Toggle Count Up / Count Down mode"
-                        Style="{StaticResource GhostButton}"
-                        FontSize="10"
-                        FontWeight="SemiBold"
-                        Padding="6,2"
-                        Height="22"
-                        VerticalAlignment="Center"
-                        Click="MiniTimerModeButton_Click"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Art Mode switcher (Graphics / ASCII) -->
+                    <Button x:Name="MiniArtModeButton"
+                            Content="🎨"
+                            ToolTip="Switch Art Mode (Graphics ↔ ASCII)"
+                            Style="{StaticResource GhostButton}"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Padding="6,2"
+                            Height="22"
+                            Margin="0,0,4,0"
+                            VerticalAlignment="Center"
+                            Click="MiniArtModeButton_Click"/>
+                
+                    <!-- Timer Count Up / Down Toggle -->
+                    <Button x:Name="MiniTimerModeButton"
+                            Content="⏱ UP"
+                            ToolTip="Toggle Count Up / Count Down mode"
+                            Style="{StaticResource GhostButton}"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Padding="6,2"
+                            Height="22"
+                            VerticalAlignment="Center"
+                            Click="MiniTimerModeButton_Click"/>
+                </StackPanel>
             </Grid>
 
-            <!-- Row 3: Mini Visual Animated Companion Graphic -->
+            <!-- Row 3: Mini Visual Animated Companion Graphic OR Mini Retro ASCII Box -->
             <Border x:Name="MiniVisualBorder"
                     Grid.Row="3"
                     Background="{DynamicResource Theme.CardBackgroundAlt}"
                     BorderBrush="{DynamicResource Theme.CardBorder}"
                     BorderThickness="1"
                     CornerRadius="7"
-                    Height="58"
+                    Height="68"
                     Margin="0,1,0,3"
                     Cursor="Hand"
                     ToolTip="Click to cheer on companion!"
                     MouseLeftButtonUp="MiniVisualBorder_MouseLeftButtonUp">
                 <local:VisualCompanionControl x:Name="MiniVisualCompanion" IsMiniMode="True"/>
+            </Border>
+
+            <Border x:Name="MiniAsciiBorder"
+                    Grid.Row="3"
+                    Background="{DynamicResource Theme.CardBackgroundAlt}"
+                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="7"
+                    Height="68"
+                    Padding="6,3"
+                    Margin="0,1,0,3"
+                    Cursor="Hand"
+                    ToolTip="Click to cheer on companion!"
+                    Visibility="Collapsed"
+                    MouseLeftButtonUp="MiniAsciiBorder_MouseLeftButtonUp">
+                <TextBlock x:Name="MiniAsciiText"
+                           FontFamily="Consolas, Lucida Console, Courier New, monospace"
+                           FontSize="8.5"
+                           LineHeight="11"
+                           Foreground="{DynamicResource Theme.Foreground}"
+                           TextWrapping="NoWrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
             </Border>
 
             <!-- Row 4: Mini Narrative Text Line -->

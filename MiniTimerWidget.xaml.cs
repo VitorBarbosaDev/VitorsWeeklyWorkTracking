@@ -24,6 +24,7 @@ public partial class MiniTimerWidget : Window
     public event Action? RestoreRequested;
     public event Action? ClosedByUser;
     public event Action? CheerRequested;
+    public event Action? ArtModeToggled;
     public event Action<ScreenCorner>? CornerChanged;
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -142,7 +143,9 @@ public partial class MiniTimerWidget : Window
         bool isGoalReached = false,
         bool isRestPhase = false,
         int focusXp = 0,
-        int petHappiness = 100)
+        int petHappiness = 100,
+        string artMode = "graphics",
+        string? asciiArtText = null)
     {
         MiniTimerText.Text = timerText;
         MiniStatusText.Text = statusText;
@@ -154,16 +157,36 @@ public partial class MiniTimerWidget : Window
 
         MiniTimerModeButton.Content = isCountDownMode ? "⏳ DOWN" : "⏱ UP";
 
-        // Update Mini Visual Animated Companion
-        MiniVisualCompanion.UpdateState(
-            sceneId ?? "cycling",
-            progressFraction,
-            isTracking,
-            isGoalReached,
-            isRestPhase,
-            string.IsNullOrWhiteSpace(projectName) ? "Work" : projectName,
-            focusXp,
-            petHappiness);
+        bool isAscii = string.Equals(artMode, "ascii", StringComparison.OrdinalIgnoreCase);
+        if (isAscii)
+        {
+            MiniVisualBorder.Visibility = Visibility.Collapsed;
+            MiniAsciiBorder.Visibility = Visibility.Visible;
+            MiniArtModeButton.Content = "📟";
+            MiniArtModeButton.ToolTip = "Art Mode: Retro ASCII • Click to switch to Graphics";
+
+            if (!string.IsNullOrEmpty(asciiArtText))
+            {
+                MiniAsciiText.Text = asciiArtText;
+            }
+        }
+        else
+        {
+            MiniVisualBorder.Visibility = Visibility.Visible;
+            MiniAsciiBorder.Visibility = Visibility.Collapsed;
+            MiniArtModeButton.Content = "🎨";
+            MiniArtModeButton.ToolTip = "Art Mode: Rich Graphics • Click to switch to ASCII";
+
+            MiniVisualCompanion.UpdateState(
+                sceneId ?? "cycling",
+                progressFraction,
+                isTracking,
+                isGoalReached,
+                isRestPhase,
+                string.IsNullOrWhiteSpace(projectName) ? "Work" : projectName,
+                focusXp,
+                petHappiness);
+        }
 
         if (!string.IsNullOrEmpty(companionMiniLine))
         {
@@ -243,9 +266,19 @@ public partial class MiniTimerWidget : Window
         SetPinnedOnTop(!IsPinnedOnTop);
     }
 
+    private void MiniArtModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        ArtModeToggled?.Invoke();
+    }
+
     private void MiniVisualBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         MiniVisualCompanion.TriggerCheer();
+        CheerRequested?.Invoke();
+    }
+
+    private void MiniAsciiBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
         CheerRequested?.Invoke();
     }
 

@@ -143,7 +143,7 @@
                         BorderBrush="{DynamicResource Theme.CardBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
-                        Height="140"
+                        Height="155"
                         Cursor="Hand"
                         ToolTip="Click to interact with art companion!"
                         MouseLeftButtonUp="ArtBox_MouseLeftButtonUp">
@@ -156,6 +156,7 @@
                         BorderBrush="{DynamicResource Theme.CardBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
+                        Height="155"
                         Padding="12,8"
                         Cursor="Hand"
                         ToolTip="Click to interact with art companion!"
