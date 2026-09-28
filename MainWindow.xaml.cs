@@ -8,12 +8,22 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Shell;
 using VitorsWeeklyWorkTracking.Models;
 using VitorsWeeklyWorkTracking.Services;
 using Microsoft.Win32;
 using System.IO;
 
 namespace VitorsWeeklyWorkTracking;
+
+public class GoalOption
+{
+    public string DisplayName { get; set; } = string.Empty;
+    public TimeSpan? TargetDuration { get; set; }
+    public bool IsCustom { get; set; } = false;
+
+    public override string ToString() => DisplayName;
+}
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
@@ -34,6 +44,13 @@ public partial class MainWindow : Window
     private List<TimeEntry> _filteredEntries = new();
     private bool _isInitializing = true;
 
+    private MiniTimerWidget? _miniWidget;
+    private ScreenCorner _miniCorner = ScreenCorner.BottomRight;
+    private bool _miniTimerEnabled = true;
+    private bool _isCountDownMode = false;
+    private GoalOption? _selectedGoal;
+    private List<GoalOption> _goalOptions = new();
+
     public MainWindow()
     {
         InitializeComponent();
@@ -43,6 +60,8 @@ public partial class MainWindow : Window
         _activities = _activityStorage.Load();
 
         InitializeThemeSelector();
+        InitializeGoalOptions();
+        InitializeMiniCornerSelector();
 
         FilterStartDatePicker.SelectedDate = DateTime.Today;
         FilterEndDatePicker.SelectedDate = DateTime.Today;
@@ -57,6 +76,195 @@ public partial class MainWindow : Window
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
+        UpdateStatus();
+    }
+
+    private void InitializeGoalOptions()
+    {
+        _goalOptions = new List<GoalOption>
+        {
+            new() { DisplayName = "🎯 No Goal (Count Up)", TargetDuration = null },
+            new() { DisplayName = "⏱️ 15 Minutes", TargetDuration = TimeSpan.FromMinutes(15) },
+            new() { DisplayName = "🍅 25 Min (Pomodoro)", TargetDuration = TimeSpan.FromMinutes(25) },
+            new() { DisplayName = "⏱️ 30 Minutes", TargetDuration = TimeSpan.FromMinutes(30) },
+            new() { DisplayName = "⏱️ 45 Minutes", TargetDuration = TimeSpan.FromMinutes(45) },
+            new() { DisplayName = "⏱️ 1 Hour", TargetDuration = TimeSpan.FromHours(1) },
+            new() { DisplayName = "⏱️ 1.5 Hours", TargetDuration = TimeSpan.FromMinutes(90) },
+            new() { DisplayName = "⏱️ 2 Hours", TargetDuration = TimeSpan.FromHours(2) },
+            new() { DisplayName = "⏱️ 3 Hours", TargetDuration = TimeSpan.FromHours(3) },
+            new() { DisplayName = "⏱️ 4 Hours", TargetDuration = TimeSpan.FromHours(4) },
+            new() { DisplayName = "✏️ Custom Minutes...", IsCustom = true }
+        };
+
+        GoalComboBox.ItemsSource = _goalOptions;
+        GoalComboBox.SelectedIndex = 0;
+        _selectedGoal = _goalOptions[0];
+    }
+
+    private void InitializeMiniCornerSelector()
+    {
+        MiniCornerComboBox.Items.Clear();
+        MiniCornerComboBox.Items.Add("↘ Bottom-Right");
+        MiniCornerComboBox.Items.Add("↙ Bottom-Left");
+        MiniCornerComboBox.Items.Add("❌ Disabled");
+        MiniCornerComboBox.SelectedIndex = 0;
+    }
+
+    private void MiniCornerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        switch (MiniCornerComboBox.SelectedIndex)
+        {
+            case 0:
+                _miniTimerEnabled = true;
+                _miniCorner = ScreenCorner.BottomRight;
+                _miniWidget?.SetCorner(ScreenCorner.BottomRight);
+                break;
+            case 1:
+                _miniTimerEnabled = true;
+                _miniCorner = ScreenCorner.BottomLeft;
+                _miniWidget?.SetCorner(ScreenCorner.BottomLeft);
+                break;
+            case 2:
+                _miniTimerEnabled = false;
+                _miniWidget?.Hide();
+                break;
+        }
+    }
+
+    private void GoalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        if (GoalComboBox.SelectedItem is GoalOption opt)
+        {
+            if (opt.IsCustom)
+            {
+                var dialog = new CustomGoalDialog(30)
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var mins = dialog.SelectedMinutes;
+                    var customGoal = new GoalOption
+                    {
+                        DisplayName = $"🎯 Custom ({mins}m)",
+                        TargetDuration = TimeSpan.FromMinutes(mins)
+                    };
+
+                    _goalOptions.Insert(_goalOptions.Count - 1, customGoal);
+                    GoalComboBox.ItemsSource = null;
+                    GoalComboBox.ItemsSource = _goalOptions;
+                    GoalComboBox.SelectedItem = customGoal;
+                    _selectedGoal = customGoal;
+                }
+                else
+                {
+                    GoalComboBox.SelectedItem = _selectedGoal ?? _goalOptions[0];
+                    return;
+                }
+            }
+            else
+            {
+                _selectedGoal = opt;
+            }
+
+            UpdateStatus();
+        }
+    }
+
+    private void Window_StateChanged(object sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            if (_miniTimerEnabled)
+            {
+                EnsureMiniWidget();
+                _miniWidget?.ApplyCornerPosition();
+                _miniWidget?.Show();
+                UpdateStatus();
+            }
+        }
+        else
+        {
+            if (_miniWidget != null && _miniWidget.IsVisible)
+            {
+                _miniWidget.Hide();
+            }
+        }
+    }
+
+    private void MiniOverlayQuickButton_Click(object sender, RoutedEventArgs e)
+    {
+        EnsureMiniWidget();
+        WindowState = WindowState.Minimized;
+    }
+
+    private void TimerDisplayTextBlock_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        ToggleCountMode();
+    }
+
+    private void TimerModeToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleCountMode();
+    }
+
+    private void ToggleCountMode()
+    {
+        _isCountDownMode = !_isCountDownMode;
+        TimerModeToggleButton.Content = _isCountDownMode ? "⏳ DOWN" : "⏱ UP";
+        UpdateStatus();
+    }
+
+    private void EnsureMiniWidget()
+    {
+        if (_miniWidget == null)
+        {
+            _miniWidget = new MiniTimerWidget();
+            _miniWidget.SetCorner(_miniCorner);
+            _miniWidget.StartClicked += () =>
+            {
+                if (StartButton.IsEnabled && StartButton.Visibility == Visibility.Visible)
+                {
+                    StartButton_Click(this, new RoutedEventArgs());
+                }
+            };
+            _miniWidget.StopClicked += () =>
+            {
+                if (StopButton.IsEnabled && StopButton.Visibility == Visibility.Visible)
+                {
+                    StopButton_Click(this, new RoutedEventArgs());
+                }
+            };
+            _miniWidget.ToggleCountModeClicked += () =>
+            {
+                ToggleCountMode();
+            };
+            _miniWidget.RestoreRequested += () =>
+            {
+                RestoreMainWindow();
+            };
+            _miniWidget.CornerChanged += (corner) =>
+            {
+                _miniCorner = corner;
+                _isInitializing = true;
+                MiniCornerComboBox.SelectedIndex = corner == ScreenCorner.BottomRight ? 0 : 1;
+                _isInitializing = false;
+            };
+        }
+    }
+
+    private void RestoreMainWindow()
+    {
+        WindowState = WindowState.Normal;
+        Activate();
+        Focus();
     }
 
     private void InitializeThemeSelector()
@@ -74,6 +282,7 @@ public partial class MainWindow : Window
         if (ThemeComboBox.SelectedItem is ThemeOption option)
         {
             ThemeManager.ApplyTheme(option.Theme);
+            UpdateStatus();
         }
     }
 
@@ -178,8 +387,14 @@ public partial class MainWindow : Window
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
         _currentStartTime = DateTime.Now;
-        StartButton.IsEnabled = false;
+        _pendingStartTime = null;
+        _pendingEndTime = null;
+
+        StartButton.Visibility = Visibility.Collapsed;
+        StopButton.Visibility = Visibility.Visible;
         StopButton.IsEnabled = true;
+        ReviewActionBar.Visibility = Visibility.Collapsed;
+
         _timer.Start();
         UpdateStatus();
     }
@@ -194,11 +409,16 @@ public partial class MainWindow : Window
         _currentStartTime = null;
 
         _timer.Stop();
-        StatusTextBlock.Text = "Status: Review entry — save or discard.";
 
-        StopButton.IsEnabled = false;
+        StopButton.Visibility = Visibility.Collapsed;
+        StartButton.Visibility = Visibility.Visible;
+        StartButton.IsEnabled = false;
+
+        ReviewActionBar.Visibility = Visibility.Visible;
         SaveEntryButton.Visibility = Visibility.Visible;
         DiscardButton.Visibility = Visibility.Visible;
+
+        UpdateStatus();
     }
 
     private void SaveEntryButton_Click(object sender, RoutedEventArgs e)
@@ -240,8 +460,11 @@ public partial class MainWindow : Window
         _pendingStartTime = null;
         _pendingEndTime = null;
 
+        ReviewActionBar.Visibility = Visibility.Collapsed;
         SaveEntryButton.Visibility = Visibility.Collapsed;
         DiscardButton.Visibility = Visibility.Collapsed;
+        StopButton.Visibility = Visibility.Collapsed;
+        StartButton.Visibility = Visibility.Visible;
         StartButton.IsEnabled = true;
 
         DescriptionTextBox.Clear();
@@ -251,19 +474,232 @@ public partial class MainWindow : Window
 
     private void UpdateStatus()
     {
+        var selectedProject = ProjectComboBox.SelectedItem as Project;
+        var projectName = selectedProject?.Name ?? ProjectComboBox.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(projectName)) projectName = "Unassigned Project";
+
+        var selectedActivity = ActivityComboBox.SelectedItem as ActivityItem;
+        var activity = selectedActivity?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString() ?? string.Empty;
+        var activitySuffix = !string.IsNullOrEmpty(activity) ? $" [{activity}]" : "";
+
+        var hasGoal = _selectedGoal?.TargetDuration != null;
+        var goalDuration = _selectedGoal?.TargetDuration ?? TimeSpan.Zero;
+
         if (_currentStartTime != null)
         {
             var elapsed = DateTime.Now - _currentStartTime.Value;
-            var projectName = (ProjectComboBox.SelectedItem as Project)?.Name ?? "Active Session";
-            var selectedActivity = ActivityComboBox.SelectedItem as ActivityItem;
-            var activity = selectedActivity?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString() ?? "";
-            var activitySuffix = !string.IsNullOrEmpty(activity) ? $" [{activity}]" : "";
-            StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({elapsed:hh\\:mm\\:ss})";
+            double goalProgressPercentage = 0;
+            string goalStatsText = "";
+            bool goalReached = false;
+            string displayTime = $"{elapsed:hh\\:mm\\:ss}";
+
+            Brush primaryBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+            Brush successBrush = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+            Brush dangerBrush = TryFindResource("Theme.Danger") as Brush ?? Brushes.Crimson;
+            Brush warningBrush = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
+            Brush goalBarBrush = primaryBrush;
+
+            if (hasGoal && goalDuration > TimeSpan.Zero)
+            {
+                var totalSeconds = elapsed.TotalSeconds;
+                var goalSeconds = goalDuration.TotalSeconds;
+                goalProgressPercentage = Math.Clamp((totalSeconds / goalSeconds) * 100.0, 0.0, 100.0);
+
+                if (elapsed < goalDuration)
+                {
+                    var remaining = goalDuration - elapsed;
+                    goalStatsText = $"{goalProgressPercentage:F0}% • {elapsed:mm\\:ss} / {goalDuration:hh\\:mm\\:ss} ({FormatCompact(remaining)} left)";
+                    goalBarBrush = primaryBrush;
+
+                    if (_isCountDownMode)
+                    {
+                        displayTime = $"{remaining:hh\\:mm\\:ss}";
+                    }
+                    else
+                    {
+                        displayTime = $"{elapsed:hh\\:mm\\:ss}";
+                    }
+
+                    HeroStatusBadgeText.Text = "RECORDING";
+                    HeroStatusDot.Fill = dangerBrush;
+                    HeroStatusBadgeText.Foreground = dangerBrush;
+                    HeroStatusHeadline.Text = $"Tracking: {projectName}";
+                    HeroStatusSubhead.Text = !string.IsNullOrEmpty(activity)
+                        ? $"Activity: {activity} • Goal: {FormatCompact(goalDuration)}"
+                        : $"Goal: {FormatCompact(goalDuration)} • Started at {_currentStartTime.Value:hh:mm:ss tt}";
+                }
+                else
+                {
+                    goalReached = true;
+                    var overtime = elapsed - goalDuration;
+                    goalStatsText = $"100% REACHED! 🎉 • Overtime: +{overtime:hh\\:mm\\:ss}";
+                    goalBarBrush = successBrush;
+
+                    if (_isCountDownMode)
+                    {
+                        displayTime = $"+{overtime:hh\\:mm\\:ss}";
+                    }
+                    else
+                    {
+                        displayTime = $"{elapsed:hh\\:mm\\:ss}";
+                    }
+
+                    HeroStatusBadgeText.Text = "🎯 GOAL REACHED";
+                    HeroStatusDot.Fill = successBrush;
+                    HeroStatusBadgeText.Foreground = successBrush;
+                    HeroStatusHeadline.Text = $"Goal Achieved: {projectName} 🎉";
+                    HeroStatusSubhead.Text = $"Completed {FormatCompact(goalDuration)} • Overtime: +{overtime:hh\\:mm\\:ss}";
+                }
+
+                GoalProgressBar.Value = goalProgressPercentage;
+                GoalProgressBar.Foreground = goalBarBrush;
+                GoalStatsTextBlock.Text = goalStatsText;
+                GoalProgressContainer.Visibility = Visibility.Visible;
+
+                AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
+                AppTaskbarItemInfo.ProgressValue = Math.Clamp(totalSeconds / goalSeconds, 0.01, 1.0);
+            }
+            else
+            {
+                GoalProgressContainer.Visibility = Visibility.Collapsed;
+                displayTime = $"{elapsed:hh\\:mm\\:ss}";
+
+                HeroStatusBadgeText.Text = "RECORDING";
+                HeroStatusDot.Fill = dangerBrush;
+                HeroStatusBadgeText.Foreground = dangerBrush;
+                HeroStatusHeadline.Text = $"Tracking: {projectName}";
+                HeroStatusSubhead.Text = !string.IsNullOrEmpty(activity)
+                    ? $"Activity: {activity} • Started at {_currentStartTime.Value:hh:mm:ss tt}"
+                    : $"Started at {_currentStartTime.Value:hh:mm:ss tt}";
+
+                AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate;
+            }
+
+            TimerDisplayTextBlock.Text = displayTime;
+            StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
+
+            // Taskbar live title & description
+            var modeLabel = _isCountDownMode && hasGoal ? "⏳" : "⏱️";
+            Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+            AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
+            AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: goalReached);
+
+            // Update Mini Widget if active
+            if (_miniWidget != null && _miniWidget.IsVisible)
+            {
+                var statusColor = goalReached ? successBrush : dangerBrush;
+                var statusLabel = goalReached ? "GOAL" : "RECORDING";
+                _miniWidget.UpdateDisplay(
+                    isTracking: true,
+                    timerText: displayTime,
+                    statusText: statusLabel,
+                    statusColor: statusColor,
+                    projectName: projectName,
+                    activity: activity,
+                    isCountDownMode: _isCountDownMode,
+                    hasGoal: hasGoal,
+                    goalProgressPercentage: goalProgressPercentage,
+                    goalStatsText: goalStatsText,
+                    goalProgressBrush: goalBarBrush);
+            }
+        }
+        else if (_pendingStartTime != null && _pendingEndTime != null)
+        {
+            var elapsed = _pendingEndTime.Value - _pendingStartTime.Value;
+            var displayTime = $"{elapsed:hh\\:mm\\:ss}";
+
+            TimerDisplayTextBlock.Text = displayTime;
+            HeroStatusBadgeText.Text = "SESSION RECORDED";
+            HeroStatusDot.Fill = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
+            HeroStatusBadgeText.Foreground = TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod;
+            HeroStatusHeadline.Text = "Ready to Save";
+            HeroStatusSubhead.Text = $"Duration: {displayTime} — Click Save Entry or Discard.";
+            GoalProgressContainer.Visibility = Visibility.Collapsed;
+
+            StatusTextBlock.Text = "Status: Review entry — save or discard.";
+            Title = "Freelance Work Tracker";
+            AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
+            AppTaskbarItemInfo.Description = "Freelance Work Tracker";
+            AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
+
+            if (_miniWidget != null && _miniWidget.IsVisible)
+            {
+                _miniWidget.UpdateDisplay(
+                    isTracking: false,
+                    timerText: displayTime,
+                    statusText: "RECORDED",
+                    statusColor: TryFindResource("Theme.Warning") as Brush ?? Brushes.Goldenrod,
+                    projectName: projectName,
+                    activity: activity,
+                    isCountDownMode: _isCountDownMode,
+                    hasGoal: false,
+                    goalProgressPercentage: 0,
+                    goalStatsText: "");
+            }
         }
         else
         {
+            TimerDisplayTextBlock.Text = "00:00:00";
+            HeroStatusBadgeText.Text = "READY";
+            HeroStatusDot.Fill = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
+            HeroStatusBadgeText.Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
+            HeroStatusHeadline.Text = "Ready to Track";
+            HeroStatusSubhead.Text = hasGoal 
+                ? $"Goal: {FormatCompact(goalDuration)} • Select project & activity to begin" 
+                : "Select project & activity to begin";
+            GoalProgressContainer.Visibility = Visibility.Collapsed;
+
             StatusTextBlock.Text = "Status: Idle";
+            Title = "Freelance Work Tracker";
+            AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
+            AppTaskbarItemInfo.Description = "Freelance Work Tracker";
+            AppTaskbarItemInfo.Overlay = null;
+
+            if (_miniWidget != null && _miniWidget.IsVisible)
+            {
+                _miniWidget.UpdateDisplay(
+                    isTracking: false,
+                    timerText: "00:00:00",
+                    statusText: "READY",
+                    statusColor: TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+                    projectName: projectName,
+                    activity: activity,
+                    isCountDownMode: _isCountDownMode,
+                    hasGoal: hasGoal,
+                    goalProgressPercentage: 0,
+                    goalStatsText: hasGoal ? $"Goal: {FormatCompact(goalDuration)}" : "");
+            }
         }
+    }
+
+    private static string FormatCompact(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1)
+        {
+            return ts.Minutes > 0 ? $"{(int)ts.TotalHours}h {ts.Minutes}m" : $"{(int)ts.TotalHours}h";
+        }
+        if (ts.TotalMinutes >= 1)
+        {
+            return ts.Seconds > 0 ? $"{(int)ts.TotalMinutes}m {ts.Seconds}s" : $"{(int)ts.TotalMinutes}m";
+        }
+        return $"{(int)ts.TotalSeconds}s";
+    }
+
+    private static ImageSource CreateTaskbarOverlayImage(bool isRecording, bool goalReached)
+    {
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            var brush = goalReached
+                ? new SolidColorBrush(Color.FromRgb(22, 163, 74))
+                : (isRecording ? new SolidColorBrush(Color.FromRgb(220, 38, 38)) : new SolidColorBrush(Color.FromRgb(217, 119, 6)));
+            brush.Freeze();
+            dc.DrawEllipse(brush, new Pen(Brushes.White, 1.5), new Point(8, 8), 5.5, 5.5);
+        }
+        var rtb = new RenderTargetBitmap(16, 16, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(visual);
+        rtb.Freeze();
+        return rtb;
     }
 
     private void RefreshGrid()
