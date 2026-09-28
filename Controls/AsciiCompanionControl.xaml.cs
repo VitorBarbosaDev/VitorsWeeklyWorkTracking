@@ -232,6 +232,7 @@ public partial class AsciiCompanionControl : UserControl
         {
             "cycling" => "🚴 'Ring ring! Steady speed, you can do this!' ✨",
             "cafe" => "☕ 'Mmm, smelling that fresh warm brew! Breathe & focus!' 🌿",
+            "coffeejazz" => "🎷 'Latte in hand, lo-fi jazz on... perfect focus vibes!' 🍂",
             "icecream" => "🍦 'Ice cream for everyone! Sweet focus progress!' 🍓",
             "metro" => "🎧 'Vibing to lo-fi beats on the Tokyo line! Stay in the groove!' 🎵",
             "rocket" => "🚀 'Thrusters boosted! Full power ahead!' 🌟",

@@ -13,6 +13,7 @@ public partial class ActivityManagementWindow : Window
     public ActivityManagementWindow(ActivityStorage storage, List<ActivityItem> activities)
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
         _storage = storage;
         _activities = activities;
         RefreshLists();

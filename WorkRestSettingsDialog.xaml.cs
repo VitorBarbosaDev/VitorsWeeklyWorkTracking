@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using VitorsWeeklyWorkTracking.Models;
+using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking;
 
@@ -64,6 +65,7 @@ public partial class WorkRestSettingsDialog : Window
     public WorkRestSettingsDialog(WorkRestSettings currentSettings)
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
         Settings = new WorkRestSettings
         {
             IntervalModeEnabled = currentSettings.IntervalModeEnabled,

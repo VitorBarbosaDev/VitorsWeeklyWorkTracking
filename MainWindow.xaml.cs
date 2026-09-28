@@ -57,6 +57,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
 
         _workRestSettings = FocusCompanionStorage.Load();
         _intervalManager = new FocusIntervalManager(_workRestSettings);
@@ -652,7 +653,7 @@ public partial class MainWindow : Window
                     GoalProgressContainer.Visibility = Visibility.Visible;
 
                     StatusTextBlock.Text = $"☕ REST TIME: {projectName} ({displayTime})";
-                    Title = $"☕ [{displayTime}] Rest Break - Freelance Work Tracker";
+                    Title = $"☕ [{displayTime}] Rest Break - Fun Work Tracker";
                     AppTaskbarItemInfo.Description = $"☕ [{displayTime}] Rest Break ({projectName})";
                     AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
                     AppTaskbarItemInfo.ProgressValue = Math.Clamp(_intervalManager.Elapsed.TotalSeconds / Math.Max(1, _intervalManager.CurrentPhaseTargetDuration.TotalSeconds), 0.01, 1.0);
@@ -683,7 +684,7 @@ public partial class MainWindow : Window
 
                     StatusTextBlock.Text = $"🔴 FOCUS: {projectName}{activitySuffix} ({displayTime})";
                     var modeLabel = _isCountDownMode ? "⏳" : "⏱️";
-                    Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                    Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
                     AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
                     AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
                     AppTaskbarItemInfo.ProgressValue = Math.Clamp(focusElapsed.TotalSeconds / Math.Max(1, focusTarget.TotalSeconds), 0.01, 1.0);
@@ -754,7 +755,7 @@ public partial class MainWindow : Window
                 StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
 
                 var modeLabel = _isCountDownMode && hasGoal ? "⏳" : "⏱️";
-                Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
                 AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
                 AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: goalReached);
             }
@@ -776,7 +777,7 @@ public partial class MainWindow : Window
                 TimerDisplayTextBlock.Text = displayTime;
                 StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
 
-                Title = $"🔴 [{displayTime}] {projectName} - Freelance Work Tracker";
+                Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
                 AppTaskbarItemInfo.Description = $"⏱️ [{displayTime}] {projectName}{activitySuffix}";
                 AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: false);
             }
@@ -856,9 +857,9 @@ public partial class MainWindow : Window
             GoalProgressContainer.Visibility = Visibility.Collapsed;
 
             StatusTextBlock.Text = "Status: Review entry — save or discard.";
-            Title = "Freelance Work Tracker";
+            Title = "Fun Work Tracker";
             AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
-            AppTaskbarItemInfo.Description = "Freelance Work Tracker";
+            AppTaskbarItemInfo.Description = "Fun Work Tracker";
             AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
 
             CompanionControl.UpdateDisplay(
@@ -920,9 +921,9 @@ public partial class MainWindow : Window
             StatusTextBlock.Text = isIntervalMode
                 ? $"Status: Ready ({_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest)"
                 : "Status: Idle";
-            Title = "Freelance Work Tracker";
+            Title = "Fun Work Tracker";
             AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
-            AppTaskbarItemInfo.Description = "Freelance Work Tracker";
+            AppTaskbarItemInfo.Description = "Fun Work Tracker";
             AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
 
             CompanionControl.UpdateDisplay(
@@ -1219,7 +1220,7 @@ public partial class MainWindow : Window
     private void ExportButton_Click(object sender, RoutedEventArgs e)
     {
         var timestamp = DateTime.Now.ToString("dd-MM-yyyy");
-        var defaultFileName = $"{timestamp}_freelance-time-export.csv";
+        var defaultFileName = $"{timestamp}_funWorkTracker-time-export.csv";
 
         var dialog = new SaveFileDialog
         {

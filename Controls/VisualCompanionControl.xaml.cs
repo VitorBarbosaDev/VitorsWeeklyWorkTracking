@@ -24,6 +24,7 @@ public partial class VisualCompanionControl : UserControl
     public int PetHappiness { get; set; } = 100;
 
     private int _cheerAnimationTicks = 0;
+    private int _goalReachedStartTick = -1;
 
     public event Action? Clicked;
 
@@ -60,6 +61,19 @@ public partial class VisualCompanionControl : UserControl
         SceneId = string.IsNullOrEmpty(sceneId) ? "cycling" : sceneId;
         ProgressFraction = Math.Clamp(progressFraction, 0.0, 1.0);
         IsTracking = isTracking;
+
+        // Track exactly when the goal-reached state first becomes true so end-of-session
+        // sequences (e.g. the ice cream truck's end-of-shift drive-away) can play once in order
+        // instead of jumping to a random point based on the shared ambient frame counter.
+        if (isGoalReached && !IsGoalReached)
+        {
+            _goalReachedStartTick = _frameTick;
+        }
+        else if (!isGoalReached)
+        {
+            _goalReachedStartTick = -1;
+        }
+
         IsGoalReached = isGoalReached;
         IsRestPhase = isRestPhase;
         ContextDetails = contextDetails;
@@ -94,6 +108,9 @@ public partial class VisualCompanionControl : UserControl
         {
             case "cafe":
                 RenderCafeScene(dc, w, h);
+                break;
+            case "coffeejazz":
+                RenderCoffeeJazzScene(dc, w, h);
                 break;
             case "icecream":
                 RenderIceCreamScene(dc, w, h);
@@ -177,6 +194,15 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawGeometry(brush, null, geom);
     }
 
+    private static Color LerpColor(Color a, Color b, double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        return Color.FromRgb(
+            (byte)(a.R + ((b.R - a.R) * t)),
+            (byte)(a.G + ((b.G - a.G) * t)),
+            (byte)(a.B + ((b.B - a.B) * t)));
+    }
+
     #endregion
 
     #region 🚴 Scene 1: Cute Boy & Puppy Cycling Home
@@ -186,10 +212,12 @@ public partial class VisualCompanionControl : UserControl
         double trailY = h * 0.70;
         double trailHeight = h - trailY;
 
-        // 1. Warm Sunny Morning Sky Gradient
+        // 1. Sky Gradient that gradually warms from a fresh morning blue into a golden dusk glow
+        // as the boy gets closer to home - reinforcing the "cycling home" journey feel.
+        double duskT = Math.Clamp(ProgressFraction, 0.0, 1.0);
         var skyBrush = new LinearGradientBrush(
-            Color.FromRgb(92, 172, 248),
-            Color.FromRgb(248, 238, 222),
+            LerpColor(Color.FromRgb(92, 172, 248), Color.FromRgb(255, 150, 120), duskT * 0.75),
+            LerpColor(Color.FromRgb(248, 238, 222), Color.FromRgb(255, 205, 160), duskT * 0.85),
             new Point(0, 0),
             new Point(0, 1));
         dc.DrawRectangle(skyBrush, null, new Rect(0, 0, w, trailY));
@@ -266,6 +294,12 @@ public partial class VisualCompanionControl : UserControl
         // Wildflowers on the grass
         DrawWildflowers(dc, w, trailY);
 
+        // Fluttering butterflies drifting over the meadow while the boy is pedaling
+        if (!IsMiniMode)
+        {
+            DrawFlutteringButterflies(dc, w, trailY);
+        }
+
         // 5. Picturesque Countryside Trail (Warm earth/sand with soft grass borders - NO harsh asphalt line!)
         var trailBrush = new LinearGradientBrush(
             Color.FromRgb(242, 226, 198),
@@ -316,6 +350,10 @@ public partial class VisualCompanionControl : UserControl
         else
         {
             double bounce = IsTracking ? Math.Sin(_frameTick * 0.85) * (IsMiniMode ? 1.2 : 2.2) : 0;
+            if (IsTracking && !IsMiniMode)
+            {
+                DrawDustPuffs(dc, currentX, trailY + bounce);
+            }
             DrawCuteCyclingBoyAndPuppy(dc, currentX, trailY + bounce, IsMiniMode, IsTracking);
         }
     }
@@ -409,6 +447,41 @@ public partial class VisualCompanionControl : UserControl
             Color c = (i % 3 == 0) ? Color.FromRgb(255, 140, 180) : (i % 3 == 1 ? Color.FromRgb(255, 225, 90) : Color.FromRgb(255, 255, 255));
             dc.DrawEllipse(new SolidColorBrush(c), null, new Point(fx, fy), 2, 2);
             dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 200, 60)), null, new Point(fx, fy), 0.8, 0.8);
+        }
+    }
+
+    private void DrawFlutteringButterflies(DrawingContext dc, double w, double groundY)
+    {
+        var butterflyColors = new[]
+        {
+            Color.FromRgb(255, 205, 90),
+            Color.FromRgb(255, 140, 190),
+            Color.FromRgb(150, 210, 255)
+        };
+
+        for (int i = 0; i < 3; i++)
+        {
+            double travel = ((_frameTick * (0.5 + (i * 0.15))) + (i * 140)) % (w + 60);
+            double bx = travel - 30;
+            double by = (groundY * (0.32 + (i * 0.14))) + (Math.Sin((_frameTick * 0.12) + (i * 2)) * 10);
+            double flap = Math.Sin(_frameTick * 0.5 + i) * 2.5 + 3;
+
+            var wingBrush = new SolidColorBrush(butterflyColors[i % butterflyColors.Length]);
+            dc.DrawEllipse(wingBrush, null, new Point(bx - 2, by), flap, 3.2);
+            dc.DrawEllipse(wingBrush, null, new Point(bx + 2, by), flap, 3.2);
+        }
+    }
+
+    private void DrawDustPuffs(DrawingContext dc, double bikeX, double groundY)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            double age = (_frameTick * 2.4 + (i * 9)) % 30;
+            double px = bikeX - (14 + age);
+            double py = groundY + 3 - (age * 0.12);
+            double pr = 1.5 + (age * 0.12);
+            byte alpha = (byte)Math.Clamp(90 - (age * 2.6), 0, 90);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(alpha, 225, 205, 175)), null, new Point(px, py), pr, pr * 0.6);
         }
     }
 
@@ -1146,6 +1219,15 @@ public partial class VisualCompanionControl : UserControl
 
             // Warm fairy lights string glowing along the window sill
             DrawFairyLights(dc, w, sillY);
+
+            // Retro spinning lo-fi vinyl record player - the "chill beats to study/relax to" vibe
+            DrawLoFiVinylPlayer(dc, 52, sillY);
+        }
+
+        // Gentle rising lo-fi music notes drifting past the glass while the mix plays on
+        if (IsTracking || IsRestPhase)
+        {
+            DrawCafeLoFiMusicNotes(dc, w, sillY);
         }
 
         // 5. Large Prominent Artisan Coffee Mug on Saucer (Right side)
@@ -1296,6 +1378,67 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(125, 205, 140)), null, new Point(x + (potW * 0.5), potY - 5), 5, 7);
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(110, 185, 125)), null, new Point(x + potW - 5, potY - 2), 4, 6);
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(160, 225, 175)), null, new Point(x + (potW * 0.5), potY - 3), 3, 4);
+    }
+
+    /// <summary>
+    /// Small retro turntable spinning a vinyl record on the sill - the classic
+    /// "lo-fi beats to relax/study to" visual anchor.
+    /// </summary>
+    private void DrawLoFiVinylPlayer(DrawingContext dc, double x, double sillY)
+    {
+        double baseW = 26;
+        double baseH = 8;
+        double baseY = sillY - baseH + 1;
+
+        // Wooden turntable base
+        var baseBrush = new LinearGradientBrush(Color.FromRgb(150, 100, 65), Color.FromRgb(110, 70, 42), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(baseBrush, new Pen(new SolidColorBrush(Color.FromRgb(85, 52, 30)), 1), new Rect(x, baseY, baseW, baseH), 2, 2);
+
+        // Spinning vinyl record
+        double discR = 8.5;
+        Point discCenter = new Point(x + (baseW * 0.42), baseY - 1);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(25, 22, 28)), new Pen(new SolidColorBrush(Color.FromRgb(60, 55, 65)), 0.8), discCenter, discR, discR * 0.55);
+
+        // Rotating groove highlight to sell the spin
+        double spin = _frameTick * 0.12;
+        for (int g = 0; g < 3; g++)
+        {
+            double a = spin + (g * (Math.PI * 2 / 3));
+            Point p = new Point(discCenter.X + (Math.Cos(a) * discR * 0.65), discCenter.Y + (Math.Sin(a) * discR * 0.65 * 0.55));
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 220, 220, 230)), null, p, 1.1, 0.7);
+        }
+
+        // Center label
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 170, 110)), null, discCenter, discR * 0.28, discR * 0.16);
+
+        // Tonearm resting on the record
+        var armPen = new Pen(new SolidColorBrush(Color.FromRgb(210, 200, 190)), 1.4);
+        dc.DrawLine(armPen, new Point(x + baseW - 3, baseY - 4), new Point(discCenter.X + 3, discCenter.Y - 1));
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(210, 200, 190)), null, new Point(x + baseW - 3, baseY - 4), 1.6, 1.6);
+    }
+
+    /// <summary>
+    /// Softly floating lo-fi music notes drifting up past the foggy glass, reinforcing the
+    /// "chill study/relax music mix" atmosphere the whole cafe scene is going for.
+    /// </summary>
+    private void DrawCafeLoFiMusicNotes(DrawingContext dc, double w, double sillY)
+    {
+        string[] notes = { "♪", "♫", "♩" };
+        var noteColors = new[] { Color.FromRgb(255, 210, 150), Color.FromRgb(255, 235, 200), Color.FromRgb(230, 190, 255) };
+
+        for (int n = 0; n < (IsMiniMode ? 1 : 3); n++)
+        {
+            double riseOffset = ((_frameTick * 1.0) + (n * 40)) % 90;
+            double nx = (IsMiniMode ? w * 0.18 : 90) + (Math.Sin((_frameTick * 0.1) + n) * 8);
+            double ny = sillY - riseOffset;
+
+            if (ny < 6) continue;
+
+            double alpha = Math.Clamp(1.0 - (riseOffset / 90.0), 0.05, 0.75);
+            var nBrush = new SolidColorBrush(Color.FromArgb((byte)(220 * alpha), noteColors[n % noteColors.Length].R, noteColors[n % noteColors.Length].G, noteColors[n % noteColors.Length].B));
+            var ft = CreateText(notes[n % notes.Length], IsMiniMode ? 9 : 12, nBrush, FontWeights.Bold);
+            dc.DrawText(ft, new Point(nx, ny));
+        }
     }
 
     private void DrawFairyLights(DrawingContext dc, double w, double sillY)
@@ -1615,6 +1758,202 @@ public partial class VisualCompanionControl : UserControl
 
     #endregion
 
+    #region 🎷 Scene: Coffee Jazz Window (Playlist Cover)
+
+    /// <summary>
+    /// A "playlist cover" scene (like a chill lo-fi/jazz YouTube stream thumbnail) that fills the
+    /// whole companion canvas: an autumn lakeside window view above a latte on a warm wooden
+    /// table, with drifting golden sparkle dust.
+    /// </summary>
+    private void RenderCoffeeJazzScene(DrawingContext dc, double w, double h)
+    {
+        bool isMini = IsMiniMode;
+        var cardRect = new Rect(0, 0, w, h);
+
+        double viewH = h * 0.60;
+        DrawCoffeeJazzLakeView(dc, cardRect, viewH, isMini);
+        DrawCoffeeJazzWindowFrame(dc, cardRect, viewH, isMini);
+        DrawCoffeeJazzTable(dc, cardRect, viewH, isMini);
+        DrawCoffeeJazzSparkles(dc, cardRect, isMini);
+    }
+
+    private void DrawCoffeeJazzLakeView(DrawingContext dc, Rect card, double viewH, bool isMini)
+    {
+        // Golden-hour warmth drifts in gradually as focus progress advances, like an afternoon
+        // slowly turning to dusk over the lake.
+        double dusk = ProgressFraction;
+        Color skyTop = LerpColor(Color.FromRgb(140, 185, 222), Color.FromRgb(232, 178, 140), dusk);
+        Color skyBottom = LerpColor(Color.FromRgb(210, 190, 165), Color.FromRgb(250, 200, 150), dusk);
+
+        var skyBrush = new LinearGradientBrush(skyTop, skyBottom, new Point(0, 0), new Point(0, 1));
+        var viewRect = new Rect(card.X, card.Y, card.Width, viewH);
+        dc.DrawRectangle(skyBrush, null, viewRect);
+
+        // Soft sun glare glow near the upper edge
+        var sunGlow = new RadialGradientBrush(Color.FromArgb(140, 255, 235, 190), Color.FromArgb(0, 255, 235, 190));
+        dc.DrawEllipse(sunGlow, null, new Point(card.X + (card.Width * 0.66), card.Y + (viewH * 0.22)), card.Width * 0.55, viewH * 0.4);
+
+        // Distant autumn tree line silhouette along the horizon (deterministic clusters, no flicker)
+        double horizonY = card.Y + (viewH * 0.70);
+        var treeRand = new Random(11);
+        Color[] foliage =
+        {
+            Color.FromRgb(196, 122, 58), Color.FromRgb(214, 156, 66), Color.FromRgb(150, 108, 58),
+            Color.FromRgb(120, 96, 56), Color.FromRgb(168, 130, 70)
+        };
+        for (double tx = card.X - 6; tx < card.X + card.Width + 6; tx += (isMini ? 10 : 7))
+        {
+            double th = 8 + (treeRand.NextDouble() * (isMini ? 8 : 16));
+            var tBrush = new SolidColorBrush(foliage[treeRand.Next(foliage.Length)]);
+            dc.DrawEllipse(tBrush, null, new Point(tx, horizonY - (th * 0.4)), (isMini ? 6 : 9), th);
+        }
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(60, 50, 42)), null, new Rect(card.X, horizonY - 1, card.Width, 2));
+
+        // Lake water reflecting the sky and tree colors, with soft horizontal shimmer streaks
+        var waterBrush = new LinearGradientBrush(LerpColor(skyBottom, Color.FromRgb(150, 120, 95), 0.3), Color.FromRgb(70, 55, 48), new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(waterBrush, null, new Rect(card.X, horizonY, card.Width, viewH - (horizonY - card.Y)));
+
+        for (int i = 0; i < (isMini ? 4 : 7); i++)
+        {
+            double sy = horizonY + 3 + (i * (isMini ? 4 : 6));
+            if (sy > card.Y + viewH) break;
+            double shimmer = Math.Sin((_frameTick * 0.05) + i) * 0.5 + 0.5;
+            var shimmerBrush = new SolidColorBrush(Color.FromArgb((byte)(60 * shimmer), 255, 235, 210));
+            dc.DrawLine(new Pen(shimmerBrush, 1.2), new Point(card.X + (card.Width * 0.1), sy), new Point(card.X + (card.Width * (0.55 + (0.08 * Math.Sin(i)))), sy));
+        }
+    }
+
+    private void DrawCoffeeJazzWindowFrame(DrawingContext dc, Rect card, double viewH, bool isMini)
+    {
+        var woodBrush = new LinearGradientBrush(Color.FromRgb(120, 78, 48), Color.FromRgb(70, 44, 26), new Point(0, 0), new Point(1, 1));
+        double frameT = isMini ? 5 : 10;
+
+        // Top window frame edge
+        dc.DrawRectangle(woodBrush, null, new Rect(card.X, card.Y, card.Width, frameT));
+        // Right-hand vertical mullion, suggesting we're peeking through one pane of a larger window
+        dc.DrawRectangle(woodBrush, null, new Rect(card.X + (card.Width * 0.78), card.Y, frameT * 0.8, viewH));
+
+        if (!isMini)
+        {
+            // Faint wood grain highlight lines
+            var grainPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 255, 210, 170)), 0.8);
+            dc.DrawLine(grainPen, new Point(card.X, card.Y + (frameT * 0.5)), new Point(card.X + card.Width, card.Y + (frameT * 0.5)));
+        }
+    }
+
+    private void DrawCoffeeJazzTable(DrawingContext dc, Rect card, double viewH, bool isMini)
+    {
+        double tableY = card.Y + viewH;
+        double tableH = card.Height - viewH;
+        var tableRect = new Rect(card.X, tableY, card.Width, tableH);
+
+        var tableBrush = new LinearGradientBrush(Color.FromRgb(150, 100, 62), Color.FromRgb(96, 60, 36), new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(tableBrush, null, tableRect);
+
+        // Warm bevel where the tabletop catches the window light
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(150, 235, 190, 140)), 1.4), new Point(card.X, tableY), new Point(card.X + card.Width, tableY));
+
+        // Subtle wood-grain streaks across the table
+        var grainRand = new Random(3);
+        for (int i = 0; i < (isMini ? 3 : 6); i++)
+        {
+            double gy = tableY + 4 + (grainRand.NextDouble() * (tableH - 8));
+            var gBrush = new SolidColorBrush(Color.FromArgb(40, 60, 35, 20));
+            dc.DrawLine(new Pen(gBrush, 1.0), new Point(card.X, gy), new Point(card.X + card.Width, gy + (grainRand.NextDouble() * 3 - 1.5)));
+        }
+
+        // Coffee cup + saucer with latte-art rosette, slightly left-of-center like the reference.
+        // Sized from the available table height (not card width) so it still fits fully in
+        // frame on the widget's wide landscape canvas instead of overflowing past the bottom.
+        double cupH = Math.Min(tableH * 0.82, card.Height * 0.42);
+        double cupW = cupH / 0.62;
+        double maxCupW = card.Width * (isMini ? 0.30 : 0.26);
+        if (cupW > maxCupW)
+        {
+            cupW = maxCupW;
+            cupH = cupW * 0.62;
+        }
+        double cupX = card.X + (card.Width * 0.34) - (cupW * 0.5);
+        double saucerH = cupH * 0.28;
+        double saucerBottomOffset = cupH + (saucerH * 0.45);
+        double cupY = tableY + (tableH * 0.94) - saucerBottomOffset;
+
+        DrawCoffeeJazzCup(dc, cupX, cupY, cupW, cupH, isMini);
+
+        // Rising steam wisps drifting up past the window view
+        DrawMugSteamWisps(dc, cupX + (cupW * 0.5), cupY, cupW, cupH, isMini);
+    }
+
+    private void DrawCoffeeJazzCup(DrawingContext dc, double x, double y, double cupW, double cupH, bool isMini)
+    {
+        double saucerW = cupW * 1.45;
+        double saucerH = cupH * 0.28;
+        double saucerX = x + ((cupW - saucerW) * 0.5);
+        double saucerY = y + cupH - (saucerH * 0.55);
+
+        // Drop shadow under the saucer
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(110, 20, 10, 5)), null, new Point(saucerX + (saucerW * 0.5), saucerY + saucerH - 1), saucerW * 0.52, saucerH * 0.5);
+
+        // Ceramic saucer
+        var ceramicBrush = new LinearGradientBrush(Color.FromRgb(238, 226, 208), Color.FromRgb(205, 188, 165), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(ceramicBrush, new Pen(new SolidColorBrush(Color.FromRgb(160, 140, 115)), 1), new Rect(saucerX, saucerY, saucerW, saucerH), saucerH * 0.5, saucerH * 0.5);
+
+        // Cup body (wide speckled artisan mug like the reference photo)
+        var cupBrush = new LinearGradientBrush(Color.FromRgb(232, 218, 198), Color.FromRgb(196, 178, 152), new Point(0, 0), new Point(0, 1));
+        var cupPen = new Pen(new SolidColorBrush(Color.FromRgb(150, 130, 105)), 1.2);
+        dc.DrawRoundedRectangle(cupBrush, cupPen, new Rect(x, y, cupW, cupH), cupH * 0.28, cupH * 0.28);
+
+        // Handle
+        var handleGeom = new PathGeometry();
+        var hf = new PathFigure { StartPoint = new Point(x + cupW, y + (cupH * 0.28)) };
+        hf.Segments.Add(new BezierSegment(
+            new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.1)),
+            new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.85)),
+            new Point(x + cupW, y + (cupH * 0.66)),
+            true));
+        handleGeom.Figures.Add(hf);
+        dc.DrawGeometry(null, new Pen(cupBrush, cupH * 0.16), handleGeom);
+
+        // Latte foam surface with a rosette art pattern
+        double foamW = cupW * 0.82;
+        double foamH = cupH * 0.42;
+        double foamX = x + ((cupW - foamW) * 0.5);
+        double foamY = y + (cupH * 0.06);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(214, 170, 120)), null, new Point(foamX + (foamW * 0.5), foamY + (foamH * 0.5)), foamW * 0.5, foamH * 0.5);
+
+        var foamPen = new Pen(new SolidColorBrush(Color.FromRgb(248, 236, 216)), isMini ? 1.4 : 2.0) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        double rx = foamX + (foamW * 0.5);
+        double ry = foamY + (foamH * 0.58);
+        for (int i = 0; i < 4; i++)
+        {
+            double s = 1.0 - (i * 0.2);
+            dc.DrawLine(foamPen, new Point(rx, ry - (foamH * 0.42 * s)), new Point(rx, ry + (foamH * 0.05)));
+            var arcGeom = new PathGeometry();
+            var af = new PathFigure { StartPoint = new Point(rx - (foamW * 0.28 * s), ry - (foamH * 0.05 * s)) };
+            af.Segments.Add(new QuadraticBezierSegment(new Point(rx, ry - (foamH * 0.34 * s)), new Point(rx + (foamW * 0.28 * s), ry - (foamH * 0.05 * s)), true));
+            arcGeom.Figures.Add(af);
+            dc.DrawGeometry(null, foamPen, arcGeom);
+        }
+    }
+
+    private void DrawCoffeeJazzSparkles(DrawingContext dc, Rect card, bool isMini)
+    {
+        int count = isMini ? 6 : 14;
+        for (int i = 0; i < count; i++)
+        {
+            double seedX = (i * 53.7) % card.Width;
+            double speed = 0.35 + ((i % 3) * 0.18);
+            double travel = ((_frameTick * speed) + (i * 40)) % (card.Height + 20);
+            double sx = card.X + seedX + (Math.Sin((_frameTick * 0.04) + i) * 8);
+            double sy = card.Y + card.Height - travel;
+            double alpha = Math.Clamp(Math.Sin((travel / (card.Height + 20)) * Math.PI), 0.05, 1.0);
+            var dustBrush = new SolidColorBrush(Color.FromArgb((byte)(180 * alpha), 255, 236, 196));
+            dc.DrawEllipse(dustBrush, null, new Point(sx, sy), 1.4, 1.4);
+        }
+    }
+
+    #endregion
+
     #region 🍦 Scene: Cute Pastel Ice Cream Truck & Children
 
     private void RenderIceCreamScene(DrawingContext dc, double w, double h)
@@ -1660,15 +1999,66 @@ public partial class VisualCompanionControl : UserControl
         double scale = IsMiniMode ? 0.62 : 1.0;
         double truckW = 145 * scale;
         double truckH = 84 * scale;
-        double truckX = IsMiniMode ? 6 : 24;
+        double baseTruckX = IsMiniMode ? 6 : 24;
         double truckY = groundY - truckH + (14 * scale);
 
-        DrawPastelIceCreamTruck(dc, truckX, truckY, truckW, truckH, scale);
+        bool isGoalReached = IsGoalReached || ProgressFraction >= 0.999;
 
-        // 5. Draw Queueing Kids or Celebration / Rest mode
-        if (IsGoalReached || ProgressFraction >= 0.999)
+        // End-of-shift sequence timing (in animation frames @ ~75ms/frame):
+        // 1. Kids party with their treats  2. Shutter rolls down painted "GOOD JOB"
+        // 3. Shutter holds so it's readable  4. Truck drives off for the day  5. Quiet closed street
+        const int partyFrames = 130;
+        const int shutterCloseFrames = 45;
+        const int shutterHoldFrames = 70;
+        const int driveFrames = 110;
+        int shutterStart = partyFrames;
+        int holdStart = shutterStart + shutterCloseFrames;
+        int driveStart = holdStart + shutterHoldFrames;
+
+        int elapsed = (isGoalReached && _goalReachedStartTick >= 0) ? Math.Max(0, _frameTick - _goalReachedStartTick) : 0;
+
+        double truckX = baseTruckX;
+        double shutterProgress = 0.0;
+
+        if (isGoalReached && elapsed >= shutterStart)
         {
-            DrawIceCreamPartyCelebration(dc, w, groundY, truckX + truckW + (8 * scale), scale);
+            shutterProgress = elapsed < holdStart
+                ? Math.Clamp((elapsed - shutterStart) / (double)shutterCloseFrames, 0.0, 1.0)
+                : 1.0;
+        }
+
+        if (isGoalReached && elapsed >= driveStart)
+        {
+            double driveT = Math.Clamp((elapsed - driveStart) / (double)driveFrames, 0.0, 1.0);
+            double eased = driveT * driveT * (3 - (2 * driveT)); // smoothstep acceleration
+            truckX = baseTruckX + (eased * (w + truckW));
+        }
+
+        bool truckVisible = truckX < w + 4;
+        if (truckVisible)
+        {
+            DrawPastelIceCreamTruck(dc, truckX, truckY, truckW, truckH, scale, shutterProgress);
+        }
+
+        // 5. Draw Queueing Kids, Celebration / Goodbye, Rest, or Closed-Street mode
+        if (isGoalReached)
+        {
+            if (elapsed < shutterStart)
+            {
+                DrawIceCreamPartyCelebration(dc, w, groundY, truckX + truckW + (8 * scale), scale);
+            }
+            else if (elapsed < driveStart)
+            {
+                DrawIceCreamGoodbyeKids(dc, w, groundY, truckX + truckW + (8 * scale), scale);
+            }
+            else if (truckVisible)
+            {
+                DrawIceCreamGoodbyeKids(dc, w, groundY, Math.Min(truckX + truckW + (8 * scale), w - (10 * scale)), scale);
+            }
+            else
+            {
+                DrawIceCreamClosedStreet(dc, w, groundY, scale);
+            }
         }
         else if (IsRestPhase)
         {
@@ -1773,7 +2163,7 @@ public partial class VisualCompanionControl : UserControl
         }
     }
 
-    private void DrawPastelIceCreamTruck(DrawingContext dc, double x, double y, double w, double h, double scale)
+    private void DrawPastelIceCreamTruck(DrawingContext dc, double x, double y, double w, double h, double scale, double shutterProgress = 0.0)
     {
         // 1. Truck Shadow on Ground
         dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 20, 40, 20)), null, new Point(x + (w * 0.5), y + h + (3 * scale)), w * 0.52, 6 * scale);
@@ -1860,6 +2250,44 @@ public partial class VisualCompanionControl : UserControl
             dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 130, 160)), null, new Rect(servX + (4 * scale), servY + servH - (7 * scale), 7 * scale, 4 * scale), 1, 1);
             dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(120, 220, 180)), null, new Rect(servX + (13 * scale), servY + servH - (7 * scale), 7 * scale, 4 * scale), 1, 1);
             dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(140, 80, 50)), null, new Rect(servX + (22 * scale), servY + servH - (7 * scale), 7 * scale, 4 * scale), 1, 1);
+        }
+
+        // 4b. End-of-Shift Roll-Down Shutter (slides down over the service counter, painted "GOOD JOB")
+        if (shutterProgress > 0.001)
+        {
+            double shutterH = servH * shutterProgress;
+
+            var shutterBrush = new LinearGradientBrush(Color.FromRgb(240, 232, 218), Color.FromRgb(205, 190, 170), new Point(0, 0), new Point(0, 1));
+            var shutterPen = new Pen(new SolidColorBrush(Color.FromRgb(150, 130, 105)), 1.2 * scale);
+            dc.DrawRoundedRectangle(shutterBrush, shutterPen, new Rect(servX, servY, servW, shutterH), 2 * scale, 2 * scale);
+
+            // Corrugated metal ridge lines
+            var ridgePen = new Pen(new SolidColorBrush(Color.FromArgb(90, 140, 120, 100)), 1);
+            for (double ry = servY + (3 * scale); ry < servY + shutterH - 2; ry += 4 * scale)
+            {
+                dc.DrawLine(ridgePen, new Point(servX + (1 * scale), ry), new Point(servX + servW - (1 * scale), ry));
+            }
+
+            // Bottom pull-handle bar once mostly closed
+            if (shutterProgress > 0.85)
+            {
+                dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(120, 100, 80)), null, new Rect(servX + (servW * 0.5) - (6 * scale), servY + shutterH - (2 * scale), 12 * scale, 3 * scale), 1.5, 1.5);
+            }
+
+            // Hand-painted "GOOD JOB" once the shutter is far enough down to read clearly
+            if (shutterProgress > 0.5)
+            {
+                double textAlpha = Math.Clamp((shutterProgress - 0.5) / 0.4, 0.0, 1.0);
+                string title = IsMiniMode ? "GOOD JOB!" : "✨ GOOD JOB! ✨";
+                var titleFt = CreateText(title, (IsMiniMode ? 7.5 : 11) * Math.Min(scale + 0.3, 1.0), new SolidColorBrush(Color.FromArgb((byte)(255 * textAlpha), 235, 90, 110)), FontWeights.Bold);
+                dc.DrawText(titleFt, new Point(servX + ((servW - titleFt.Width) * 0.5), servY + (shutterH * 0.5) - (titleFt.Height * 0.5)));
+
+                if (!IsMiniMode && shutterProgress > 0.9)
+                {
+                    var subFt = CreateText("🍦 Closed for today", 8, new SolidColorBrush(Color.FromArgb((byte)(210 * textAlpha), 110, 85, 65)), FontWeights.SemiBold);
+                    dc.DrawText(subFt, new Point(servX + ((servW - subFt.Width) * 0.5), servY + shutterH - (subFt.Height * 1.1)));
+                }
+            }
         }
 
         // 5. Striped Scalloped Awning over Service Window
@@ -2235,15 +2663,95 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawText(ft, new Point(w - ft.Width - (IsMiniMode ? 8 : 16), IsMiniMode ? 4 : 8));
     }
 
+    /// <summary>
+    /// Happy kids waving goodbye with their treats while the truck's shutter rolls down / drives off.
+    /// A lighter version of the party celebration without the banner or confetti.
+    /// </summary>
+    private void DrawIceCreamGoodbyeKids(DrawingContext dc, double w, double groundY, double startX, double scale)
+    {
+        double kidSpacing = IsMiniMode ? (28 * scale) : (40 * scale);
+        double kStartX = Math.Min(startX, w - (kidSpacing * 4) - (10 * scale));
+
+        DrawChibiKid(dc, kStartX, groundY, scale, 0, true, "strawberry");
+        DrawChibiKid(dc, kStartX + kidSpacing, groundY, scale, 1, true, "mint_rainbow");
+        DrawChibiKid(dc, kStartX + (kidSpacing * 2), groundY, scale, 2, true, "chocolate");
+        DrawCutePuppy(dc, kStartX + (kidSpacing * 2) + (14 * scale), groundY, scale);
+        DrawChibiKid(dc, kStartX + (kidSpacing * 3), groundY, scale, 3, true, "pop");
+
+        // Waving hands & floating little hearts
+        double waveArc = Math.Sin(_frameTick * 0.3) * 4;
+        var handBrush = new SolidColorBrush(Color.FromRgb(255, 222, 198));
+        dc.DrawEllipse(handBrush, null, new Point(kStartX - (7 * scale), groundY - (26 * scale) + waveArc), 2.4 * scale, 2.4 * scale);
+        dc.DrawEllipse(handBrush, null, new Point(kStartX + (kidSpacing * 3) + (9 * scale), groundY - (26 * scale) - waveArc), 2.4 * scale, 2.4 * scale);
+
+        if (!IsMiniMode)
+        {
+            DrawHeart(dc, kStartX + (kidSpacing * 1.5), groundY - (34 * scale) + waveArc, 3.5, new SolidColorBrush(Color.FromRgb(255, 140, 175)));
+        }
+
+        string text = IsMiniMode ? "👋 Bye bye!" : "👋 Bye bye! See you tomorrow! 🍦";
+        var ft2 = CreateText(text, IsMiniMode ? 9.5 : 11.5, new SolidColorBrush(Color.FromRgb(60, 40, 20)), FontWeights.Bold);
+        dc.DrawText(ft2, new Point(w - ft2.Width - (IsMiniMode ? 8 : 16), IsMiniMode ? 4 : 8));
+    }
+
+    /// <summary>
+    /// Peaceful empty street after the ice cream truck has driven off for the day.
+    /// A leaning chalkboard sign left behind gives a final quiet note of closure.
+    /// </summary>
+    private void DrawIceCreamClosedStreet(DrawingContext dc, double w, double groundY, double scale)
+    {
+        // Soft golden-hour tint settling over the park now that the shift is done
+        var duskGlow = new LinearGradientBrush(
+            Color.FromArgb(0, 255, 200, 140),
+            Color.FromArgb(60, 255, 170, 110),
+            new Point(0, 0),
+            new Point(0, 1));
+        dc.DrawRectangle(duskGlow, null, new Rect(0, 0, w, groundY));
+
+        double signX = w * (IsMiniMode ? 0.42 : 0.38);
+        double signY = groundY - (30 * scale);
+
+        // Leaning wooden chalkboard sign
+        var woodBrush = new SolidColorBrush(Color.FromRgb(120, 75, 45));
+        var boardBrush = new SolidColorBrush(Color.FromRgb(45, 55, 50));
+        dc.DrawRoundedRectangle(woodBrush, null, new Rect(signX, signY, 34 * scale, 30 * scale), 2, 2);
+        dc.DrawRoundedRectangle(boardBrush, null, new Rect(signX + (2 * scale), signY + (2 * scale), 30 * scale, 26 * scale), 1.5, 1.5);
+        dc.DrawLine(new Pen(woodBrush, 2.5 * scale), new Point(signX + (4 * scale), signY + (30 * scale)), new Point(signX, signY + (40 * scale)));
+        dc.DrawLine(new Pen(woodBrush, 2.5 * scale), new Point(signX + (30 * scale), signY + (30 * scale)), new Point(signX + (34 * scale), signY + (40 * scale)));
+
+        string chalkText = IsMiniMode ? "🍦 Closed" : "🍦 Closed\nSee you\ntomorrow!";
+        var chalkFt = CreateText(chalkText, IsMiniMode ? 7.5 : 9, new SolidColorBrush(Color.FromRgb(255, 240, 210)), FontWeights.SemiBold);
+        dc.DrawText(chalkFt, new Point(signX + (17 * scale) - (chalkFt.Width * 0.5), signY + (14 * scale) - (chalkFt.Height * 0.5)));
+
+        // A couple of gentle drifting dandelion seeds for a calm end-of-day feel
+        if (!IsMiniMode)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                double dx = ((_frameTick * (0.6 + i * 0.2)) + (i * 90)) % (w + 40) - 20;
+                double dy = (groundY * 0.35) + (Math.Sin((_frameTick * 0.08) + i) * 10) + (i * 14);
+                dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(150, 255, 255, 255)), null, new Point(dx, dy), 2, 2);
+            }
+        }
+
+        string text = IsMiniMode ? "🌇 Shift complete!" : "🌇 A wonderful day's work • Shift complete! ✨";
+        var ft = CreateText(text, IsMiniMode ? 9.5 : 11.5, new SolidColorBrush(Color.FromRgb(90, 60, 35)), FontWeights.Bold);
+        dc.DrawText(ft, new Point(w - ft.Width - (IsMiniMode ? 8 : 16), IsMiniMode ? 4 : 8));
+    }
+
     #endregion
 
     #region 🎧 Scene: Tokyo Metro Lo-Fi Girl
 
     private void RenderMetroScene(DrawingContext dc, double w, double h)
     {
-        double windowTopY = IsMiniMode ? 14 : 20;
-        double windowH = h - windowTopY - (IsMiniMode ? 14 : 24);
-        double seatY = h - (IsMiniMode ? 16 : 30);
+        double windowTopY = IsMiniMode ? 12 : 20;
+        double windowH = h - windowTopY - (IsMiniMode ? 12 : 24);
+        double seatY = h - (IsMiniMode ? 15 : 30);
+
+        // Gentle carriage sway/rumble - rocks dynamically when train travels at high speed
+        double swayAngle = IsTracking ? Math.Sin(_frameTick * 0.08) * 0.75 : (IsRestPhase ? Math.Sin(_frameTick * 0.04) * 0.45 : 0.0);
+        dc.PushTransform(new RotateTransform(swayAngle, w * 0.5, h * 0.9));
 
         // 1. Carriage Wall & Interior Frame
         var carriageBrush = new LinearGradientBrush(
@@ -2270,7 +2778,7 @@ public partial class VisualCompanionControl : UserControl
             new Point(0, 1));
         dc.DrawRectangle(skyBrush, null, windowRect);
 
-        // B. Distant Tokyo Skyline Silhouettes & Lit Windows
+        // B. Distant Tokyo Skyline Silhouettes & Lit Windows (Reduced density)
         DrawTokyoSkyline(dc, windowRect);
 
         // C. Glowing Tokyo Tower in the distance (Warm Orange/Red)
@@ -2282,7 +2790,10 @@ public partial class VisualCompanionControl : UserControl
         // E. Moving Streetlight Bokeh Orbs outside
         DrawMetroPassingBokeh(dc, windowRect);
 
-        // F. Soft Window Glass Reflection & condensation glints
+        // F. High-speed transit light streaks outside the window when task is active
+        DrawMetroSpeedStreaks(dc, windowRect);
+
+        // G. Soft Window Glass Reflection & condensation glints
         DrawMetroWindowReflection(dc, windowRect);
 
         dc.Pop(); // Pop window clip
@@ -2317,106 +2828,309 @@ public partial class VisualCompanionControl : UserControl
         {
             DrawMetroLoFiGirl(dc, w, seatY, ProgressFraction, IsTracking, IsMiniMode);
         }
+
+        dc.Pop(); // Pop carriage sway transform
     }
 
     private void DrawTokyoSkyline(DrawingContext dc, Rect rect)
     {
-        var buildBrush = new SolidColorBrush(Color.FromRgb(18, 14, 38));
-        var winBrush1 = new SolidColorBrush(Color.FromArgb(160, 255, 235, 140));
-        var winBrush2 = new SolidColorBrush(Color.FromArgb(160, 120, 220, 255));
+        double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
 
-        // Background buildings
+        // 1. Far background skyline silhouettes & communication towers (Slow Parallax Layer)
+        DrawFarTokyoSkyline(dc, rect, trainSpeed);
+
+        // 2. Mid-ground detailed Tokyo high-rises & skyscrapers with lit windows (Smooth Parallax Layer)
+        DrawMidTokyoCityscape(dc, rect, trainSpeed);
+    }
+
+    private void DrawFarTokyoSkyline(DrawingContext dc, Rect rect, double trainSpeed)
+    {
         double bBaseY = rect.Bottom;
-        var buildingDefs = new (double xPct, double w, double h)[]
+        var farSilhouetteBrush = new SolidColorBrush(Color.FromRgb(16, 12, 34));
+        var farWinBrush = new SolidColorBrush(Color.FromArgb(90, 255, 235, 140));
+
+        // Well-proportioned skyline heights for a clean, visible distant background in both mini and full modes
+        var farBuildings = new (double w, double hPct, bool beacon)[]
         {
-            (0.04, 34, rect.Height * 0.65),
-            (0.18, 28, rect.Height * 0.48),
-            (0.30, 42, rect.Height * 0.72),
-            (0.48, 36, rect.Height * 0.55),
-            (0.64, 40, rect.Height * 0.68),
-            (0.78, 30, rect.Height * 0.50),
-            (0.88, 38, rect.Height * 0.62)
+            (36, 0.54, false),
+            (26, 0.44, true),
+            (42, 0.62, false),
+            (28, 0.48, true),
+            (44, 0.56, false)
         };
 
-        foreach (var (xPct, bw, bh) in buildingDefs)
-        {
-            double bx = rect.Left + (rect.Width * xPct);
-            double by = bBaseY - bh;
-            dc.DrawRectangle(buildBrush, null, new Rect(bx, by, bw, bh));
+        double totalFarSpan = 0;
+        const double farGap = 28;
+        for (int i = 0; i < farBuildings.Length; i++) totalFarSpan += farBuildings[i].w + farGap;
 
-            // Lit windows inside building
-            if (!IsMiniMode)
+        double farScroll = (_frameTick * trainSpeed * 0.75) % totalFarSpan;
+        double startX = rect.Left - farScroll;
+        while (startX > rect.Left - totalFarSpan) startX -= totalFarSpan;
+
+        double currentX = startX;
+        while (currentX < rect.Right + 30)
+        {
+            for (int i = 0; i < farBuildings.Length; i++)
             {
-                for (double wy = by + 6; wy < bBaseY - 8; wy += 8)
+                var (bw, hPct, beacon) = farBuildings[i];
+                double bh = rect.Height * hPct;
+                double bx = currentX;
+                double by = bBaseY - bh;
+
+                if (bx + bw >= rect.Left - 10 && bx <= rect.Right + 10)
                 {
-                    for (double wx = bx + 4; wx < bx + bw - 4; wx += 7)
+                    dc.DrawRectangle(farSilhouetteBrush, null, new Rect(bx, by, bw, bh));
+
+                    // Small distant window pinpricks anchored to building-relative coordinates
+                    if (hPct > 0.40)
                     {
-                        var wb = ((int)(wx + wy) % 3 == 0) ? winBrush1 : winBrush2;
-                        dc.DrawRectangle(wb, null, new Rect(wx, wy, 3, 4));
+                        double winW = IsMiniMode ? 1.6 : 1.8;
+                        double winH = IsMiniMode ? 1.0 : 1.3;
+                        double winGapX = IsMiniMode ? 4.5 : 6.0;
+                        double winGapY = IsMiniMode ? 4.5 : 6.5;
+
+                        int row = 0;
+                        for (double wy = by + (IsMiniMode ? 3.0 : 4.0); wy < bBaseY - 4; wy += winGapY, row++)
+                        {
+                            int col = 0;
+                            for (double wx = bx + (IsMiniMode ? 2.5 : 3.5); wx < bx + bw - 2.5; wx += winGapX, col++)
+                            {
+                                int hash = (col * 19 + row * 13 + i * 37);
+                                if ((hash % 3) == 0)
+                                {
+                                    dc.DrawRectangle(farWinBrush, null, new Rect(wx, wy, winW, winH));
+                                }
+                            }
+                        }
+                    }
+
+                    // Distant red aviation beacon light on rooftop antenna
+                    if (beacon)
+                    {
+                        double antH = IsMiniMode ? 4 : 6;
+                        dc.DrawLine(new Pen(farSilhouetteBrush, 1.0), new Point(bx + (bw * 0.5), by), new Point(bx + (bw * 0.5), by - antH));
+                        if ((_frameTick + (i * 12)) % 32 < 16)
+                        {
+                            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 60, 60)), null, new Point(bx + (bw * 0.5), by - antH), IsMiniMode ? 1.0 : 1.2, IsMiniMode ? 1.0 : 1.2);
+                        }
                     }
                 }
+
+                currentX += bw + farGap;
+            }
+        }
+    }
+
+    private void DrawMidTokyoCityscape(DrawingContext dc, Rect rect, double trainSpeed)
+    {
+        var buildBrush1 = new SolidColorBrush(Color.FromRgb(22, 17, 44));
+        var buildBrush2 = new SolidColorBrush(Color.FromRgb(18, 14, 38));
+        var rimPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 140, 130, 210)), IsMiniMode ? 0.7 : 0.8);
+
+        var winGold = new SolidColorBrush(Color.FromArgb(180, 255, 235, 140));
+        var winCyan = new SolidColorBrush(Color.FromArgb(170, 130, 225, 255));
+        var winPink = new SolidColorBrush(Color.FromArgb(160, 255, 150, 210));
+
+        // Proportional building heights visible and distinct in both mini and full views
+        var midBuildings = new (double w, double hPct, int style, string? signText, Color signCol)[]
+        {
+            (46, 0.78, 1, "TOKYO", Color.FromRgb(255, 80, 180)),            // Shinjuku Stepped Tower with Neon
+            (34, 0.58, 4, null, default),                                   // High-Rise with Rooftop Water Tank
+            (50, 0.86, 5, null, default),                                   // Financial Skyscraper with Spire & Beacon
+            (40, 0.68, 7, "METRO", Color.FromRgb(60, 240, 255))             // Cyber Glass Tower
+        };
+
+        double totalMidSpan = 0;
+        const double midGap = 42;
+        for (int i = 0; i < midBuildings.Length; i++) totalMidSpan += midBuildings[i].w + midGap;
+
+        // Rapid continuous parallax movement from right to left as train travels
+        double midScroll = (_frameTick * trainSpeed * 2.0) % totalMidSpan;
+        double startX = rect.Left - midScroll;
+        while (startX > rect.Left - totalMidSpan) startX -= totalMidSpan;
+
+        double currentX = startX;
+        double bBaseY = rect.Bottom;
+
+        while (currentX < rect.Right + 50)
+        {
+            for (int i = 0; i < midBuildings.Length; i++)
+            {
+                var (bw, hPct, style, signText, signCol) = midBuildings[i];
+                double bh = rect.Height * hPct;
+                double bx = currentX;
+                double by = bBaseY - bh;
+
+                if (bx + bw >= rect.Left - 20 && bx <= rect.Right + 20)
+                {
+                    var bBrush = (i % 2 == 0) ? buildBrush1 : buildBrush2;
+
+                    // Building main silhouette
+                    dc.DrawRectangle(bBrush, rimPen, new Rect(bx, by, bw, bh));
+
+                    // Architectural variations (Stepped crowns, penthouses, water tanks)
+                    if (style == 1 || style == 5 || style == 8) // Stepped crown
+                    {
+                        double stepW = bw * 0.6;
+                        double stepH = bh * (IsMiniMode ? 0.10 : 0.12);
+                        double stepX = bx + (bw - stepW) * 0.5;
+                        double stepY = by - stepH;
+                        dc.DrawRectangle(bBrush, rimPen, new Rect(stepX, stepY, stepW, stepH));
+
+                        // Rooftop communication spire with blinking collision light
+                        double antH = IsMiniMode ? 4.5 : 9.0;
+                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(140, 145, 170)), 1.0), new Point(bx + (bw * 0.5), stepY), new Point(bx + (bw * 0.5), stepY - antH));
+                        if ((_frameTick + (i * 8)) % 28 < 14)
+                        {
+                            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 50, 50)), null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 1.2 : 1.5, IsMiniMode ? 1.2 : 1.5);
+                            dc.DrawEllipse(new RadialGradientBrush(Color.FromArgb(120, 255, 50, 50), Color.FromArgb(0, 255, 50, 50)), null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 2.5 : 3.5, IsMiniMode ? 2.5 : 3.5);
+                        }
+                    }
+                    else if (style == 4) // Rooftop water tank
+                    {
+                        double tankW = bw * 0.35;
+                        double tankH = IsMiniMode ? 3.5 : 5.0;
+                        double tankX = bx + 4;
+                        double tankY = by - tankH;
+                        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(40, 35, 60)), null, new Rect(tankX, tankY, tankW, tankH));
+                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(30, 26, 48)), 1), new Point(tankX + 2, by), new Point(tankX + 2, tankY));
+                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(30, 26, 48)), 1), new Point(tankX + tankW - 2, by), new Point(tankX + tankW - 2, tankY));
+                    }
+                    else if (style == 6) // Rooftop HVAC unit
+                    {
+                        double hvacW = bw * 0.45;
+                        double hvacH = IsMiniMode ? 3.0 : 4.0;
+                        double hvacX = bx + (bw - hvacW) * 0.5;
+                        double hvacY = by - hvacH;
+                        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(35, 30, 55)), null, new Rect(hvacX, hvacY, hvacW, hvacH));
+                    }
+
+                    // Rooftop Mini Neon Sign / LED Accent
+                    if (signText != null)
+                    {
+                        double signW = bw * (IsMiniMode ? 0.82 : 0.75);
+                        double signH = IsMiniMode ? 6.5 : 8.0;
+                        double signX = bx + (bw - signW) * 0.5;
+                        double signY = by - signH - (IsMiniMode ? 1.0 : 2.0);
+                        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(170, 20, 16, 36)), new Pen(new SolidColorBrush(signCol), IsMiniMode ? 0.7 : 1.0), new Rect(signX, signY, signW, signH), 2, 2);
+                        var sFt = CreateText(signText, IsMiniMode ? 5.5 : 7.0, new SolidColorBrush(signCol), FontWeights.Bold);
+                        dc.DrawText(sFt, new Point(signX + ((signW - sFt.Width) * 0.5), signY + ((signH - sFt.Height) * 0.5)));
+                    }
+
+                    // Illuminated Window Grid Matrix - compact horizontal windows anchored to building grid (no flickering)
+                    double winW = IsMiniMode ? 2.4 : 3.2;
+                    double winH = IsMiniMode ? 1.4 : 2.0;
+                    double winGapX = IsMiniMode ? 4.8 : 6.2;
+                    double winGapY = IsMiniMode ? 3.6 : 4.6;
+
+                    int row = 0;
+                    for (double wy = by + (IsMiniMode ? 3.5 : 5.0); wy < bBaseY - (IsMiniMode ? 3.0 : 5.0); wy += winGapY, row++)
+                    {
+                        int col = 0;
+                        for (double wx = bx + (IsMiniMode ? 3.0 : 4.0); wx < bx + bw - (IsMiniMode ? 3.0 : 4.0); wx += winGapX, col++)
+                        {
+                            int hash = (col * 31 + row * 17 + i * 53);
+                            if (hash % 4 != 0) // realistic night occupancy pattern
+                            {
+                                var wb = (hash % 7 == 0) ? winPink : ((hash % 3 == 0) ? winGold : winCyan);
+                                dc.DrawRectangle(wb, null, new Rect(wx, wy, winW, winH));
+                            }
+                        }
+                    }
+                }
+
+                currentX += bw + midGap;
             }
         }
     }
 
     private void DrawTokyoTower(DrawingContext dc, Rect rect)
     {
-        double towerX = rect.Left + (rect.Width * 0.22);
+        double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
+
+        // Tokyo Tower glides gracefully in the far background parallax layer
+        double towerSpan = rect.Width + 380;
+        double towerScroll = (_frameTick * trainSpeed * 0.6) % towerSpan;
+        double towerX = rect.Right + 160 - towerScroll;
+        if (towerX < rect.Left - 70) towerX += towerSpan;
+
+        if (towerX < rect.Left - 50 || towerX > rect.Right + 50) return;
+
         double towerBaseY = rect.Bottom;
-        double towerH = rect.Height * 0.85;
+        double towerH = rect.Height * 0.88;
         double towerTopY = towerBaseY - towerH;
 
-        var towerBrush = new SolidColorBrush(Color.FromRgb(255, 95, 65));
-        var towerGlow = new RadialGradientBrush(Color.FromArgb(80, 255, 110, 70), Color.FromArgb(0, 255, 110, 70));
-        dc.DrawEllipse(towerGlow, null, new Point(towerX, towerBaseY - (towerH * 0.5)), 25, towerH * 0.55);
+        var towerBrush = new SolidColorBrush(Color.FromRgb(255, 90, 60));
+        var towerGlow = new RadialGradientBrush(Color.FromArgb(90, 255, 110, 70), Color.FromArgb(0, 255, 110, 70));
+        dc.DrawEllipse(towerGlow, null, new Point(towerX, towerBaseY - (towerH * 0.5)), IsMiniMode ? 16 : 28, towerH * 0.55);
+
+        // Lower main observation deck & top deck
+        double mainDeckY = towerBaseY - (towerH * 0.42);
+        double topDeckY = towerBaseY - (towerH * 0.68);
+        double towerScale = IsMiniMode ? 0.75 : 1.0;
 
         // Tower Lattice Geometry
         var tGeom = new PathGeometry();
-        var tf = new PathFigure { StartPoint = new Point(towerX - 12, towerBaseY) };
-        tf.Segments.Add(new LineSegment(new Point(towerX - 4, towerBaseY - (towerH * 0.55)), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX - 1.5, towerTopY + 10), true));
+        var tf = new PathFigure { StartPoint = new Point(towerX - (13 * towerScale), towerBaseY) };
+        tf.Segments.Add(new LineSegment(new Point(towerX - (5.5 * towerScale), mainDeckY), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX - (3.5 * towerScale), topDeckY), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX - (1.5 * towerScale), towerTopY + (12 * towerScale)), true));
         tf.Segments.Add(new LineSegment(new Point(towerX, towerTopY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + 1.5, towerTopY + 10), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + 4, towerBaseY - (towerH * 0.55)), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + 12, towerBaseY), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX + (1.5 * towerScale), towerTopY + (12 * towerScale)), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX + (3.5 * towerScale), topDeckY), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX + (5.5 * towerScale), mainDeckY), true));
+        tf.Segments.Add(new LineSegment(new Point(towerX + (13 * towerScale), towerBaseY), true));
         tf.IsClosed = true;
         tGeom.Figures.Add(tf);
         dc.DrawGeometry(towerBrush, null, tGeom);
 
-        // Blinking beacon light at tip
+        // Observation Deck illuminated galleries
+        var deckBrush = new SolidColorBrush(Color.FromRgb(255, 235, 160));
+        dc.DrawRoundedRectangle(deckBrush, null, new Rect(towerX - (6.5 * towerScale), mainDeckY - (2 * towerScale), 13 * towerScale, 4.5 * towerScale), 1, 1);
+        dc.DrawRoundedRectangle(deckBrush, null, new Rect(towerX - (4.5 * towerScale), topDeckY - (1.5 * towerScale), 9 * towerScale, 3.5 * towerScale), 1, 1);
+
+        // Blinking aviation strobe beacon light at tip
         if (_frameTick % 20 < 10)
         {
-            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 240, 220)), null, new Point(towerX, towerTopY), 2.5, 2.5);
-            var tipGlow = new RadialGradientBrush(Color.FromArgb(160, 255, 80, 80), Color.FromArgb(0, 255, 80, 80));
-            dc.DrawEllipse(tipGlow, null, new Point(towerX, towerTopY), 8, 8);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 240)), null, new Point(towerX, towerTopY), IsMiniMode ? 1.8 : 2.5, IsMiniMode ? 1.8 : 2.5);
+            var tipGlow = new RadialGradientBrush(Color.FromArgb(180, 255, 80, 80), Color.FromArgb(0, 255, 80, 80));
+            dc.DrawEllipse(tipGlow, null, new Point(towerX, towerTopY), IsMiniMode ? 6 : 9, IsMiniMode ? 6 : 9);
         }
     }
 
     private void DrawPassingTokyoNeonSigns(DrawingContext dc, Rect rect)
     {
+        double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
+
         var signs = new (string text, Color color, double yPct, double speed)[]
         {
-            ("新宿", Color.FromRgb(80, 235, 255), 0.30, 0.8),   // Cyan Neon (Shinjuku)
-            ("渋谷", Color.FromRgb(255, 90, 180), 0.45, 1.1),   // Magenta Neon (Shibuya)
-            ("音楽", Color.FromRgb(255, 220, 80), 0.22, 0.6),   // Amber Gold (Music)
-            ("カフェ", Color.FromRgb(100, 245, 160), 0.55, 0.9)  // Emerald Green (Cafe)
+            ("新宿", Color.FromRgb(70, 240, 255), 0.22, 0.85),    // Radiant Cyan Neon (Shinjuku)
+            ("渋谷", Color.FromRgb(255, 80, 185), 0.38, 1.15),    // Vibrant Magenta Neon (Shibuya)
+            ("秋葉原", Color.FromRgb(185, 105, 255), 0.28, 0.95), // Electric Violet Neon (Akihabara)
+            ("音楽", Color.FromRgb(255, 225, 70), 0.16, 0.65),    // Warm Amber Gold (Music)
+            ("カフェ", Color.FromRgb(80, 250, 170), 0.44, 1.05),  // Emerald Mint (Cafe)
+            ("地下鉄", Color.FromRgb(255, 150, 50), 0.32, 0.75)   // Sunset Orange (Metro)
         };
 
         for (int i = 0; i < signs.Length; i++)
         {
             var (text, col, yPct, speed) = signs[i];
-            double travelWidth = rect.Width + 120;
-            double rawX = (rect.Right + 60) - (((_frameTick * speed * 1.8) + (i * 110)) % travelWidth);
+            double travelWidth = rect.Width + 160;
+            double rawX = (rect.Right + 80) - (((_frameTick * speed * trainSpeed * 2.4) + (i * 110)) % travelWidth);
             double sy = rect.Top + (rect.Height * yPct);
 
-            if (rawX >= rect.Left - 40 && rawX <= rect.Right + 40)
+            if (rawX >= rect.Left - 50 && rawX <= rect.Right + 50)
             {
                 // Neon glow background box
-                var glowBrush = new RadialGradientBrush(Color.FromArgb(70, col.R, col.G, col.B), Color.FromArgb(0, col.R, col.G, col.B));
-                dc.DrawEllipse(glowBrush, null, new Point(rawX + 14, sy + 8), 24, 16);
+                var glowBrush = new RadialGradientBrush(Color.FromArgb(75, col.R, col.G, col.B), Color.FromArgb(0, col.R, col.G, col.B));
+                dc.DrawEllipse(glowBrush, null, new Point(rawX + (IsMiniMode ? 10 : 16), sy + (IsMiniMode ? 5 : 8)), IsMiniMode ? 18 : 28, IsMiniMode ? 12 : 18);
 
+                // Dark backing plate with thin neon border
                 var signBrush = new SolidColorBrush(col);
-                var ft = CreateText(text, IsMiniMode ? 9 : 12, signBrush, FontWeights.Bold);
+                var ft = CreateText(text, IsMiniMode ? 8.0 : 12.0, signBrush, FontWeights.Bold);
+                double boxW = ft.Width + (IsMiniMode ? 6 : 8);
+                double boxH = ft.Height + (IsMiniMode ? 3 : 4);
+                dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(170, 15, 12, 28)), new Pen(signBrush, IsMiniMode ? 0.8 : 1.0), new Rect(rawX - (IsMiniMode ? 3 : 4), sy - (IsMiniMode ? 1.5 : 2), boxW, boxH), 2.5, 2.5);
                 dc.DrawText(ft, new Point(rawX, sy));
             }
         }
@@ -2424,22 +3138,57 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawMetroPassingBokeh(DrawingContext dc, Rect rect)
     {
+        double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
         var rand = new Random(555);
-        for (int i = 0; i < (IsMiniMode ? 6 : 14); i++)
+
+        for (int i = 0; i < (IsMiniMode ? 7 : 16); i++)
         {
             double speed = 1.0 + (rand.NextDouble() * 1.5);
-            double bx = (rect.Right + 30) - (((_frameTick * speed * 2.2) + (i * 38)) % (rect.Width + 60));
-            double by = rect.Top + (rand.NextDouble() * (rect.Height * 0.75));
-            double br = 4 + (rand.NextDouble() * 8);
+            double bx = (rect.Right + 30) - (((_frameTick * speed * trainSpeed * 3.0) + (i * 36)) % (rect.Width + 60));
+            double by = rect.Top + (rand.NextDouble() * (rect.Height * 0.78));
+            double br = 4 + (rand.NextDouble() * 8.5);
 
             Color bColor = (i % 3 == 0)
-                ? Color.FromArgb(45, 255, 180, 80)
+                ? Color.FromArgb(48, 255, 190, 85)
                 : (i % 3 == 1)
-                    ? Color.FromArgb(45, 255, 100, 160)
-                    : Color.FromArgb(45, 100, 220, 255);
+                    ? Color.FromArgb(48, 255, 105, 170)
+                    : Color.FromArgb(48, 105, 230, 255);
 
             var bGlow = new RadialGradientBrush(bColor, Color.FromArgb(0, bColor.R, bColor.G, bColor.B));
             dc.DrawEllipse(bGlow, null, new Point(bx, by), br, br);
+        }
+    }
+
+    /// <summary>
+    /// Renders high-speed transit light streaks outside the window when a task is running,
+    /// giving an energetic sensation of the train flying past the Tokyo skyline.
+    /// </summary>
+    private void DrawMetroSpeedStreaks(DrawingContext dc, Rect rect)
+    {
+        if (!IsTracking) return;
+
+        int streakCount = IsMiniMode ? 6 : 14;
+        for (int i = 0; i < streakCount; i++)
+        {
+            double speed = 16.0 + ((i * 37) % 18);
+            double travelW = rect.Width + 180;
+            double x = (rect.Right + 90) - (((_frameTick * speed) + (i * 68)) % travelW);
+            double y = rect.Top + 6 + (((i * 41) % (int)Math.Max(10, rect.Height - 14)));
+            double len = IsMiniMode ? (20 + (i % 4) * 12) : (45 + (i % 5) * 25);
+
+            Color col = (i % 3 == 0)
+                ? Color.FromArgb(110, 180, 235, 255)
+                : (i % 3 == 1)
+                    ? Color.FromArgb(95, 255, 130, 215)
+                    : Color.FromArgb(85, 255, 240, 150);
+
+            var streakGrad = new LinearGradientBrush(
+                Color.FromArgb(0, col.R, col.G, col.B),
+                col,
+                new Point(0, 0),
+                new Point(1, 0));
+
+            dc.DrawLine(new Pen(streakGrad, IsMiniMode ? 1.0 : 1.6), new Point(x, y), new Point(x + len, y));
         }
     }
 
@@ -2456,55 +3205,62 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawMetroHandrailsAndStraps(DrawingContext dc, double w, double topY)
     {
-        // Stainless steel rail bar
-        double railY = topY + (IsMiniMode ? 4 : 8);
-        var railBrush = new LinearGradientBrush(Color.FromRgb(225, 230, 240), Color.FromRgb(150, 160, 175), new Point(0, 0), new Point(0, 1));
-        dc.DrawRectangle(railBrush, null, new Rect(0, railY, w, IsMiniMode ? 2.5 : 4.0));
+        // Matte black modern subway rail bar
+        double railY = topY + (IsMiniMode ? 2.5 : 8);
+        var railBrush = new LinearGradientBrush(
+            Color.FromRgb(30, 32, 40),
+            Color.FromRgb(10, 12, 16),
+            new Point(0, 0),
+            new Point(0, 1));
+        var railPen = new Pen(new SolidColorBrush(Color.FromRgb(50, 54, 65)), 0.6);
+        dc.DrawRectangle(railBrush, railPen, new Rect(0, railY, w, IsMiniMode ? 2.0 : 4.0));
 
-        // 4 Hanging leather straps with triangular handholds
+        // Hanging leather straps with triangular handholds
         int strapCount = IsMiniMode ? 3 : 5;
         double strapSpacing = w / (strapCount + 1);
 
-        var strapPen = new Pen(new SolidColorBrush(Color.FromRgb(215, 195, 165)), IsMiniMode ? 1.5 : 2.2);
+        var strapPen = new Pen(new SolidColorBrush(Color.FromRgb(40, 42, 50)), IsMiniMode ? 1.2 : 2.2);
         var ringBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-        var ringPen = new Pen(new SolidColorBrush(Color.FromRgb(180, 185, 195)), 1.2);
+        var ringPen = new Pen(new SolidColorBrush(Color.FromRgb(180, 185, 195)), IsMiniMode ? 0.9 : 1.2);
 
         for (int i = 1; i <= strapCount; i++)
         {
             double sx = i * strapSpacing;
-            double sway = Math.Sin((_frameTick * 0.12) + (i * 0.9)) * (IsMiniMode ? 3.0 : 6.0);
-            double strapLen = IsMiniMode ? 14 : 24;
+            double swayRate = IsTracking ? 0.20 : 0.12;
+            double swayAmp = IsTracking ? (IsMiniMode ? 3.0 : 8.0) : (IsMiniMode ? 2.0 : 5.5);
+            double sway = Math.Sin((_frameTick * swayRate) + (i * 0.9)) * swayAmp;
+            double strapLen = IsMiniMode ? 8.5 : 24;
 
-            Point startPt = new Point(sx, railY + 2);
+            Point startPt = new Point(sx, railY + 1.5);
             Point endPt = new Point(sx + sway, railY + strapLen);
 
             dc.DrawLine(strapPen, startPt, endPt);
 
-            // Triangular / Ring Handhold
-            double ringR = IsMiniMode ? 4 : 6.5;
+            // Handhold Ring
+            double ringR = IsMiniMode ? 3.0 : 6.5;
             dc.DrawEllipse(null, ringPen, new Point(endPt.X, endPt.Y + ringR), ringR, ringR);
         }
     }
 
     private void DrawMetroRouteTicker(DrawingContext dc, double w, double topY)
     {
-        double tickerW = IsMiniMode ? 160 : 280;
-        double tickerH = IsMiniMode ? 12 : 16;
+        double tickerW = IsMiniMode ? Math.Min(w - 20, 165) : 280;
+        double tickerH = IsMiniMode ? 10.5 : 16;
         double tickerX = (w - tickerW) * 0.5;
-        double tickerY = topY - tickerH - 2;
+        double tickerY = topY - tickerH - 1.5;
 
         if (tickerY < 1) tickerY = 1;
 
         // LED Display Body
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(15, 18, 22)), new Pen(new SolidColorBrush(Color.FromRgb(60, 65, 75)), 1), new Rect(tickerX, tickerY, tickerW, tickerH), 3, 3);
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(15, 18, 22)), new Pen(new SolidColorBrush(Color.FromRgb(60, 65, 75)), 1), new Rect(tickerX, tickerY, tickerW, tickerH), 2.5, 2.5);
 
         string tickerText = (IsGoalReached || ProgressFraction >= 0.999)
             ? (IsMiniMode ? "🌟 TARGET REACHED! 🌟" : "🌟 ARRIVED: TARGET STATION • 100% FOCUS! 🌟")
             : IsRestPhase
                 ? (IsMiniMode ? "🍵 METRO TEA BREAK" : "🍵 TOKYO METRO: LO-FI TEA & REST BREAK")
                 : IsTracking
-                    ? (IsMiniMode ? $"🟢 YAMANOTE • {(int)(ProgressFraction * 100)}%" : $"🟢 YAMANOTE LINE • NEXT: FOCUS STATION ──► {(int)(ProgressFraction * 100)}%")
-                    : "🟢 YAMANOTE LINE • READY TO DEPART";
+                    ? (IsMiniMode ? $"🟢 EXPRESS • {(int)(ProgressFraction * 100)}%" : $"🟢 EXPRESS YAMANOTE • NEXT: FOCUS STATION ──► {(int)(ProgressFraction * 100)}%")
+                    : (IsMiniMode ? "🟢 READY TO DEPART" : "🟢 YAMANOTE LINE • READY TO DEPART");
 
         var ledBrush = (IsGoalReached || ProgressFraction >= 0.999)
             ? new SolidColorBrush(Color.FromRgb(255, 225, 110))
@@ -2512,31 +3268,261 @@ public partial class VisualCompanionControl : UserControl
                 ? new SolidColorBrush(Color.FromRgb(130, 240, 180))
                 : new SolidColorBrush(Color.FromRgb(110, 245, 140));
 
-        var ft = CreateText(tickerText, IsMiniMode ? 7.5 : 9.5, ledBrush, FontWeights.Bold);
+        var ft = CreateText(tickerText, IsMiniMode ? 7.0 : 9.5, ledBrush, FontWeights.Bold);
         dc.DrawText(ft, new Point(tickerX + ((tickerW - ft.Width) * 0.5), tickerY + ((tickerH - ft.Height) * 0.5)));
     }
 
     private void DrawMetroSeatBench(DrawingContext dc, double w, double seatY, double seatH)
     {
-        // Emerald Green Velvet Japanese Train Seat Cushion
-        var seatBrush = new LinearGradientBrush(
-            Color.FromRgb(42, 138, 98),
-            Color.FromRgb(24, 88, 62),
+        bool isMini = IsMiniMode;
+        double scale = isMini ? 0.60 : 1.0;
+        double floorY = isMini ? seatY + (8.5 * scale) : seatY + (26 * scale);
+
+        // 1. Upper Backrest Cushions (背もたれ - Ergonomic Segmented Tokyo Metro Plush Moquette)
+        double backrestTop = seatY - (isMini ? 8.5 : 20);
+        double backrestH = seatY - backrestTop;
+        double seatSecW = isMini ? 32 : 48;
+        int numSections = (int)Math.Ceiling(w / seatSecW) + 1;
+
+        for (int i = 0; i < numSections; i++)
+        {
+            double secX = i * seatSecW;
+            var secRect = new Rect(secX, backrestTop, seatSecW, backrestH);
+
+            // A. Backrest Main Plush Velvet Body (Deep Tokyo Metro Emerald Green Moquette)
+            var backrestBrush = new LinearGradientBrush(
+                Color.FromRgb(36, 126, 88),
+                Color.FromRgb(22, 80, 56),
+                new Point(0, 0),
+                new Point(0, 1));
+            dc.DrawRoundedRectangle(backrestBrush, null, secRect, isMini ? 2 : 4, isMini ? 2 : 4);
+
+            // B. Upper Headrest/Shoulder Bolster Roll Accent (Sage/Olive moquette)
+            double bolsterH = isMini ? 3.0 : 6.5;
+            var bolsterBrush = new LinearGradientBrush(
+                Color.FromRgb(60, 155, 105),
+                Color.FromRgb(42, 122, 82),
+                new Point(0, 0),
+                new Point(0, 1));
+            dc.DrawRoundedRectangle(bolsterBrush, null, new Rect(secX + 1, backrestTop, seatSecW - 2, bolsterH), isMini ? 1.5 : 3, isMini ? 1.5 : 3);
+
+            // C. Top Bolster Velvet Highlight Sheen Line
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(160, 150, 245, 195)), 1.0), new Point(secX + 2, backrestTop + 1), new Point(secX + seatSecW - 2, backrestTop + 1));
+
+            // D. Center Ergonomic Vertical Accent Stitch / Piping
+            double cx = secX + (seatSecW * 0.5);
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 130, 235, 180)), 1.2), new Point(cx, backrestTop + bolsterH + 1), new Point(cx, seatY - 1));
+
+            // E. Vertical Seam Divider Groove between passenger spots
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(14, 52, 36)), 1.4), new Point(secX, backrestTop), new Point(secX, seatY));
+        }
+
+        // 2. Stainless Steel Under-Seat Heater Plinth & Kickplate (蹴込板 / ヒーター)
+        double cushionBottom = seatY + (isMini ? 6.5 : 12.0);
+        double plinthH = Math.Max(0, floorY - cushionBottom);
+        var plinthBrush = new LinearGradientBrush(
+            Color.FromRgb(44, 48, 60),
+            Color.FromRgb(26, 30, 38),
             new Point(0, 0),
             new Point(0, 1));
-        var seatPen = new Pen(new SolidColorBrush(Color.FromRgb(20, 70, 48)), 1.2);
-        dc.DrawRectangle(seatBrush, seatPen, new Rect(0, seatY, w, seatH));
+        dc.DrawRectangle(plinthBrush, null, new Rect(0, cushionBottom, w, plinthH));
 
-        // Velvet texture bevel line
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(100, 100, 215, 160)), 1.5), new Point(0, seatY), new Point(w, seatY));
+        // Horizontal Heater Ventilation Louver Slits under each seat
+        for (int i = 0; i < numSections; i++)
+        {
+            double secX = i * seatSecW;
+            double louverW = seatSecW - (isMini ? 8 : 12);
+            double louverX = secX + ((seatSecW - louverW) * 0.5);
+            for (double ly = cushionBottom + (isMini ? 2 : 4); ly < floorY - 2; ly += (isMini ? 3.5 : 5.0))
+            {
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(12, 14, 18)), null, new Rect(louverX, ly, louverW, isMini ? 1.2 : 1.8));
+                dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 78, 95)), 0.6), new Point(louverX, ly + (isMini ? 1.2 : 1.8)), new Point(louverX + louverW, ly + (isMini ? 1.2 : 1.8)));
+            }
+        }
+
+        // 3. Thick Front Seat-Base Cushion (座面 - Sculpted 3D Velvet Cushion with Highlight)
+        double cushionH = cushionBottom - (seatY - (isMini ? 1.5 : 2.5));
+        var cushionBrush = new LinearGradientBrush(
+            new GradientStopCollection
+            {
+                new GradientStop(Color.FromRgb(50, 160, 112), 0.0),
+                new GradientStop(Color.FromRgb(34, 118, 82), 0.4),
+                new GradientStop(Color.FromRgb(20, 78, 54), 0.85),
+                new GradientStop(Color.FromRgb(14, 56, 38), 1.0)
+            },
+            new Point(0, 0),
+            new Point(0, 1));
+        var cushionPen = new Pen(new SolidColorBrush(Color.FromRgb(14, 50, 34)), 1.2);
+        dc.DrawRoundedRectangle(cushionBrush, cushionPen, new Rect(0, seatY - (isMini ? 1.5 : 2.5), w, cushionH), isMini ? 2.5 : 4.5, isMini ? 2.5 : 4.5);
+
+        // Plush velvet top highlight line catching interior lighting
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(170, 150, 245, 195)), 1.5), new Point(0, seatY - (isMini ? 0.5 : 1.0)), new Point(w, seatY - (isMini ? 0.5 : 1.0)));
+
+        // Cushion division indentations aligning with backrest seats
+        for (int i = 0; i < numSections; i++)
+        {
+            double secX = i * seatSecW;
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 12, 46, 32)), 1.2), new Point(secX, seatY - (isMini ? 1.5 : 2.5)), new Point(secX, cushionBottom));
+        }
+
+        // Under-cushion drop shadow cast onto heater plinth
+        var shadowBrush = new LinearGradientBrush(
+            Color.FromArgb(160, 0, 0, 0),
+            Color.FromArgb(0, 0, 0, 0),
+            new Point(0, 0),
+            new Point(0, 1));
+        dc.DrawRectangle(shadowBrush, null, new Rect(0, cushionBottom, w, isMini ? 2.5 : 4.5));
+
+        // 4. Carriage Transit Floor along bottom
+        var floorBrush = new LinearGradientBrush(
+            Color.FromRgb(28, 30, 42),
+            Color.FromRgb(18, 20, 28),
+            new Point(0, 0),
+            new Point(0, 1));
+        dc.DrawRectangle(floorBrush, null, new Rect(0, floorY, w, seatH - (floorY - seatY)));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(55, 60, 78)), 1.0), new Point(0, floorY), new Point(w, floorY));
+    }
+
+    /// <summary>
+    /// Modern Tokyo Metro partition screen (袖仕切) with frosted glass and stainless steel grab stanchion
+    /// with iconic safety-orange grip sleeve.
+    /// </summary>
+    private void DrawMetroArmrestDivider(DrawingContext dc, double x, double seatY, double floorY, double scale)
+    {
+        double topY = seatY - (28 * scale);
+        double partW = 10 * scale;
+        double partH = floorY - topY;
+
+        // 1. Sleek Partition Screen Frame (Composite / Brushed Aluminum)
+        var frameBrush = new LinearGradientBrush(
+            Color.FromRgb(215, 222, 235),
+            Color.FromRgb(140, 150, 165),
+            new Point(0, 0),
+            new Point(1, 0));
+        var framePen = new Pen(new SolidColorBrush(Color.FromRgb(100, 110, 125)), 0.8 * scale);
+        dc.DrawRoundedRectangle(frameBrush, framePen, new Rect(x - (partW * 0.5), topY, partW, partH), 3 * scale, 3 * scale);
+
+        // 2. Frosted Safety Glass Panel Insert
+        double glassMargin = 2 * scale;
+        double glassH = (seatY - topY) - (6 * scale);
+        var glassBrush = new LinearGradientBrush(
+            Color.FromArgb(100, 190, 230, 255),
+            Color.FromArgb(60, 150, 200, 230),
+            new Point(0, 0),
+            new Point(1, 1));
+        dc.DrawRoundedRectangle(glassBrush, null, new Rect(x - (partW * 0.5) + glassMargin, topY + (3 * scale), partW - (glassMargin * 2), glassH), 1.5 * scale, 1.5 * scale);
+
+        // Glass reflection sheen
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)), 1.0 * scale), new Point(x - 2 * scale, topY + 5 * scale), new Point(x + 2 * scale, topY + (glassH - 2 * scale)));
+
+        // 3. Vertical Stainless Steel Grab Stanchion Pole
+        double poleX = x + (partW * 0.5) - (1.5 * scale);
+        double poleTopY = topY - (16 * scale);
+        var poleBrush = new LinearGradientBrush(
+            Color.FromRgb(235, 240, 250),
+            Color.FromRgb(165, 175, 190),
+            new Point(0, 0),
+            new Point(1, 0));
+        dc.DrawRoundedRectangle(poleBrush, new Pen(new SolidColorBrush(Color.FromRgb(120, 130, 145)), 0.8 * scale), new Rect(poleX - (1.6 * scale), poleTopY, 3.2 * scale, floorY - poleTopY), 1.5 * scale, 1.5 * scale);
+
+        // 4. Iconic Tokyo Metro High-Visibility Safety Orange Non-Slip Grip Sleeve
+        double gripTopY = topY - (8 * scale);
+        double gripH = 22 * scale;
+        var gripBrush = new LinearGradientBrush(
+            Color.FromRgb(255, 175, 55),
+            Color.FromRgb(220, 130, 30),
+            new Point(0, 0),
+            new Point(1, 0));
+        dc.DrawRoundedRectangle(gripBrush, new Pen(new SolidColorBrush(Color.FromRgb(190, 105, 20)), 0.8 * scale), new Rect(poleX - (2.2 * scale), gripTopY, 4.4 * scale, gripH), 2 * scale, 2 * scale);
+
+        // Subtle grip rings
+        for (double gy = gripTopY + (3 * scale); gy < gripTopY + gripH - (2 * scale); gy += (4 * scale))
+        {
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 220, 150)), 0.8 * scale), new Point(poleX - (2.0 * scale), gy), new Point(poleX + (2.0 * scale), gy));
+        }
+
+        // 5. Padded Armrest Cap matching Emerald Velvet Moquette
+        dc.DrawRoundedRectangle(
+            new SolidColorBrush(Color.FromRgb(32, 112, 78)),
+            new Pen(new SolidColorBrush(Color.FromRgb(18, 70, 48)), 0.8 * scale),
+            new Rect(x - (partW * 0.5) - (1.5 * scale), seatY - (4 * scale), partW + (3 * scale), 6 * scale),
+            2 * scale,
+            2 * scale);
+    }
+
+    /// <summary>
+    /// Draws seated legs (thighs bent at the knee, shins down to the floor) with cute shoes.
+    /// Anchoring the lower body to the floor is what makes the character read as sitting on
+    /// the train seat instead of floating above it.
+    /// </summary>
+    private void DrawSeatedGirlLegs(DrawingContext dc, double girlX, double hipY, double floorY, double scale, Color legColor, Color shoeColor, double spreadScale = 1.0)
+    {
+        var legPen = new Pen(new SolidColorBrush(legColor), 6.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        double kneeY = hipY + (9 * scale);
+        double kneeSpread = 6.5 * scale * spreadScale;
+        double footSpread = 5.5 * scale * spreadScale;
+
+        Point leftHip = new Point(girlX - (4.5 * scale), hipY);
+        Point leftKnee = new Point(girlX - kneeSpread, kneeY);
+        Point leftFoot = new Point(girlX - footSpread, floorY);
+
+        Point rightHip = new Point(girlX + (4.5 * scale), hipY);
+        Point rightKnee = new Point(girlX + kneeSpread, kneeY);
+        Point rightFoot = new Point(girlX + footSpread, floorY);
+
+        dc.DrawLine(legPen, leftHip, leftKnee);
+        dc.DrawLine(legPen, leftKnee, leftFoot);
+        dc.DrawLine(legPen, rightHip, rightKnee);
+        dc.DrawLine(legPen, rightKnee, rightFoot);
+
+        // Cute little shoes resting on the train floor
+        var shoeBrush = new SolidColorBrush(shoeColor);
+        dc.DrawRoundedRectangle(shoeBrush, null, new Rect(leftFoot.X - (4 * scale), floorY - (2 * scale), 8 * scale, 4 * scale), 2, 2);
+        dc.DrawRoundedRectangle(shoeBrush, null, new Rect(rightFoot.X - (4 * scale), floorY - (2 * scale), 8 * scale, 4 * scale), 2, 2);
+    }
+
+    /// <summary>
+    /// A small pastel backpack resting on the seat beside her - reinforces that she's a
+    /// commuter sitting with her things, not a disconnected floating sprite.
+    /// </summary>
+    private void DrawSeatBackpack(DrawingContext dc, double x, double seatTopY, double scale)
+    {
+        double bpW = 13 * scale;
+        double bpH = 15 * scale;
+        double bpY = seatTopY - bpH + (3 * scale);
+
+        var bpBrush = new LinearGradientBrush(Color.FromRgb(255, 195, 210), Color.FromRgb(235, 150, 175), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(bpBrush, new Pen(new SolidColorBrush(Color.FromRgb(205, 115, 145)), 1), new Rect(x, bpY, bpW, bpH), 4, 4);
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 220, 228)), null, new Rect(x + (2 * scale), bpY + (2 * scale), bpW - (4 * scale), bpH * 0.38), 3, 3);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(225, 140, 165)), null, new Point(x + (bpW * 0.5), bpY + (2 * scale)), 1.6 * scale, 1.6 * scale);
     }
 
     private void DrawMetroLoFiGirl(DrawingContext dc, double w, double seatY, double progress, bool isTracking, bool isMini)
     {
-        double scale = isMini ? 0.65 : 1.0;
+        double scale = isMini ? 0.60 : 1.0;
         double girlX = isMini ? (w * 0.68) : (w * 0.72);
         double headBob = Math.Sin(_frameTick * 0.22) * (2.0 * scale);
-        double girlY = seatY - (52 * scale) + headBob;
+
+        // Anchor the whole pose to the seat: hip sinks slightly into the cushion, knees bend
+        // forward, and feet rest on the carriage floor at the very bottom of the scene.
+        double hipY = seatY - (2 * scale) + headBob;
+        double floorY = (isMini ? seatY + (8.5 * scale) : seatY + (26 * scale));
+        double girlY = hipY - (48 * scale);
+
+        // Chrome armrest divider grounding her seat within the carriage
+        if (!isMini)
+        {
+            DrawMetroArmrestDivider(dc, girlX - (22 * scale), seatY, floorY, scale);
+        }
+
+        // Backpack resting on the seat beside her
+        if (!isMini)
+        {
+            DrawSeatBackpack(dc, girlX + (16 * scale), seatY, scale);
+        }
+
+        // 0. Seated Legs & Shoes (drawn first so the torso/skirt overlaps the hip naturally)
+        DrawSeatedGirlLegs(dc, girlX, hipY, floorY, scale, Color.FromRgb(70, 60, 90), Color.FromRgb(255, 250, 245));
 
         // 1. Cozy Pastel Lavender Hoodie Body
         var hoodieBrush = new LinearGradientBrush(
@@ -2547,7 +3533,7 @@ public partial class VisualCompanionControl : UserControl
         var hoodiePen = new Pen(new SolidColorBrush(Color.FromRgb(140, 115, 180)), 1.2 * scale);
 
         // Body torso
-        dc.DrawRoundedRectangle(hoodieBrush, hoodiePen, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 32 * scale), 6 * scale, 6 * scale);
+        dc.DrawRoundedRectangle(hoodieBrush, hoodiePen, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 26 * scale), 6 * scale, 6 * scale);
 
         // Cozy scarf / collar
         dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 245, 230)), null, new Rect(girlX - (11 * scale), girlY + (18 * scale), 22 * scale, 8 * scale), 4 * scale, 4 * scale);
@@ -2598,6 +3584,32 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(new SolidColorBrush(ledColor), null, new Point(girlX - (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
         dc.DrawEllipse(new SolidColorBrush(ledColor), null, new Point(girlX + (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
 
+        // 4b. Hands resting on her lap holding a phone, with the headphone cord running up to her ear.
+        // This ties the headphones to a visible source and gives her lap something to hold,
+        // instead of leaving her arms invisible inside the hoodie block.
+        double lapY = hipY - (6 * scale);
+        var handBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
+        var sleevePen = new Pen(new SolidColorBrush(Color.FromRgb(180, 160, 215)), 4.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(sleevePen, new Point(girlX - (11 * scale), girlY + (26 * scale)), new Point(girlX - (7 * scale), lapY));
+        dc.DrawLine(sleevePen, new Point(girlX + (11 * scale), girlY + (26 * scale)), new Point(girlX + (7 * scale), lapY));
+        dc.DrawEllipse(handBrush, null, new Point(girlX - (7 * scale), lapY), 2.6 * scale, 2.6 * scale);
+        dc.DrawEllipse(handBrush, null, new Point(girlX + (7 * scale), lapY), 2.6 * scale, 2.6 * scale);
+
+        if (!isMini)
+        {
+            // Phone cradled in her hands
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(55, 52, 70)), new Pen(new SolidColorBrush(Color.FromRgb(30, 28, 42)), 1), new Rect(girlX - (4 * scale), lapY - (2 * scale), 8 * scale, 12 * scale), 2, 2);
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(130, 220, 255)), null, new Rect(girlX - (3 * scale), lapY - (1 * scale), 6 * scale, 10 * scale), 1, 1);
+
+            // Headphone cord looping from the phone up to her ear
+            var cordPen = new Pen(new SolidColorBrush(Color.FromRgb(235, 235, 240)), 1.1 * scale);
+            var cordGeom = new PathGeometry();
+            var cordFig = new PathFigure { StartPoint = new Point(girlX, lapY - (2 * scale)) };
+            cordFig.Segments.Add(new QuadraticBezierSegment(new Point(girlX + (10 * scale), girlY + (4 * scale)), new Point(girlX + (12.5 * scale), girlY + (9 * scale)), true));
+            cordGeom.Figures.Add(cordFig);
+            dc.DrawGeometry(null, cordPen, cordGeom);
+        }
+
         // 5. Floating Lo-Fi Music Notes Rising
         if (isTracking || isMini)
         {
@@ -2634,13 +3646,25 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawMetroGoalGirl(DrawingContext dc, double w, double seatY, bool isMini)
     {
-        double scale = isMini ? 0.65 : 1.0;
+        double scale = isMini ? 0.60 : 1.0;
         double girlX = isMini ? (w * 0.68) : (w * 0.72);
-        double girlY = seatY - (52 * scale);
+        double hipY = seatY - (2 * scale);
+        double floorY = (isMini ? seatY + (8.5 * scale) : seatY + (26 * scale));
+        double girlY = hipY - (48 * scale);
+        double kick = Math.Sin(_frameTick * 0.35) * (4 * scale);
+
+        if (!isMini)
+        {
+            DrawMetroArmrestDivider(dc, girlX - (22 * scale), seatY, floorY, scale);
+            DrawSeatBackpack(dc, girlX + (16 * scale), seatY, scale);
+        }
+
+        // Cheerfully kicking legs (celebrating in her seat!)
+        DrawSeatedGirlLegs(dc, girlX, hipY - kick * 0.3, floorY - kick, scale, Color.FromRgb(70, 60, 90), Color.FromRgb(255, 250, 245), 1.15);
 
         // Body
         var hoodieBrush = new SolidColorBrush(Color.FromRgb(215, 190, 245));
-        dc.DrawRoundedRectangle(hoodieBrush, null, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 32 * scale), 6 * scale, 6 * scale);
+        dc.DrawRoundedRectangle(hoodieBrush, null, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 26 * scale), 6 * scale, 6 * scale);
 
         // Head
         var skinBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
@@ -2666,9 +3690,15 @@ public partial class VisualCompanionControl : UserControl
 
         // Victory Peace Sign v(^_^)v
         double armY = girlY + (14 * scale);
+        var armPen = new Pen(skinBrush, 2.4 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(armPen, new Point(girlX - (11 * scale), girlY + (26 * scale)), new Point(girlX - (16 * scale), armY));
         dc.DrawEllipse(skinBrush, null, new Point(girlX - (16 * scale), armY), 3.5 * scale, 3.5 * scale);
         dc.DrawLine(new Pen(skinBrush, 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (19 * scale), armY - (8 * scale)));
         dc.DrawLine(new Pen(skinBrush, 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (13 * scale), armY - (8 * scale)));
+
+        // Other arm resting cheerfully on her lap
+        dc.DrawLine(armPen, new Point(girlX + (11 * scale), girlY + (26 * scale)), new Point(girlX + (8 * scale), hipY - (6 * scale)));
+        dc.DrawEllipse(skinBrush, null, new Point(girlX + (8 * scale), hipY - (6 * scale)), 2.6 * scale, 2.6 * scale);
 
         // Celebration Banner on top left
         double bannerW = isMini ? 150 : 270;
@@ -2687,12 +3717,23 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawMetroRestGirl(DrawingContext dc, double w, double seatY, bool isMini)
     {
-        double scale = isMini ? 0.65 : 1.0;
+        double scale = isMini ? 0.60 : 1.0;
         double girlX = isMini ? (w * 0.68) : (w * 0.72);
-        double girlY = seatY - (48 * scale);
+        double hipY = seatY - (2 * scale);
+        double floorY = (isMini ? seatY + (8.5 * scale) : seatY + (26 * scale));
+        double girlY = hipY - (44 * scale);
+
+        if (!isMini)
+        {
+            DrawMetroArmrestDivider(dc, girlX - (22 * scale), seatY, floorY, scale);
+            DrawSeatBackpack(dc, girlX + (16 * scale), seatY, scale);
+        }
+
+        // Legs relaxed, slightly apart, resting on the floor while she naps
+        DrawSeatedGirlLegs(dc, girlX, hipY, floorY, scale, Color.FromRgb(70, 60, 90), Color.FromRgb(255, 250, 245), 1.3);
 
         // Body leaning on arm
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(190, 175, 225)), null, new Rect(girlX - (14 * scale), girlY + (20 * scale), 28 * scale, 30 * scale), 6 * scale, 6 * scale);
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(190, 175, 225)), null, new Rect(girlX - (14 * scale), girlY + (20 * scale), 28 * scale, 24 * scale), 6 * scale, 6 * scale);
 
         // Head resting peacefully
         var skinBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
@@ -2709,6 +3750,13 @@ public partial class VisualCompanionControl : UserControl
         // Headphones on head
         dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX - (15 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
         dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX + (10 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
+
+        // Arms resting loosely in her lap
+        var armPen = new Pen(skinBrush, 2.4 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(armPen, new Point(girlX - (11 * scale), girlY + (24 * scale)), new Point(girlX - (6 * scale), hipY - (7 * scale)));
+        dc.DrawLine(armPen, new Point(girlX + (11 * scale), girlY + (24 * scale)), new Point(girlX + (6 * scale), hipY - (7 * scale)));
+        dc.DrawEllipse(skinBrush, null, new Point(girlX - (6 * scale), hipY - (7 * scale)), 2.4 * scale, 2.4 * scale);
+        dc.DrawEllipse(skinBrush, null, new Point(girlX + (6 * scale), hipY - (7 * scale)), 2.4 * scale, 2.4 * scale);
 
         // Floating Dream / Snooze "💤 z Z Z"
         string zText = (_frameTick % 20 < 10) ? "💤 z Z Z" : "💤 Z z z";

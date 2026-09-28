@@ -18,6 +18,7 @@ public class ArtSceneOption
     {
         new() { Id = "cycling", Name = "Boy Cycling Home", Icon = "🚴", Description = "Cute boy pedals his bicycle with puppy in basket across a scenic meadow trail towards his cozy home." },
         new() { Id = "cafe", Name = "Rainy Window Coffee", Icon = "☕", Description = "Zoomed-in 4-pane rainy window where steam rises from a cozy mug, fog builds on the glass, and reveals 'Good Job!' at the end." },
+        new() { Id = "coffeejazz", Name = "Coffee Jazz Window", Icon = "🎷", Description = "Chill 'playlist cover' view: an autumn lakeside window beside a latte on a wooden table, with drifting golden sparkle dust." },
         new() { Id = "icecream", Name = "Pastel Ice Cream Truck", Icon = "🍦", Description = "Cute pastel ice cream truck where children happily walk up to order delicious treats as focus time advances." },
         new() { Id = "metro", Name = "Tokyo Metro Lo-Fi Girl", Icon = "🎧", Description = "Chill anime girl listening to lo-fi beats with headphones on the Tokyo metro passing glowing city lights." },
         new() { Id = "cat", Name = "Playful Focus Kitty", Icon = "🐱", Description = "Kawaii fluffy kitten plays with yarn and scampers towards delicious fish treats." },

@@ -25,6 +25,7 @@ public partial class AnalyticsWindow : Window
     public AnalyticsWindow(List<TimeEntry> entries, List<Project> projects, List<ActivityItem>? activities = null)
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
 
         _allEntries = entries ?? new List<TimeEntry>();
         _allProjects = projects ?? new List<Project>();
@@ -482,7 +483,7 @@ public partial class AnalyticsWindow : Window
 
         var sb = new StringBuilder();
 
-        sb.AppendLine("=== Freelance Time Tracking Analytics Report ===");
+        sb.AppendLine("=== Fun Time Tracking Analytics Report ===");
         sb.AppendLine($"Date Range,{DateRangeLabel.Text}");
         sb.AppendLine($"Project Filter,{ProjectFilterComboBox.SelectedItem}");
         sb.AppendLine($"Activity Filter,{ActivityFilterComboBox.SelectedItem}");

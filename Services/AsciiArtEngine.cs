@@ -29,6 +29,7 @@ public static class AsciiArtEngine
         return sceneId switch
         {
             "cafe" => RenderCafeScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
+            "coffeejazz" => RenderCoffeeJazzScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             "icecream" => RenderIceCreamScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             "metro" => RenderMetroScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             "rocket" => RenderRocketScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
@@ -405,6 +406,110 @@ public static class AsciiArtEngine
 
     #endregion
 
+    #region Scene: 🎷 Coffee Jazz Window (Autumn Lake, Latte & Lo-Fi Jazz)
+
+    private static RenderedArtScene RenderCoffeeJazzScene(
+        int frameTick,
+        double progress,
+        bool isTracking,
+        bool isGoalReached,
+        bool isRestPhase,
+        string context)
+    {
+        var sb = new StringBuilder();
+        int f = frameTick % 4;
+
+        if (isRestPhase)
+        {
+            sb.AppendLine("  ┌──────────────┬───┐   🎷 ~ ♫ ~ ♪  CHILL JAZZ BREAK");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│   Golden autumn leaves gently drifting over the lake...");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │   Sip warm cinnamon latte, lean back & enjoy the melody.");
+            sb.AppendLine("  ├──────────────┴───┤   Soothing saxophone chords • Rest your mind.");
+            sb.AppendLine("  │   ( (   [☕]  🎷 │");
+            sb.AppendLine("  └──────────────────┘");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🎷 Relaxing by the lakeside window with warm latte and soothing jazz chords.",
+                BadgeText = "🎷 JAZZ BREAK",
+                MiniLine = "[🎷 ☕ Autumn Lakeside Jazz Rest 🍂]"
+            };
+        }
+
+        if (isGoalReached)
+        {
+            string sparkles = (f % 2 == 0) ? "✨  ♫  ✨  ♪  ✨" : "♫  ✨  ♪  ✨  ♫";
+            sb.AppendLine($"  ┌──────────────┬───┐    {sparkles}");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│    🏆 TARGET REACHED! PERFECT VIBES!");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │    Golden sunset glow reflecting on calm water!");
+            sb.AppendLine("  ├──────────────┴───┤    Finished session in style with warm latte & jazz!");
+            sb.AppendLine("  │   ( (   [☕]  🎷 │");
+            sb.AppendLine("  └──────────────────┘");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🎷 Perfect session completed! Golden sunset glow over the autumn lake! ✨",
+                BadgeText = "🎷 TARGET REACHED!",
+                MiniLine = "[🎷 100% • ☕ Golden Sunset Jazz! ✨]"
+            };
+        }
+
+        if (!isTracking)
+        {
+            sb.AppendLine("  ┌──────────────┬───┐   🎷 Lo-Fi Coffee Jazz");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│   Autumn lakeside window view");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │   Latte on wooden table & drifting sparkles");
+            sb.AppendLine("  ├──────────────┴───┤   Start timer to tune into the focus groove!");
+            sb.AppendLine("  │   ( (   [☕]     │");
+            sb.AppendLine("  └──────────────────┘");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🎷 Autumn lakeside window is calm. Warm latte ready on the table. Start tracking!",
+                BadgeText = "🎷 JAZZ READY",
+                MiniLine = "[🎷 Autumn Window & Latte • 0%]"
+            };
+        }
+
+        // Active tracking
+        int pct = (int)(progress * 100);
+        string note = (f % 4) switch
+        {
+            0 => "♫ ~ ✨",
+            1 => "✨ ~ ♪",
+            2 => "♪ ~ ♫",
+            _ => "✨ ~ 🎷"
+        };
+
+        string steam = (f % 2 == 0) ? "( (" : ") )";
+        string lakeDusk = progress switch
+        {
+            < 0.33 => "│ ~ ~ ~ ~ ~ ~ ~│   │",
+            < 0.66 => "│ ~ 🍂 ~ ~ ✨ ~│   │",
+            _ => "│ ✨ ~ 🌅 ~ 🍂 │   │"
+        };
+
+        sb.AppendLine($"  ┌──────────────┬───┐   🎷 {pct}% Lo-Fi Jazz Flow  {note}");
+        sb.AppendLine($"  │ 🍂  🌲 🌲 🍁 │ 🍂│   Autumn breeze rustling amber trees...");
+        sb.AppendLine($"  {lakeDusk}   Golden lake reflections drifting by");
+        sb.AppendLine("  ├──────────────┴───┤   Sipping warm latte in deep focus");
+        sb.AppendLine($"  │   {steam}   [☕]     │");
+        sb.AppendLine("  └──────────────────┘");
+
+        return new RenderedArtScene
+        {
+            AsciiArt = sb.ToString(),
+            StoryText = $"🎷 Lo-Fi jazz & autumn lake breeze • Warm latte • {pct}% focus groove",
+            BadgeText = $"🎷 {pct}% JAZZ FLOW",
+            MiniLine = $"[🎷 {pct}% • ☕ Lakeside Jazz 🍂]"
+        };
+    }
+
+    #endregion
+
     #region Scene: 🍦 Pastel Ice Cream Truck
 
     private static RenderedArtScene RenderIceCreamScene(
@@ -520,18 +625,26 @@ public static class AsciiArtEngine
         var sb = new StringBuilder();
         int f = frameTick % 4;
 
+        string[] movingSkyline = {
+            "⚡ 🗼 ── 🏢 ──► [新宿] 💨",
+            "💨 ── 🏢 ── 🗼 [渋谷] ⚡",
+            "⚡ 🗼 ── 🏙️ ──► [秋葉原] 💨",
+            "💨 ── 🏙️ ── 🗼 [原宿] ⚡"
+        };
+
         if (isRestPhase)
         {
+            string restSky = (f % 2 == 0) ? "🗼 🌃 🏢 ~~~ 🌃" : "🌃 🗼 🌃 ~~~ 🏢";
             sb.AppendLine("   [ 🟢 YAMANOTE LINE 🚇 ]   🎧 🍵 TOKYO REST BREAK");
-            sb.AppendLine("   | 🗼 🌃 ~~~ 🌃 |  Sipping warm canned Royal Milk Tea 🍵");
-            sb.AppendLine("   |  o===o===o   |  Gentle train rocking... Peaceful catnap 💤");
-            sb.AppendLine("   | 🎧( ᴗ ᴗ)z Z  |  Rest your eyes and breathe.");
+            sb.AppendLine($"   | {restSky} |  Sipping warm canned Royal Milk Tea 🍵");
+            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  Plush velvet metro seat... Catnap 💤");
+            sb.AppendLine("   | 🎧( ᴗ ᴗ)z Z 🧃 |  Rest your eyes and breathe.");
             sb.AppendLine("  ──────────────────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🍵 Resting on the Tokyo Metro with warm royal milk tea and lo-fi beats.",
+                StoryText = "🍵 Resting on the plush Tokyo Metro seat with warm royal milk tea and lo-fi beats.",
                 BadgeText = "🎧 METRO REST",
                 MiniLine = "[🚇 🎧 🍵 Tokyo Metro Rest & Tea]"
             };
@@ -541,15 +654,15 @@ public static class AsciiArtEngine
         {
             string notes = (f % 2 == 0) ? "♪ ♫ ♩ 💖" : "♫ ♪ 💖 ♬";
             sb.AppendLine("   [ 🌟 DESTINATION: TARGET STATION 🌟 ]   ✨ ARRIVED!");
-            sb.AppendLine($"   | 🗼 🏙️ 🌃 ✨ |  {notes}  Goal Completed!");
-            sb.AppendLine("   |  o===o===o   |  v(^_^)v Victory peace sign!");
-            sb.AppendLine("   | 🎧(^o^)v ✨ |  Smooth ride, outstanding focus!");
+            sb.AppendLine($"   | 🗼 🏙️ 🏬 🚉 ✨ |  {notes}  Goal Completed!");
+            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  v(^_^)v Victory peace sign on train!");
+            sb.AppendLine("   | 🎧(^o^)v ✨    |  Smooth ride, outstanding focus!");
             sb.AppendLine("  ──────────────────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🎧 Train arrived at target destination! Girl waves peace sign to lo-fi beats! ✨",
+                StoryText = "🎧 Train arrived at target destination! Girl waves peace sign from plush metro seat! ✨",
                 BadgeText = "🚉 ARRIVED!",
                 MiniLine = "[🚇 100% • 🎧 Arrived at Station! ✨]"
             };
@@ -558,15 +671,15 @@ public static class AsciiArtEngine
         if (!isTracking)
         {
             sb.AppendLine("   [ 🟢 SHIBUYA ──► TARGET STATION ]   🚇 Tokyo Metro");
-            sb.AppendLine("   | 🗼 🏙️  🌃   |  Putting on headphones...");
-            sb.AppendLine("   |  o===o===o   |  Lo-fi playlist loaded ♪");
-            sb.AppendLine("   | 🎧(._. )     |  Ready to start the journey!");
+            sb.AppendLine("   | 🗼 🏙️  🏢  🌃  |  Putting on headphones...");
+            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  Plush emerald bucket seat ready ♪");
+            sb.AppendLine("   | 🎧(._. ) 🎒    |  Ready to start the journey!");
             sb.AppendLine("  ──────────────────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🎧 Boarding Tokyo Metro, headphones on, lo-fi beats ready. Start timer to begin!",
+                StoryText = "🎧 Boarding Tokyo Metro, cozy on the plush velvet seats, lo-fi beats ready. Start timer to begin!",
                 BadgeText = "🎧 READY TO RIDE",
                 MiniLine = "[🚇 Tokyo Metro Ready • 0%]"
             };
@@ -577,21 +690,21 @@ public static class AsciiArtEngine
         string[] notePatterns = { "♪   ", " ♫  ", "  ♩ ", "   ♬" };
         string musicNote = notePatterns[f];
 
-        string cityLights = (f % 2 == 0) ? "🗼 🏙️ [新宿] ✨" : "🗼 🌃 [渋谷] ✨";
+        string cityLights = movingSkyline[f];
         string girlHead = (f % 2 == 0) ? "🎧(^_^)♪" : "🎧(^.^)♩";
 
-        sb.AppendLine($"   [ 🟢 YAMANOTE LINE • NEXT: FOCUS STATION ──► {pct}% ]");
+        sb.AppendLine($"   [ 🟢 EXPRESS YAMANOTE • NEXT: FOCUS STATION ──► {pct}% ]");
         sb.AppendLine($"   | {cityLights} |  Music: {musicNote} Lo-Fi chill beats");
-        sb.AppendLine($"   |  o===o===o   |  City lights gliding past window...");
-        sb.AppendLine($"   |  {girlHead}     |  Deep in the focus zone...");
+        sb.AppendLine($"   | [🟩 💺 🟩 💺 🟩] |  Tokyo skyline flying past the window! ⚡");
+        sb.AppendLine($"   |  {girlHead} 🎒   |  Deep in the focus zone on plush seat...");
         sb.AppendLine("  ──────────────────────────────────────────────────────────");
 
         return new RenderedArtScene
         {
             AsciiArt = sb.ToString(),
-            StoryText = $"🎧 Vibing to lo-fi beats on the Tokyo Metro • Neon city lights passing • {pct}%",
-            BadgeText = $"🎧 {pct}% LO-FI",
-            MiniLine = $"[🚇 🎧 {pct}% • 🏙️ Tokyo Metro]"
+            StoryText = $"🎧 Express train flying past Tokyo skyline • Deep in the focus zone • {pct}%",
+            BadgeText = $"🎧 {pct}% EXPRESS",
+            MiniLine = $"[🚇 ⚡ {pct}% • 🏙️ Flying Past Tokyo]"
         };
     }
 

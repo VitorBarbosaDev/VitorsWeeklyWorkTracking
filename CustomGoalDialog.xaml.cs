@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking;
 
@@ -12,6 +13,7 @@ public partial class CustomGoalDialog : Window
     public CustomGoalDialog(int initialMinutes = 30)
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
         SelectedMinutes = initialMinutes > 0 ? initialMinutes : 30;
         MinutesTextBox.Text = SelectedMinutes.ToString();
         Loaded += (s, e) =>

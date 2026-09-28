@@ -13,6 +13,7 @@ public partial class ProjectManagementWindow : Window
     public ProjectManagementWindow(ProjectStorage storage, List<Project> projects)
     {
         InitializeComponent();
+        WindowTitleBarHelper.ApplyThemeTitleBar(this);
         _storage = storage;
         _projects = projects;
         RefreshLists();
