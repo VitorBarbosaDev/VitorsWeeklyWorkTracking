@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking;
 
@@ -9,4 +10,9 @@ namespace VitorsWeeklyWorkTracking;
 /// </summary>
 public partial class App : Application
 {
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        ThemeManager.Initialize();
+        base.OnStartup(e);
+    }
 }

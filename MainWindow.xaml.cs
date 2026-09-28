@@ -42,6 +42,8 @@ public partial class MainWindow : Window
         _projects = _projectStorage.Load();
         _activities = _activityStorage.Load();
 
+        InitializeThemeSelector();
+
         FilterStartDatePicker.SelectedDate = DateTime.Today;
         FilterEndDatePicker.SelectedDate = DateTime.Today;
 
@@ -55,6 +57,24 @@ public partial class MainWindow : Window
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
+    }
+
+    private void InitializeThemeSelector()
+    {
+        ThemeComboBox.ItemsSource = ThemeManager.AvailableThemes;
+        ThemeComboBox.SelectedItem = ThemeManager.AvailableThemes.FirstOrDefault(t => t.Theme == ThemeManager.CurrentTheme) 
+                                     ?? ThemeManager.AvailableThemes[0];
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        if (ThemeComboBox.SelectedItem is ThemeOption option)
+        {
+            ThemeManager.ApplyTheme(option.Theme);
+        }
     }
 
     private void RefreshActivitiesDropdown(string? selectActivityName = null)
@@ -238,7 +258,7 @@ public partial class MainWindow : Window
             var selectedActivity = ActivityComboBox.SelectedItem as ActivityItem;
             var activity = selectedActivity?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString() ?? "";
             var activitySuffix = !string.IsNullOrEmpty(activity) ? $" [{activity}]" : "";
-            StatusTextBlock.Text = $"Status: Tracking {projectName}{activitySuffix} ({elapsed:hh\\:mm\\:ss})";
+            StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({elapsed:hh\\:mm\\:ss})";
         }
         else
         {

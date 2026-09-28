@@ -32,6 +32,7 @@ public partial class AnalyticsWindow : Window
 
         PopulateProjectFilter();
         PopulateActivityFilter();
+        SyncChartPreferenceControls();
         SetPeriodWeek(0); // This week
 
         _isInitializing = false;
@@ -208,6 +209,54 @@ public partial class AnalyticsWindow : Window
             return;
 
         RecalculateAnalytics();
+    }
+
+    private void SyncChartPreferenceControls()
+    {
+        if (ChartStyleComboBox != null)
+        {
+            ChartStyleComboBox.SelectedIndex = PieChartControl.GlobalChartStyle == ChartStyle.Donut ? 0 : 1;
+        }
+
+        if (ChartPaletteComboBox != null)
+        {
+            ChartPaletteComboBox.SelectedIndex = PieChartControl.GlobalChartPalette switch
+            {
+                ChartPalette.NeonCyber => 1,
+                ChartPalette.PastelCandy => 2,
+                ChartPalette.OceanBreeze => 3,
+                ChartPalette.SunsetWarmth => 4,
+                ChartPalette.ForestNature => 5,
+                _ => 0
+            };
+        }
+    }
+
+    private void ChartStyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing || ChartStyleComboBox == null)
+            return;
+
+        var style = ChartStyleComboBox.SelectedIndex == 1 ? ChartStyle.SolidPie : ChartStyle.Donut;
+        PieChartControl.SetGlobalPreferences(style, PieChartControl.GlobalChartPalette);
+    }
+
+    private void ChartPaletteComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing || ChartPaletteComboBox == null)
+            return;
+
+        var palette = ChartPaletteComboBox.SelectedIndex switch
+        {
+            1 => ChartPalette.NeonCyber,
+            2 => ChartPalette.PastelCandy,
+            3 => ChartPalette.OceanBreeze,
+            4 => ChartPalette.SunsetWarmth,
+            5 => ChartPalette.ForestNature,
+            _ => ChartPalette.ModernVivid
+        };
+
+        PieChartControl.SetGlobalPreferences(PieChartControl.GlobalChartStyle, palette);
     }
 
     private void RecalculateAnalytics()
