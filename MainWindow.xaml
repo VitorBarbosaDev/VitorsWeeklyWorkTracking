@@ -84,18 +84,7 @@
                         FontWeight="SemiBold"
                         Margin="0 0 6 0"
                         Click="PomodoroQuickToggleButton_Click"/>-->
-
-                <!-- Sound & Settings Quick Button -->
-                <Button x:Name="AudioSettingsQuickButton"
-                        Content="⚙️ Settings"
-                        ToolTip="Configure interval settings, display monitor, and sound effects"
-                        Style="{StaticResource GhostButton}"
-                        Height="28"
-                        Padding="6 0"
-                        FontSize="11"
-                        FontWeight="SemiBold"
-                        Margin="0 0 6 0"
-                        Click="AudioSettingsQuickButton_Click"/>
+                
 
                 <!-- Companion Toggle Button -->
                 <Button x:Name="CompanionQuickToggleButton"
@@ -136,6 +125,19 @@
                           Width="135"
                           DisplayMemberPath="DisplayName"
                           SelectionChanged="ThemeComboBox_SelectionChanged"/>
+              
+              
+                <!-- Sound & Settings Quick Button -->
+                <Button x:Name="AudioSettingsQuickButton"
+                        Content="⚙️ Settings"
+                        ToolTip="Configure interval settings, display monitor, and sound effects"
+                        Style="{StaticResource GhostButton}"
+                        Height="28"
+                        Padding="6 0"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Margin="0 0 6 0"
+                        Click="AudioSettingsQuickButton_Click"/>
             </StackPanel>
         </Grid>
 
