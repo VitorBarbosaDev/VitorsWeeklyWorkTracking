@@ -97,7 +97,7 @@
                         Click="CompanionQuickToggleButton_Click"/>
 
                 <!-- Mini Floating Timer Options -->
-                <TextBlock Text="🗗 Mini:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" VerticalAlignment="Center"/>
+                <TextBlock Text="🗗" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" VerticalAlignment="Center"/>
                 <!--<ComboBox x:Name="MiniMonitorComboBox"
                           Width="98"
                           Margin="0 0 4 0"
@@ -111,7 +111,7 @@
                           SelectionChanged="MiniCornerComboBox_SelectionChanged"/>-->
                 
                 <Button x:Name="MiniOverlayQuickButton"
-                        Content="↘ Mini"
+                        Content="↘ Minimize"
                         ToolTip="Switch to Floating Corner Widget"
                         Height="28"
                         Padding="6 0"
@@ -136,7 +136,7 @@
                         Padding="6 0"
                         FontSize="11"
                         FontWeight="SemiBold"
-                        Margin="0 0 6 0"
+                        Margin="6 0 6 0"
                         Click="AudioSettingsQuickButton_Click"/>
             </StackPanel>
         </Grid>

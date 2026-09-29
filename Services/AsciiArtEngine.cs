@@ -210,22 +210,39 @@ public static class AsciiArtEngine
             };
         }
 
-        int rPos = Math.Clamp((int)(progress * 18), 0, 18);
+        int rPos = Math.Clamp((int)(progress * 16), 0, 16);
         string pad = new string(' ', rPos);
-        string gap = new string(' ', 18 - rPos);
+        string gap = new string(' ', 16 - rPos);
         string flame = (f % 2 == 0) ? "==>" : " =>";
 
-        sb.AppendLine("   ✦      *        .          ✦        🌕 MOON");
+        int eventType = ((frameTick / 4) + (int)(progress * 10)) % 4;
+        string topSky = eventType switch
+        {
+            0 => "   ✦   🛸(・ω・)ノ   .          ✦        🌕 MOON",
+            1 => "   ✦    🪨  *  ☄️   .          ✦        🌕 MOON",
+            2 => "   ✦   🛰️ [===]     .          ✦        🌕 MOON",
+            _ => "   ✦   ☄️ ======>   .          ✦        🌕 MOON"
+        };
+
+        sb.AppendLine(topSky);
         sb.AppendLine($" {pad}  | \\{gap}                    _ /\\ _");
         sb.AppendLine($" {pad}{flame}[=> {gap}   *     .        ( 🌕 )");
         sb.AppendLine($" {pad}  | /{gap}                     `--'");
         sb.AppendLine(" ─────────────────────────────────────────────");
 
         int pct = (int)(progress * 100);
+        string story = eventType switch
+        {
+            0 => $"🚀 Friendly alien UFO waves hello in zero-G • {pct}% to lunar landing!",
+            1 => $"🚀 Navigating sparkling asteroid belt with crystal ore • {pct}% to Moon!",
+            2 => $"🚀 Deep space telemetry synced with orbital satellite • {pct}% to Moon!",
+            _ => $"🚀 Rocket racing alongside glowing cosmic comet • {pct}% to Moon!"
+        };
+
         return new RenderedArtScene
         {
             AsciiArt = sb.ToString(),
-            StoryText = $"🚀 Rocket cruising at hyperspeed through the cosmos • {pct}% to lunar landing!",
+            StoryText = story,
             BadgeText = $"🚀 {pct}% IN ORBIT",
             MiniLine = $"[🚀 {new string('~', Math.Clamp((int)(progress * 10), 0, 10))}> 🌕 {pct}%]"
         };
@@ -250,8 +267,8 @@ public static class AsciiArtEngine
         {
             string zzz = (f % 2 == 0) ? "z  Z  Z" : "  z  Z  Z";
             sb.AppendLine($"    /\\_/\\    {zzz}   ☕ Cozy Cat Nap");
-            sb.AppendLine("   (=-.-=)           Curled up on pillow");
-            sb.AppendLine("    (   )            Rest & stretch! 🐾");
+            sb.AppendLine("   (= -.- =)         Curled up on pillow");
+            sb.AppendLine("    (  \"  )          Rest & stretch! 🐾");
             sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
@@ -265,9 +282,9 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            sb.AppendLine("    /\\_/\\   🐟 🥛  ✨ 💖 💖 ✨");
-            sb.AppendLine("   (=^ω^=)  Nom nom! Delicious fish!");
-            sb.AppendLine("    ( > < ) Purr-fect session! 💖");
+            sb.AppendLine("    /\\_/\\    🐟 🥛  ✨ 💖 💖 ✨");
+            sb.AppendLine("   (= ^ω^ =) Nom nom! Delicious fish!");
+            sb.AppendLine("    ( > < )  Purr-fect session! 💖");
             sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
@@ -281,9 +298,10 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("    /\\_/\\             🧶          🐟 🥛");
-            sb.AppendLine("   ( o.o ) ~                      ┌──┐");
-            sb.AppendLine("    > ^ <   Ready to pounce...    └──┘");
+            sb.AppendLine("                                        🐟 🥛");
+            sb.AppendLine("    /\\_/\\     🧶                        ┌──┐");
+            sb.AppendLine("   ( ='.' )~                            └──┘");
+            sb.AppendLine("    > ^ <   Ready to focus... 🐾");
             sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
@@ -295,14 +313,15 @@ public static class AsciiArtEngine
             };
         }
 
-        int cPos = Math.Clamp((int)(progress * 18), 0, 18);
+        int cPos = Math.Clamp((int)(progress * 16), 0, 16);
         string pad = new string(' ', cPos);
-        string gap = new string(' ', 18 - cPos);
-        string paws = (f % 2 == 0) ? " > ^ < " : " < ^ > ";
+        string gap = new string(' ', 16 - cPos);
+        string paws = (f % 2 == 0) ? "  > ^ < " : "  < ^ > ";
+        string yarn = (f % 2 == 0) ? "🧶~" : "~🧶";
 
-        sb.AppendLine("                            🧶          🐟 🥛");
-        sb.AppendLine($" {pad} /\\_/\\{gap}                 ┌──┐");
-        sb.AppendLine($" {pad}( o.o )~{gap}                └──┘");
+        sb.AppendLine("                                        🐟 🥛");
+        sb.AppendLine($" {pad} /\\_/\\   {yarn}{gap}           ┌──┐");
+        sb.AppendLine($" {pad}( ='.' )~{gap}                └──┘");
         sb.AppendLine($" {pad}{paws}{gap}");
         sb.AppendLine(" ─────────────────────────────────────────────");
 
@@ -518,17 +537,20 @@ public static class AsciiArtEngine
         var sb = new StringBuilder();
         int f = frameTick % 4;
 
+        // Vendor man in the truck window — friendly kaomoji face, tips hat / waves as frames tick.
+        string vendorFace = (f % 2 == 0) ? "👨‍🍳(•ᴗ•)づ" : "👨‍🍳(•ᴗ•) ";
+
         if (isRestPhase)
         {
-            sb.AppendLine("   🌳  🏖️  🍦 SWEET SUNDAE BREAK 🍧");
-            sb.AppendLine("  /|\\  _o    Enjoying a chilled sundae...");
-            sb.AppendLine("  / \\ |/|[🍨] Strawberry scoop refresh! 🍓");
-            sb.AppendLine(" ─────────────────────────────────────────────");
+            sb.AppendLine("   ☀️ 🌤️ ☁️      🌳🌳      🍦 SWEET SUNDAE BREAK 🍧");
+            sb.AppendLine("  🎈       🪑🧺   (o)(o)    Enjoying a chilled sundae...");
+            sb.AppendLine("  🌼🌼    \\(≧▽≦)/ [🍨🍓]   Strawberry scoop refresh! 🍓");
+            sb.AppendLine(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🍧 Relaxing under the park tree enjoying a chilled ice cream sundae.",
+                StoryText = "🍧 Relaxing on the picnic blanket under the park tree enjoying a chilled ice cream sundae.",
                 BadgeText = "🍨 SUNDAE REST",
                 MiniLine = "[🌳 🏖️ 🍨 Ice Cream Sundae Break]"
             };
@@ -537,16 +559,16 @@ public static class AsciiArtEngine
         if (isGoalReached)
         {
             string sparks = (f % 2 == 0) ? "✨ 💖 ✨" : "💖 ✨ 💖";
-            sb.AppendLine($"  🍦 [~ICE CREAM~] 🍧   {sparks} PARTY!");
-            sb.AppendLine(" .-------------------.  \\o/  \\o/  \\o/  🐶");
-            sb.AppendLine(" | 🍓 🍫 🍦 🍧 🍨 🍭 |  /|\\  /|\\  /|\\  /|\\");
-            sb.AppendLine(" `-(o)-----------(o)-'  / \\  / \\  / \\  / \\");
-            sb.AppendLine(" =============================================");
+            sb.AppendLine($"  ☀️  🍦 [~ICE CREAM~] 🍧  🎉  {sparks} PARTY!  🎈");
+            sb.AppendLine(" .-------------------.   \\(^▽^)/ \\(≧▽≦)/ \\(★‿★)/  🐶🍖");
+            sb.AppendLine($" | {vendorFace} 🍓🍫🍦🍧🍨 |    🍦       🍧       🍨     (^ω^)");
+            sb.AppendLine(" `-(o)-----------(o)-'   🌳🌼    🌳🌼    🌳🌼    🌳🌼");
+            sb.AppendLine(" =========================================================");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🍦 YAY! ICE CREAM PARTY! All the kids got their favorite treats! Target reached! 🎉",
+                StoryText = "🍦 YAY! ICE CREAM PARTY! Every kid got a cone from the vendor and the puppy got a treat too! 🎉",
                 BadgeText = "🍨 ICE CREAM PARTY!",
                 MiniLine = "[🍦 100% • 🍨 Ice Cream Party! 🎉]"
             };
@@ -554,46 +576,73 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("  🍦 [~ICE CREAM~] 🍧   🌳 Park Shade");
-            sb.AppendLine(" .-------------------.  /|\\  Truck is open!");
-            sb.AppendLine(" | [OPEN]  🍦 🍨 🍫 |  / \\  Start timer!");
-            sb.AppendLine(" `-(o)-----------(o)-'");
-            sb.AppendLine(" =============================================");
+            sb.AppendLine("   ☀️  🍦 [~ICE CREAM~] 🍧   🌳 Park Shade  🐦");
+            sb.AppendLine("  .-------------------.  🪑     Truck is open!");
+            sb.AppendLine($"  | {vendorFace} [OPEN] |  🌼🌼   Start timer to bring the kids!");
+            sb.AppendLine("  `-(o)-----------(o)-'");
+            sb.AppendLine(" =========================================================");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🍦 Pastel ice cream truck is open and waiting for kids to arrive. Start tracking!",
+                StoryText = "🍦 Pastel ice cream truck is open, vendor is ready and waiting for kids to arrive. Start tracking!",
                 BadgeText = "🍦 TRUCK READY",
                 MiniLine = "[🍦 Ice Cream Truck Open • 0%]"
             };
         }
 
-        // Active tracking: kids queueing up as progress advances
+        // Active tracking: kids continuously cycle through walking up, getting served, and
+        // walking off-screen — driven by frameTick so the caption stays in sync with the
+        // graphics scene's looping animation instead of being tied to overall session progress.
         int pct = (int)(progress * 100);
-        string kidsLine = progress switch
-        {
-            < 0.25 => "       🚶 👦",
-            < 0.50 => " 🚶 👧  👦[🍦]",
-            < 0.75 => "🚶👶 👧[🍧] 👦[🍦]",
-            _ => "👶[🍭] 👧[🍧] 👦[🍦] 🐶"
-        };
-
         string truckRoof = (f % 2 == 0) ? "  🍦 [~ICE CREAM~] 🍧" : "  🍧 [~ICE CREAM~] 🍦";
 
-        sb.AppendLine($"{truckRoof}   🌳 {pct}% Progress");
-        sb.AppendLine(" .-------------------.  Serving sweet treats...");
-        sb.AppendLine(" | [SERVE] 🍓 🍫 🍦  |");
-        sb.AppendLine($" `-(o)-----------(o)-' {kidsLine}");
-        sb.AppendLine(" =============================================");
+        // Kaomoji faces for each stage of a kid's visit, in the same "face + accessory" style
+        // used for the girl on the metro (e.g. 🎧(^_^)♪).
+        const string kidWalkingIn = "🚶(o.o)";
+        const string kidAtCounterWaiting = "(o.o)?";
+        string kidGettingCone = (f % 2 == 0) ? "(≧▽≦)ノ" : "(★‿★)ノ";
+        const string kidHappyLeaving = "\\(^▽^)/🍦";
 
-        string queueDesc = progress switch
+        // Mirrors the walk-in / serve / walk-off cycle timing used by the graphics scene so both
+        // renderers describe the same moment.
+        const int enterFrames = 55;
+        const int serveFrames = 35;
+        const int exitFrames = 70;
+        const int coneRevealFrame = enterFrames + (int)(serveFrames * 0.4);
+        const int cycleFrames = enterFrames + serveFrames + exitFrames;
+
+        int localFrame = ((frameTick % cycleFrames) + cycleFrames) % cycleFrames;
+
+        string sceneLine;
+        string queueDesc;
+
+        if (localFrame < enterFrames)
         {
-            < 0.25 => "1st kid walking up to order strawberry scoop",
-            < 0.50 => "2 kids lined up enjoying strawberry & mint scoops",
-            < 0.75 => "3 kids & puppy excited for rainbow sundaes",
-            _ => "Line of happy kids enjoying ice creams together"
-        };
+            sceneLine = $" {kidWalkingIn}                                   ";
+            queueDesc = "A kid spots the truck and walks up the park path";
+        }
+        else if (localFrame < coneRevealFrame)
+        {
+            sceneLine = $"      {kidAtCounterWaiting}   ordering a scoop...            ";
+            queueDesc = "A kid is at the counter ordering their favorite scoop";
+        }
+        else if (localFrame < enterFrames + serveFrames)
+        {
+            sceneLine = $"      {kidGettingCone}🍦   vendor hands over the cone!  ";
+            queueDesc = "The vendor hands the kid a freshly served cone";
+        }
+        else
+        {
+            sceneLine = $" {kidHappyLeaving}  ›››  see you tomorrow!         ";
+            queueDesc = "The kid walks off happily with their treat as the next one arrives";
+        }
+
+        sb.AppendLine($"{truckRoof}   ☀️ 🌳  {pct}% Progress");
+        sb.AppendLine(" .-------------------.  Serving sweet treats...   🪑");
+        sb.AppendLine($" | {vendorFace} 🍓🍫🍦 |");
+        sb.AppendLine($" `-(o)-----------(o)-'{sceneLine}");
+        sb.AppendLine(" =========================================================");
 
         return new RenderedArtScene
         {
