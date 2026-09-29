@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace VitorsWeeklyWorkTracking.Models;
 
-public class ArtSceneOption
+public class ArtSceneOption : IEquatable<ArtSceneOption>
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
@@ -14,7 +14,18 @@ public class ArtSceneOption
 
     public override string ToString() => DisplayName;
 
-    public static List<ArtSceneOption> AvailableScenes => new()
+    public bool Equals(ArtSceneOption? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return string.Equals(Id, other.Id, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ArtSceneOption);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Id ?? string.Empty);
+
+    public static readonly List<ArtSceneOption> AvailableScenes = new()
     {
         new() { Id = "cycling", Name = "Boy Cycling Home", Icon = "🚴", Description = "Cute boy pedals his bicycle with puppy in basket across a scenic meadow trail towards his cozy home." },
         new() { Id = "cafe", Name = "Rainy Window Coffee", Icon = "☕", Description = "Zoomed-in 4-pane rainy window where steam rises from a cozy mug, fog builds on the glass, and reveals 'Good Job!' at the end." },

@@ -126,11 +126,11 @@ public partial class PieChartControl : UserControl
         }
 
         var rawList = _lastRawItems?.Where(x => x.Value > 0).ToList() ?? new List<PieSliceItem>();
-        var total = rawList.Sum(x => x.Value);
-        _defaultTotalHours = total;
+        var totalSeconds = rawList.Sum(x => x.Value);
+        var totalTimeSpan = TimeSpan.FromSeconds(totalSeconds);
+        _defaultTotalHours = totalTimeSpan.TotalHours;
 
-        var totalTimeSpan = TimeSpan.FromHours(total);
-        _defaultTotalFormatted = $"{(int)totalTimeSpan.TotalHours}h {totalTimeSpan.Minutes:D2}m";
+        _defaultTotalFormatted = $"{(int)totalTimeSpan.TotalHours}h {totalTimeSpan.Minutes:D2}m {totalTimeSpan.Seconds:D2}s";
 
         _slices.Clear();
         int colorIdx = 0;
@@ -139,7 +139,7 @@ public partial class PieChartControl : UserControl
 
         foreach (var item in rawList)
         {
-            var percentage = total > 0 ? (item.Value / total) * 100.0 : 0.0;
+            var percentage = totalSeconds > 0 ? (item.Value / totalSeconds) * 100.0 : 0.0;
             var hex = paletteColors[colorIdx % paletteColors.Count];
             var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
             brush.Freeze();

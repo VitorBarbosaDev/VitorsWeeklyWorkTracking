@@ -83,11 +83,26 @@ public partial class VisualCompanionControl : UserControl
         InvalidateVisual();
     }
 
+    protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonDown(e);
+        e.Handled = true;
+    }
+
+    protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonUp(e);
+        TriggerCheer();
+        Clicked?.Invoke();
+        e.Handled = true;
+    }
+
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
         TriggerCheer();
         Clicked?.Invoke();
+        e.Handled = true;
     }
 
     protected override void OnRender(DrawingContext dc)

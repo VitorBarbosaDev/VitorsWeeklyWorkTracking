@@ -55,11 +55,11 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("           (☁️)             🌳             🛋️");
-            sb.AppendLine("         .-~~~~-.          /|\\           _o /~~\\");
-            sb.AppendLine("        (  ~~~~  )        / | \\         /| |    |   ☕ Rest Break! Ahhh...");
-            sb.AppendLine("         `-....-'          ||           / | |____|   Hydrate & relax your eyes.");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("      (☁️)            🌳             🛋️");
+            sb.AppendLine("    .-~~~~-.         /|\\           _o /~~\\");
+            sb.AppendLine("   (  ~~~~  )       / | \\         /| |    |  ☕ Rest Break!");
+            sb.AppendLine("    `-....-'         ||           / | |____|  Hydrate & stretch");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -73,13 +73,12 @@ public static class AsciiArtEngine
         if (isGoalReached)
         {
             string hearts = (f % 2 == 0) ? "✨  💖  ✨" : "💖  ✨  💖";
-            sb.AppendLine($"           (☁️)                      {hearts}     🏠");
-            sb.AppendLine("         .-~~~~-.                               _ /\\ _");
-            sb.AppendLine("        (  ~~~~  )                         \\o/ /      \\  |~| (♨️)");
-            sb.AppendLine("   __o   `-....-'                          /| /________\\ |_|");
-            sb.AppendLine(" _ \\<_                                     / \\|  __    |   ");
-            sb.AppendLine("(_)/(_)                                       | |__|   |   ");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine($"      (☁️)             {hearts}     🏠");
+            sb.AppendLine("    .-~~~~-.                     _ /\\ _");
+            sb.AppendLine("   (  ~~~~  )               \\o/ /      \\ |~|");
+            sb.AppendLine("  __o `-....-'              /| /________\\|_|");
+            sb.AppendLine("(_)/(_)                     / \\|  __    |");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -92,14 +91,12 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("       (☁️)               🌲              🌲             🏠");
-            sb.AppendLine("     .-~~~~-.            /\\              /\\            _ /\\ _");
-            sb.AppendLine("    (  ~~~~  )          /  \\            /  \\          /      \\  |~|");
-            sb.AppendLine("     `-....-'            ||              ||          /________\\ |_|");
-            sb.AppendLine("   __o                                               |  __    |    ");
-            sb.AppendLine(" _ \\<_   Ready to pedal...                           | |__|   |    ");
-            sb.AppendLine("(_)/(_)                                              |________|    ");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("      (☁️)             🌲             🏠");
+            sb.AppendLine("    .-~~~~-.          /\\            _ /\\ _");
+            sb.AppendLine("   (  ~~~~  )        /  \\          /      \\ |~|");
+            sb.AppendLine("  __o `-....-'        ||          /________\\|_|");
+            sb.AppendLine("(_)/(_) Ready to ride...          |  __    |");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -111,9 +108,12 @@ public static class AsciiArtEngine
         }
 
         // Active tracking: Boy pedaling towards home
-        int totalTrackWidth = 44;
-        int boyPos = Math.Clamp((int)(progress * totalTrackWidth), 0, totalTrackWidth);
-        string leftPadding = new string(' ', Math.Max(0, boyPos));
+        int boyPos = Math.Clamp((int)(progress * 18), 0, 18);
+        string pad = new string(' ', boyPos);
+        string gap = new string(' ', 18 - boyPos);
+        int cloudShift = (frameTick / 2) % 6;
+        string cloudPad = new string(' ', cloudShift);
+        string cloudGap = new string(' ', 14 - cloudShift);
 
         string[] pedalFrames0 = { "  __o ", " _ \\<_", "(_)/(_)" };
         string[] pedalFrames1 = { "  __o ", " _ `\\_", "(_)/(_)" };
@@ -126,16 +126,11 @@ public static class AsciiArtEngine
             _ => pedalFrames2
         };
 
-        // Cloud animation
-        int cloudShift = (frameTick / 2) % 30;
-        string cloudPad = new string(' ', cloudShift);
-
-        sb.AppendLine($"{cloudPad}(☁️)                          🌲              🏠");
-        sb.AppendLine("                                            /\\             _ /\\ _");
-        sb.AppendLine($"{leftPadding}{boyFrame[0]}                      /  \\           /      \\  |~|");
-        sb.AppendLine($"{leftPadding}{boyFrame[1]}                       ||           /________\\ |_|");
-        sb.AppendLine($"{leftPadding}{boyFrame[2]}                                    |  __    |   ");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine($" {cloudPad}(☁️){cloudGap}      🌲             🏠");
+        sb.AppendLine($" {pad}{boyFrame[0]}{gap}   /\\            _ /\\ _");
+        sb.AppendLine($" {pad}{boyFrame[1]}{gap}  /  \\          /      \\ |~|");
+        sb.AppendLine($" {pad}{boyFrame[2]}{gap}   ||          /________\\|_|");
+        sb.AppendLine(" ─────────────────────────────────────────────");
         
         int percentInt = (int)(progress * 100.0);
         double kmRemaining = Math.Max(0.0, (1.0 - progress) * 10.0);
@@ -166,11 +161,11 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("       .    ✦     *         🛰️ SPACE STATION LOUNGE");
-            sb.AppendLine("   +             .      ┌───────────────────────────────┐");
-            sb.AppendLine("       *    .           │ 👨‍🚀 🧋 Floating in zero-G... │");
-            sb.AppendLine("   .         ✦          │ Relaxing & recharging minds!  │");
-            sb.AppendLine("────────────────────────┴───────────────────────────────┴─────────────────");
+            sb.AppendLine("      ✦    *      🛰️ SPACE STATION LOUNGE");
+            sb.AppendLine("   +          .  ┌─────────────────────────┐");
+            sb.AppendLine("      *   .      │ 👨‍🚀 🧋 Zero-G Break...  │");
+            sb.AppendLine("   .        ✦    │ Recharge your mind! ☕  │");
+            sb.AppendLine(" ────────────────┴─────────────────────────┴──");
 
             return new RenderedArtScene
             {
@@ -183,11 +178,11 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            sb.AppendLine("       .   ✦   *   .    ✨ 🌕 LUNAR SURFACE ✨");
-            sb.AppendLine("                       _ /\\ _");
-            sb.AppendLine("               🚩   \\o/ ( 🌕 )   ✦ MISSION ACCOMPLISHED!");
-            sb.AppendLine("               |    /|   `--'    Rocket landed safely on the Moon!");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("      ✦   *   .    ✨ 🌕 LUNAR SURFACE ✨");
+            sb.AppendLine("                        _ /\\ _");
+            sb.AppendLine("            🚩   \\o/   ( 🌕 )  MISSION SUCCESS!");
+            sb.AppendLine("            |    /|     `--'   Landed on Moon! 🚀");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -200,11 +195,11 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("   🌍 EARTH BASE           .    ✦    *            🌕 MOON BASE");
-            sb.AppendLine("    /\\                                              _ /\\ _");
-            sb.AppendLine("   |==|  🚀 Ready on pad...   *        .           ( 🌕 )");
-            sb.AppendLine("  /____\\                                            `--'");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("   🌍 EARTH               ✦            🌕 MOON");
+            sb.AppendLine("    /\\                                  _ /\\ _");
+            sb.AppendLine("   |==|  🚀 Ready on pad...            ( 🌕 )");
+            sb.AppendLine("  /____\\                                `--'");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -215,16 +210,16 @@ public static class AsciiArtEngine
             };
         }
 
-        int totalSpace = 38;
-        int rocketPos = Math.Clamp((int)(progress * totalSpace), 0, totalSpace);
-        string pad = new string(' ', rocketPos);
+        int rPos = Math.Clamp((int)(progress * 18), 0, 18);
+        string pad = new string(' ', rPos);
+        string gap = new string(' ', 18 - rPos);
+        string flame = (f % 2 == 0) ? "==>" : " =>";
 
-        string flame = (f % 2 == 0) ? "==>>" : " =>>";
-        sb.AppendLine("   .      ✦        *         .          ✦       *        🌕");
-        sb.AppendLine($"{pad}   | \\                                       _ /\\ _");
-        sb.AppendLine($"{pad}{flame}[====>   *   .   ✦   +                      ( 🌕 )");
-        sb.AppendLine($"{pad}   | /                                        `--'");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine("   ✦      *        .          ✦        🌕 MOON");
+        sb.AppendLine($" {pad}  | \\{gap}                    _ /\\ _");
+        sb.AppendLine($" {pad}{flame}[=> {gap}   *     .        ( 🌕 )");
+        sb.AppendLine($" {pad}  | /{gap}                     `--'");
+        sb.AppendLine(" ─────────────────────────────────────────────");
 
         int pct = (int)(progress * 100);
         return new RenderedArtScene
@@ -254,10 +249,10 @@ public static class AsciiArtEngine
         if (isRestPhase)
         {
             string zzz = (f % 2 == 0) ? "z  Z  Z" : "  z  Z  Z";
-            sb.AppendLine($"      /\\_/\\    {zzz}    ☕ Cat Nap & Rest Time");
-            sb.AppendLine("     (=-.-=)            Curled up peacefully on a soft pillow.");
-            sb.AppendLine("      (   )             Rest your eyes and stretch your paws! 🐾");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine($"    /\\_/\\    {zzz}   ☕ Cozy Cat Nap");
+            sb.AppendLine("   (=-.-=)           Curled up on pillow");
+            sb.AppendLine("    (   )            Rest & stretch! 🐾");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -270,10 +265,10 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            sb.AppendLine("      /\\_/\\    🐟  🥛  ✨ 💖 💖 ✨");
-            sb.AppendLine("     (=^ω^=)  Nom nom nom! Delicious fish feast!");
-            sb.AppendLine("      ( > < )  Purr-fect focus session! Kitty is so proud of you! 💖");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("    /\\_/\\   🐟 🥛  ✨ 💖 💖 ✨");
+            sb.AppendLine("   (=^ω^=)  Nom nom! Delicious fish!");
+            sb.AppendLine("    ( > < ) Purr-fect session! 💖");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -286,10 +281,10 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("      /\\_/\\               🧶              🐟 🥛");
-            sb.AppendLine("     ( o.o ) ~                                 ┌──┐");
-            sb.AppendLine("      > ^ <    Waiting to pounce...            └──┘");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("    /\\_/\\             🧶          🐟 🥛");
+            sb.AppendLine("   ( o.o ) ~                      ┌──┐");
+            sb.AppendLine("    > ^ <   Ready to pounce...    └──┘");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -300,15 +295,16 @@ public static class AsciiArtEngine
             };
         }
 
-        int catPos = Math.Clamp((int)(progress * 42), 0, 42);
-        string pad = new string(' ', catPos);
+        int cPos = Math.Clamp((int)(progress * 18), 0, 18);
+        string pad = new string(' ', cPos);
+        string gap = new string(' ', 18 - cPos);
         string paws = (f % 2 == 0) ? " > ^ < " : " < ^ > ";
 
-        sb.AppendLine("                                            🧶              🐟 🥛");
-        sb.AppendLine($"{pad} /\\_/\\                                       ┌──┐");
-        sb.AppendLine($"{pad}( o.o ) ~                                    └──┘");
-        sb.AppendLine($"{pad}{paws}");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine("                            🧶          🐟 🥛");
+        sb.AppendLine($" {pad} /\\_/\\{gap}                 ┌──┐");
+        sb.AppendLine($" {pad}( o.o )~{gap}                └──┘");
+        sb.AppendLine($" {pad}{paws}{gap}");
+        sb.AppendLine(" ─────────────────────────────────────────────");
 
         int pct = (int)(progress * 100);
         return new RenderedArtScene
@@ -337,11 +333,11 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("   +-------+-------+   🌧️ \\ \\   ☕  RAINY REST BREAK");
-            sb.AppendLine("   | \\ \\   |  \\ \\  |   Watching raindrops trickle down the glass...");
-            sb.AppendLine("   +-------+-------+   Cozy lo-fi beats, warm tea, peaceful thoughts.");
-            sb.AppendLine("   | [☕]  | ~~~~~ |   Let yourself rest, breathe, and unwind.");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("  +-------+-------+  🌧️ \\ \\  ☕ RAIN BREAK");
+            sb.AppendLine("  | \\ \\   |  \\ \\  |  Watching raindrops fall...");
+            sb.AppendLine("  +-------+-------+  Lo-fi beats & warm tea 🌿");
+            sb.AppendLine("  | [☕]  | ~~~~~ |  Rest, breathe, and unwind");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -354,12 +350,11 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            sb.AppendLine("   +-------+-------+    ✨ ☕ ✨  GOOD JOB!");
-            sb.AppendLine("   | ✨GOOD| JOB!✨|    Finger-written on the steamy 4-pane glass!");
-            sb.AppendLine("   +-------+-------+    Warm golden bokeh glowing softly outside!");
-            sb.AppendLine("   | ( ( ( | ♡ ♡ ♡ |    Great focus session completed! 🌧️ ✨");
-            sb.AppendLine("   | [☕]  | ~~~~~ |");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("  +-------+-------+  ✨ ☕ ✨ GOOD JOB!");
+            sb.AppendLine("  | ✨GOOD| JOB!✨|  Finger-written on glass!");
+            sb.AppendLine("  +-------+-------+  Warm bokeh lights outside");
+            sb.AppendLine("  | [☕]  | ♡ ♡ ♡ |  Focus complete! 🌧️ ✨");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -389,11 +384,11 @@ public static class AsciiArtEngine
 
         int pct = (int)(progress * 100);
 
-        sb.AppendLine($"   +-------+-------+    🌧️ Rain trickling down 4-pane window");
-        sb.AppendLine($"   {fogTop}    Steam rising from mug: {steam}");
-        sb.AppendLine($"   +-------+-------+    Glass condensation fogging up: {pct}%");
-        sb.AppendLine($"   {fogBottom}    Steady focus flowing like the gentle rain...");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine("  +-------+-------+  🌧️ Rain trickling down");
+        sb.AppendLine($"  {fogTop}  Steam from mug: {steam}");
+        sb.AppendLine($"  +-------+-------+  Condensation: {pct}%");
+        sb.AppendLine($"  {fogBottom}  Deep lo-fi focus...");
+        sb.AppendLine(" ─────────────────────────────────────────────");
 
         return new RenderedArtScene
         {
@@ -421,10 +416,10 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("  ┌──────────────┬───┐   🎷 ~ ♫ ~ ♪  CHILL JAZZ BREAK");
-            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│   Golden autumn leaves gently drifting over the lake...");
-            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │   Sip warm cinnamon latte, lean back & enjoy the melody.");
-            sb.AppendLine("  ├──────────────┴───┤   Soothing saxophone chords • Rest your mind.");
+            sb.AppendLine("  ┌──────────────┬───┐  🎷 ~ ♫ ~ ♪ JAZZ BREAK");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│  Autumn leaves drifting...");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │  Sip latte & enjoy melody 🍂");
+            sb.AppendLine("  ├──────────────┴───┤  Soothing sax • Rest eyes");
             sb.AppendLine("  │   ( (   [☕]  🎷 │");
             sb.AppendLine("  └──────────────────┘");
 
@@ -439,11 +434,11 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            string sparkles = (f % 2 == 0) ? "✨  ♫  ✨  ♪  ✨" : "♫  ✨  ♪  ✨  ♫";
-            sb.AppendLine($"  ┌──────────────┬───┐    {sparkles}");
-            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│    🏆 TARGET REACHED! PERFECT VIBES!");
-            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │    Golden sunset glow reflecting on calm water!");
-            sb.AppendLine("  ├──────────────┴───┤    Finished session in style with warm latte & jazz!");
+            string sparkles = (f % 2 == 0) ? "✨ ♫ ✨ ♪ ✨" : "♫ ✨ ♪ ✨ ♫";
+            sb.AppendLine($"  ┌──────────────┬───┐  {sparkles}");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│  🏆 TARGET REACHED!");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │  Golden lake sunset glow!");
+            sb.AppendLine("  ├──────────────┴───┤  Finished session with jazz!");
             sb.AppendLine("  │   ( (   [☕]  🎷 │");
             sb.AppendLine("  └──────────────────┘");
 
@@ -458,10 +453,10 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("  ┌──────────────┬───┐   🎷 Lo-Fi Coffee Jazz");
-            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│   Autumn lakeside window view");
-            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │   Latte on wooden table & drifting sparkles");
-            sb.AppendLine("  ├──────────────┴───┤   Start timer to tune into the focus groove!");
+            sb.AppendLine("  ┌──────────────┬───┐  🎷 Lo-Fi Coffee Jazz");
+            sb.AppendLine("  │ 🍂  🌲 🌲 🍁 │ 🍂│  Autumn lakeside view");
+            sb.AppendLine("  │ ~ ~ ~ ~ ~ ~ ~│   │  Latte on table ready ☕");
+            sb.AppendLine("  ├──────────────┴───┤  Start timer to tune in!");
             sb.AppendLine("  │   ( (   [☕]     │");
             sb.AppendLine("  └──────────────────┘");
 
@@ -492,10 +487,10 @@ public static class AsciiArtEngine
             _ => "│ ✨ ~ 🌅 ~ 🍂 │   │"
         };
 
-        sb.AppendLine($"  ┌──────────────┬───┐   🎷 {pct}% Lo-Fi Jazz Flow  {note}");
-        sb.AppendLine($"  │ 🍂  🌲 🌲 🍁 │ 🍂│   Autumn breeze rustling amber trees...");
-        sb.AppendLine($"  {lakeDusk}   Golden lake reflections drifting by");
-        sb.AppendLine("  ├──────────────┴───┤   Sipping warm latte in deep focus");
+        sb.AppendLine($"  ┌──────────────┬───┐  🎷 {pct}% Jazz Flow {note}");
+        sb.AppendLine($"  │ 🍂  🌲 🌲 🍁 │ 🍂│  Autumn breeze rustling");
+        sb.AppendLine($"  {lakeDusk}  Reflections on water");
+        sb.AppendLine("  ├──────────────┴───┤  Sipping warm latte ☕");
         sb.AppendLine($"  │   {steam}   [☕]     │");
         sb.AppendLine("  └──────────────────┘");
 
@@ -525,11 +520,10 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("       🌳  🏖️  🍦  SWEET ICE CREAM BREAK  🍧");
-            sb.AppendLine("      /|\\  _o     Enjoying a chilled sundae under the shady tree...");
-            sb.AppendLine("      / \\ |/| [🍨] Cool strawberry scoop & lemonade refresh! 🍓");
-            sb.AppendLine("     =====|_|===============================================");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("   🌳  🏖️  🍦 SWEET SUNDAE BREAK 🍧");
+            sb.AppendLine("  /|\\  _o    Enjoying a chilled sundae...");
+            sb.AppendLine("  / \\ |/|[🍨] Strawberry scoop refresh! 🍓");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -543,11 +537,11 @@ public static class AsciiArtEngine
         if (isGoalReached)
         {
             string sparks = (f % 2 == 0) ? "✨ 💖 ✨" : "💖 ✨ 💖";
-            sb.AppendLine($"    🍦 [~ICE CREAM~] 🍧      {sparks}  PARTY TIME!");
-            sb.AppendLine("   .-------------------.    \\o/   \\o/   \\o/   \\o/  🐶");
-            sb.AppendLine("   | 🍓 🍫 🍦 🍧 🍨 🍭 |    /|\\   /|\\   /|\\   /|\\  /|\\");
-            sb.AppendLine("   `-(o)-----------(o)-'    / \\   / \\   / \\   / \\  / \\");
-            sb.AppendLine("  ==========================================================");
+            sb.AppendLine($"  🍦 [~ICE CREAM~] 🍧   {sparks} PARTY!");
+            sb.AppendLine(" .-------------------.  \\o/  \\o/  \\o/  🐶");
+            sb.AppendLine(" | 🍓 🍫 🍦 🍧 🍨 🍭 |  /|\\  /|\\  /|\\  /|\\");
+            sb.AppendLine(" `-(o)-----------(o)-'  / \\  / \\  / \\  / \\");
+            sb.AppendLine(" =============================================");
 
             return new RenderedArtScene
             {
@@ -560,11 +554,11 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("    🍦 [~ICE CREAM~] 🍧       🌳 Park Shade");
-            sb.AppendLine("   .-------------------.     /|\\   Truck is parked & ready!");
-            sb.AppendLine("   | [OPEN]  🍦 🍨 🍫 |     / \\   Start timer to serve treats!");
-            sb.AppendLine("   `-(o)-----------(o)-'");
-            sb.AppendLine("  ==========================================================");
+            sb.AppendLine("  🍦 [~ICE CREAM~] 🍧   🌳 Park Shade");
+            sb.AppendLine(" .-------------------.  /|\\  Truck is open!");
+            sb.AppendLine(" | [OPEN]  🍦 🍨 🍫 |  / \\  Start timer!");
+            sb.AppendLine(" `-(o)-----------(o)-'");
+            sb.AppendLine(" =============================================");
 
             return new RenderedArtScene
             {
@@ -579,19 +573,19 @@ public static class AsciiArtEngine
         int pct = (int)(progress * 100);
         string kidsLine = progress switch
         {
-            < 0.25 => "              🚶 👦",
-            < 0.50 => "        🚶 👧   👦[🍦]",
-            < 0.75 => "  🚶 👶   👧[🍧]  👦[🍦] 🐶",
-            _ => " 👶[🍭] 👧[🍧] 👦[🍦] 🐶 💖"
+            < 0.25 => "       🚶 👦",
+            < 0.50 => " 🚶 👧  👦[🍦]",
+            < 0.75 => "🚶👶 👧[🍧] 👦[🍦]",
+            _ => "👶[🍭] 👧[🍧] 👦[🍦] 🐶"
         };
 
-        string truckRoof = (f % 2 == 0) ? "    🍦 [~ICE CREAM~] 🍧" : "    🍧 [~ICE CREAM~] 🍦";
+        string truckRoof = (f % 2 == 0) ? "  🍦 [~ICE CREAM~] 🍧" : "  🍧 [~ICE CREAM~] 🍦";
 
-        sb.AppendLine($"{truckRoof}      🌳 {pct}% Focus Progress");
-        sb.AppendLine("   .-------------------.    Serving yummy colorful scoops...");
-        sb.AppendLine("   | [SERVE] 🍓 🍫 🍦  |");
-        sb.AppendLine($"   `-(o)-----------(o)-'{kidsLine}");
-        sb.AppendLine("  ==========================================================");
+        sb.AppendLine($"{truckRoof}   🌳 {pct}% Progress");
+        sb.AppendLine(" .-------------------.  Serving sweet treats...");
+        sb.AppendLine(" | [SERVE] 🍓 🍫 🍦  |");
+        sb.AppendLine($" `-(o)-----------(o)-' {kidsLine}");
+        sb.AppendLine(" =============================================");
 
         string queueDesc = progress switch
         {
@@ -625,21 +619,14 @@ public static class AsciiArtEngine
         var sb = new StringBuilder();
         int f = frameTick % 4;
 
-        string[] movingSkyline = {
-            "⚡ 🗼 ── 🏢 ──► [新宿] 💨",
-            "💨 ── 🏢 ── 🗼 [渋谷] ⚡",
-            "⚡ 🗼 ── 🏙️ ──► [秋葉原] 💨",
-            "💨 ── 🏙️ ── 🗼 [原宿] ⚡"
-        };
-
         if (isRestPhase)
         {
-            string restSky = (f % 2 == 0) ? "🗼 🌃 🏢 ~~~ 🌃" : "🌃 🗼 🌃 ~~~ 🏢";
-            sb.AppendLine("   [ 🟢 YAMANOTE LINE 🚇 ]   🎧 🍵 TOKYO REST BREAK");
-            sb.AppendLine($"   | {restSky} |  Sipping warm canned Royal Milk Tea 🍵");
-            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  Plush velvet metro seat... Catnap 💤");
-            sb.AppendLine("   | 🎧( ᴗ ᴗ)z Z 🧃 |  Rest your eyes and breathe.");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            string restSky = (f % 2 == 0) ? "🗼 🌃 🏢 🌃" : "🌃 🗼 🌃 🏢";
+            sb.AppendLine(" [ 🟢 YAMANOTE LINE 🚇 ]  🎧 🍵 TOKYO REST");
+            sb.AppendLine($" | {restSky} |  Warm Royal Milk Tea 🍵");
+            sb.AppendLine(" | [🟩 💺 🟩 💺 🟩] |  Plush metro seat catnap 💤");
+            sb.AppendLine(" | 🎧( ᴗ ᴗ)z Z 🧃 |  Breathe and relax.");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -653,11 +640,11 @@ public static class AsciiArtEngine
         if (isGoalReached)
         {
             string notes = (f % 2 == 0) ? "♪ ♫ ♩ 💖" : "♫ ♪ 💖 ♬";
-            sb.AppendLine("   [ 🌟 DESTINATION: TARGET STATION 🌟 ]   ✨ ARRIVED!");
-            sb.AppendLine($"   | 🗼 🏙️ 🏬 🚉 ✨ |  {notes}  Goal Completed!");
-            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  v(^_^)v Victory peace sign on train!");
-            sb.AppendLine("   | 🎧(^o^)v ✨    |  Smooth ride, outstanding focus!");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine(" [ 🌟 TARGET STATION 🌟 ]  ✨ ARRIVED!");
+            sb.AppendLine($" | 🗼 🏙️ 🏬 🚉 ✨ |  {notes} Goal Met!");
+            sb.AppendLine(" | [🟩 💺 🟩 💺 🟩] |  v(^_^)v Victory sign!");
+            sb.AppendLine(" | 🎧(^o^)v ✨    |  Outstanding focus!");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -670,11 +657,11 @@ public static class AsciiArtEngine
 
         if (!isTracking)
         {
-            sb.AppendLine("   [ 🟢 SHIBUYA ──► TARGET STATION ]   🚇 Tokyo Metro");
-            sb.AppendLine("   | 🗼 🏙️  🏢  🌃  |  Putting on headphones...");
-            sb.AppendLine("   | [🟩 💺 🟩 💺 🟩] |  Plush emerald bucket seat ready ♪");
-            sb.AppendLine("   | 🎧(._. ) 🎒    |  Ready to start the journey!");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine(" [ 🟢 SHIBUYA ──► DEST ]  🚇 Tokyo Metro");
+            sb.AppendLine(" | 🗼 🏙️  🏢  🌃 |  Putting on headphones...");
+            sb.AppendLine(" | [🟩 💺 🟩 💺 🟩] |  Plush emerald seat ready ♪");
+            sb.AppendLine(" | 🎧(._. ) 🎒    |  Start timer to ride!");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -687,17 +674,22 @@ public static class AsciiArtEngine
 
         // Active tracking
         int pct = (int)(progress * 100);
-        string[] notePatterns = { "♪   ", " ♫  ", "  ♩ ", "   ♬" };
+        string[] notePatterns = { "♪  ", "♫  ", "♩  ", "♬  " };
         string musicNote = notePatterns[f];
-
+        string[] movingSkyline = {
+            "⚡ 🗼 ─ 🏢 ─► [新宿]",
+            "💨 ─ 🏢 ─ 🗼 [渋谷]",
+            "⚡ 🗼 ─ 🏙️ ─► [秋葉]",
+            "💨 ─ 🏙️ ─ 🗼 [原宿]"
+        };
         string cityLights = movingSkyline[f];
         string girlHead = (f % 2 == 0) ? "🎧(^_^)♪" : "🎧(^.^)♩";
 
-        sb.AppendLine($"   [ 🟢 EXPRESS YAMANOTE • NEXT: FOCUS STATION ──► {pct}% ]");
-        sb.AppendLine($"   | {cityLights} |  Music: {musicNote} Lo-Fi chill beats");
-        sb.AppendLine($"   | [🟩 💺 🟩 💺 🟩] |  Tokyo skyline flying past the window! ⚡");
-        sb.AppendLine($"   |  {girlHead} 🎒   |  Deep in the focus zone on plush seat...");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine($" [ 🟢 YAMANOTE • FOCUS ──► {pct}% ]");
+        sb.AppendLine($" | {cityLights} |  Music: {musicNote} Lo-Fi beats");
+        sb.AppendLine(" | [🟩 💺 🟩 💺 🟩] |  Tokyo skyline flying ⚡");
+        sb.AppendLine($" |  {girlHead} 🎒   |  Deep focus zone ♪");
+        sb.AppendLine(" ─────────────────────────────────────────────");
 
         return new RenderedArtScene
         {
@@ -725,11 +717,11 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine("       🏃‍♂️ 🥤  HYDRATION & RECOVERY ZONE");
-            sb.AppendLine("      _o      Cooling down muscles on the grass...");
-            sb.AppendLine("     /|\\      Drink plenty of water and catch your breath! 💧");
-            sb.AppendLine("     / \\");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("    🏃‍♂️ 🥤 HYDRATION & RECOVERY ZONE");
+            sb.AppendLine("   _o     Cooling down on grass...");
+            sb.AppendLine("  /|\\     Drink water & catch breath! 💧");
+            sb.AppendLine("  / \\");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -742,11 +734,11 @@ public static class AsciiArtEngine
 
         if (isGoalReached)
         {
-            sb.AppendLine("       🏆 🎊  FINISH LINE CROSSED!  🎊 🏆");
-            sb.AppendLine("      \\o/  [ 🏁 FINISH TAPE BROKEN! ]");
-            sb.AppendLine("      /|\\   Gold Medal Focus Sprint! Champion effort!");
-            sb.AppendLine("      / \\");
-            sb.AppendLine("  ──────────────────────────────────────────────────────────");
+            sb.AppendLine("    🏆 🎊 FINISH LINE CROSSED! 🎊 🏆");
+            sb.AppendLine("   \\o/  [ 🏁 FINISH RIBBON BROKEN! ]");
+            sb.AppendLine("   /|\\  Gold medal focus sprint! 🥇");
+            sb.AppendLine("   / \\");
+            sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
@@ -757,8 +749,26 @@ public static class AsciiArtEngine
             };
         }
 
-        int runPos = Math.Clamp((int)(progress * 42), 0, 42);
-        string pad = new string(' ', runPos);
+        if (!isTracking)
+        {
+            sb.AppendLine("   🏃 Marathon Track   🚩 25%   🚩 50%   🏁 FINISH");
+            sb.AppendLine("   \\o                  Ready at start block...");
+            sb.AppendLine("   /|\\                 Start timer to sprint!");
+            sb.AppendLine("   / \\");
+            sb.AppendLine(" ─────────────────────────────────────────────");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🏃 Ready at the starting blocks. Start the timer to sprint towards the finish line!",
+                BadgeText = "🏃 READY TO SPRINT",
+                MiniLine = "[🏃 Start Line ---> 🏁 Finish]"
+            };
+        }
+
+        int rPos = Math.Clamp((int)(progress * 18), 0, 18);
+        string pad = new string(' ', rPos);
+        string gap = new string(' ', 18 - rPos);
 
         string[] runner0 = { "  o  ", " /|\\ ", " / \\ " };
         string[] runner1 = { "  o  ", " /|/ ", " / \\ " };
@@ -771,11 +781,11 @@ public static class AsciiArtEngine
             _ => runner2
         };
 
-        sb.AppendLine("                                            🚩 25%   🚩 50%   🚩 75%  🏁 FINISH");
-        sb.AppendLine($"{pad}{frame[0]}");
-        sb.AppendLine($"{pad}{frame[1]}");
-        sb.AppendLine($"{pad}{frame[2]}");
-        sb.AppendLine("  ──────────────────────────────────────────────────────────");
+        sb.AppendLine("                    🚩 25%   🚩 50%   🏁 FINISH");
+        sb.AppendLine($" {pad}{frame[0]}{gap}           |");
+        sb.AppendLine($" {pad}{frame[1]}{gap}         [---]");
+        sb.AppendLine($" {pad}{frame[2]}{gap}           |");
+        sb.AppendLine(" ─────────────────────────────────────────────");
 
         int pct = (int)(progress * 100);
         return new RenderedArtScene
@@ -805,34 +815,40 @@ public static class AsciiArtEngine
         int f = frameTick % 4;
         int level = Math.Max(1, (focusXp / 100) + 1);
         int currentXp = focusXp % 100;
+        int pct = (int)(progress * 100);
 
         string moodFace = isRestPhase
             ? "( - . - ) z Z Z"
-            : (isGoalReached
-                ? "( ★ ω ★ ) ✨💖"
-                : (isTracking
-                    ? ((f % 2 == 0) ? "( ◕ ‿ ◕ ) 💖" : "( ^ ▽ ^ ) ✨")
-                    : "( ・ ‿ ・ )"));
+            : isGoalReached
+                ? "\\(^ヮ^)/ ✨💖"
+                : isTracking
+                    ? (f % 2 == 0 ? "( • ̀ω•́ )و ✧" : "( ^ ω ^ ) ✨")
+                    : "( • ‿ • ) 💬";
 
-        string hearts = new string('♥', Math.Clamp(happiness / 20, 1, 5));
+        int hpBars = Math.Clamp(happiness / 20, 0, 5);
+        string hpDisplay = new string('■', hpBars) + new string('□', 5 - hpBars);
 
-        sb.AppendLine($"    ┌──────────────────┐    🐾 FOCUS PET QUEST   Level {level}");
-        sb.AppendLine($"    │   {moodFace,-14} │    XP: [{currentXp:D2}/100] • Total Focus XP: {focusXp}");
-        sb.AppendLine($"    │   <)     (\\      │    Happiness: {hearts,-6} ({happiness}%)");
-        sb.AppendLine($"    │    (,,)-(,,)     │    {(isRestPhase ? "☕ Snack & Playtime!" : (isGoalReached ? "🎉 Level Master!" : "✨ Focus Power Boost!"))}");
-        sb.AppendLine("    └──────────────────┘");
+        sb.AppendLine(" ╭─────────────────────────╮");
+        sb.AppendLine($" │ 👾 {moodFace,-18} │  ⭐ Lvl {level} ({currentXp}%)");
+        sb.AppendLine($" │ HP: [{hpDisplay}]  {pct,3}% │  💖 Happy: {happiness}%");
+        sb.AppendLine(" ╰─────────────────────────╯");
 
-        int pct = (int)(progress * 100);
+        string story = isRestPhase
+            ? "👾 Pet is sleeping peacefully with a nightcap. Rest well & recharge!"
+            : isGoalReached
+                ? "💖 QUEST COMPLETE! Pet leveled up & celebrated with star candy!"
+                : isTracking
+                    ? $"👾 Focus companion cheering with sparkle eyes! Pet Level {level} • {pct}% done!"
+                    : "👾 Focus pet is waiting on the console screen for the next adventure!";
+
+        string badge = isRestPhase ? "👾 PET SLEEPING" : isGoalReached ? "💖 QUEST COMPLETE" : isTracking ? $"👾 PET LVL {level}" : "👾 PET READY";
+
         return new RenderedArtScene
         {
             AsciiArt = sb.ToString(),
-            StoryText = isRestPhase
-                ? "🐾 Pet is happily snacking on treats during your rest break!"
-                : (isGoalReached
-                    ? $"🎉 Level {level} Pet is celebrating! +25 Focus XP Earned!"
-                    : $"👾 Pet is cheering you on! {pct}% target progress • Keep going!"),
-            BadgeText = $"👾 LVL {level} PET",
-            MiniLine = $"[👾 Lvl {level} Pet • {pct}% • {hearts}]"
+            StoryText = story,
+            BadgeText = badge,
+            MiniLine = $"[👾 Pet Lvl {level} • 💖 {happiness}% • {pct}%]"
         };
     }
 

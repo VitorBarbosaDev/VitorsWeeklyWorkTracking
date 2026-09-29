@@ -5,8 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignWidth="600" d:DesignHeight="140"
+             Background="Transparent"
              ClipToBounds="True">
-    <Grid x:Name="RootGrid" ClipToBounds="True">
+    <Grid x:Name="RootGrid" Background="Transparent" ClipToBounds="True">
         <!-- Interactive Tooltip and Click interaction -->
     </Grid>
 </UserControl>

@@ -31,41 +31,44 @@
                 Padding="14 10"
                 Margin="0 0 0 12">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <!-- Left: Title -->
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
+                <!-- Row 0: Title on Left, Week Range Badge on Right -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="📅" FontSize="18" Margin="0 0 6 0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Work Planner &amp; Weekly Goals" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Work Planner &amp; Weekly Goals" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center"/>
+                        <TextBlock Text="• Schedule project hours (Mon–Sun) &amp; track goals" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center" Margin="8 2 0 0" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
-                    <TextBlock Text="Schedule project hours (Monday to Sunday) and track your target achievement" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="26 2 0 0"/>
-                </StackPanel>
 
-                <!-- Center: Week Navigation -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Content="◀ Prev Week" Width="85" Height="28" Margin="0 0 4 0" Click="PrevWeekButton_Click"/>
-                    <Button Content="This Week" Width="80" Height="28" Margin="0 0 4 0" Style="{StaticResource PrimaryButton}" Click="ThisWeekButton_Click"/>
-                    <Button Content="Next Week ▶" Width="85" Height="28" Margin="0 0 12 0" Click="NextWeekButton_Click"/>
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource Theme.CardBackgroundAlt}"
+                            BorderBrush="{DynamicResource Theme.CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10 4"
+                            VerticalAlignment="Center">
+                        <TextBlock x:Name="WeekRangeLabel" Text="Mon, 28 Sep - Sun, 04 Oct 2026" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Primary}"/>
+                    </Border>
+                </Grid>
 
-                    <TextBlock Text="Jump to:" VerticalAlignment="Center" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 6 0"/>
-                    <DatePicker x:Name="WeekDatePicker" Width="115" SelectedDateChanged="WeekDatePicker_SelectedDateChanged"/>
-                </StackPanel>
+                <!-- Row 1: Week Navigation & Jump To -->
+                <WrapPanel Grid.Row="1" Margin="0 8 0 0" VerticalAlignment="Center">
+                    <Button Content="◀ Prev Week" Width="85" Height="26" Margin="0 0 4 0" Click="PrevWeekButton_Click"/>
+                    <Button Content="This Week" Width="80" Height="26" Margin="0 0 4 0" Style="{StaticResource PrimaryButton}" Click="ThisWeekButton_Click"/>
+                    <Button Content="Next Week ▶" Width="85" Height="26" Margin="0 0 12 0" Click="NextWeekButton_Click"/>
 
-                <!-- Right: Selected Week Range Badge -->
-                <Border Grid.Column="2"
-                        Background="{DynamicResource Theme.CardBackgroundAlt}"
-                        BorderBrush="{DynamicResource Theme.CardBorder}"
-                        BorderThickness="1"
-                        CornerRadius="6"
-                        Padding="12 6"
-                        VerticalAlignment="Center">
-                    <TextBlock x:Name="WeekRangeLabel" Text="Mon, 28 Sep - Sun, 04 Oct 2026" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Primary}"/>
-                </Border>
+                    <TextBlock Text="Jump to Date:" VerticalAlignment="Center" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 6 0"/>
+                    <DatePicker x:Name="WeekDatePicker" Width="120" Height="26" SelectedDateChanged="WeekDatePicker_SelectedDateChanged"/>
+                </WrapPanel>
             </Grid>
         </Border>
 

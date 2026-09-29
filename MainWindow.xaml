@@ -73,36 +73,67 @@
 
             <!-- Right Controls: Mini Timer Corner Selector & Theme Switcher -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Pomodoro Mode Quick Toggle Button -->
+                <Button x:Name="PomodoroQuickToggleButton"
+                        Content="🍅 Pomodoro: OFF"
+                        ToolTip="Toggle Pomodoro Interval Mode (Focus sprints &amp; rest breaks vs continuous tracking)"
+                        Style="{StaticResource GhostButton}"
+                        Height="28"
+                        Padding="6 0"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Margin="0 0 6 0"
+                        Click="PomodoroQuickToggleButton_Click"/>
+
+                <!-- Sound & Settings Quick Button -->
+                <Button x:Name="AudioSettingsQuickButton"
+                        Content="⚙️ Settings"
+                        ToolTip="Configure interval settings, display monitor, and sound effects"
+                        Style="{StaticResource GhostButton}"
+                        Height="28"
+                        Padding="6 0"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Margin="0 0 6 0"
+                        Click="AudioSettingsQuickButton_Click"/>
+
                 <!-- Companion Toggle Button -->
                 <Button x:Name="CompanionQuickToggleButton"
-                        Content="🎨 Art Companion"
+                        Content="🎨 Companion"
                         ToolTip="Toggle Animated Art &amp; Game Companion"
                         Height="28"
-                        Padding="7 0"
+                        Padding="6 0"
                         FontSize="11"
-                        Margin="0 0 8 0"
+                        Margin="0 0 6 0"
                         Click="CompanionQuickToggleButton_Click"/>
 
                 <!-- Mini Floating Timer Options -->
                 <TextBlock Text="🗗 Mini:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" VerticalAlignment="Center"/>
+                <ComboBox x:Name="MiniMonitorComboBox"
+                          Width="98"
+                          Margin="0 0 4 0"
+                          ToolTip="Select target display monitor for the floating mini timer"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="MiniMonitorComboBox_SelectionChanged"/>
                 <ComboBox x:Name="MiniCornerComboBox"
-                          Width="110"
-                          Margin="0 0 6 0"
+                          Width="88"
+                          Margin="0 0 4 0"
+                          ToolTip="Select screen corner or disable mini timer"
                           SelectionChanged="MiniCornerComboBox_SelectionChanged"/>
                 
                 <Button x:Name="MiniOverlayQuickButton"
                         Content="↘ Mini"
                         ToolTip="Switch to Floating Corner Widget"
                         Height="28"
-                        Padding="7 0"
+                        Padding="6 0"
                         FontSize="11"
-                        Margin="0 0 10 0"
+                        Margin="0 0 8 0"
                         Click="MiniOverlayQuickButton_Click"/>
 
                 <!-- Theme Switcher -->
                 <TextBlock Text="🎨 Theme:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" VerticalAlignment="Center"/>
                 <ComboBox x:Name="ThemeComboBox"
-                          Width="145"
+                          Width="135"
                           DisplayMemberPath="DisplayName"
                           SelectionChanged="ThemeComboBox_SelectionChanged"/>
             </StackPanel>
@@ -144,6 +175,17 @@
                                 FontWeight="Bold"
                                 Margin="0 0 6 0"
                                 Click="IntervalAlertPrimaryAction_Click"/>
+                        <Button x:Name="IntervalAlertSecondaryAction"
+                                Content="⚡ Skip Break &amp; Work"
+                                ToolTip="Skip the break and start next focus sprint immediately"
+                                Style="{StaticResource PrimaryButton}"
+                                Height="28"
+                                Padding="10 0"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Margin="0 0 6 0"
+                                Visibility="Collapsed"
+                                Click="IntervalAlertSecondaryAction_Click"/>
                         <Button x:Name="IntervalAlertDismissButton"
                                 Content="✕ Dismiss"
                                 Style="{StaticResource GhostButton}"
@@ -200,6 +242,20 @@
                                     <TextBlock Text="STOP" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+
+                            <!-- Resume Button (Shown when session is stopped and ready to resume/save) -->
+                            <Button x:Name="ResumeButton"
+                                    Style="{StaticResource CircularResumeButton}"
+                                    Width="92"
+                                    Height="92"
+                                    ToolTip="Resume tracking this session"
+                                    Click="ResumeButton_Click"
+                                    Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="▶" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" Margin="2 0 0 1"/>
+                                    <TextBlock Text="RESUME" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
 
                         <!-- Prominent Timer & Status Details -->
@@ -243,7 +299,7 @@
                                         FontWeight="SemiBold"
                                         Padding="5 2"
                                         Height="22"
-                                        Margin="6 0 0 0"
+                                        Margin="4 0 0 0"
                                         VerticalAlignment="Center"
                                         Click="TimerModeToggleButton_Click"/>
                             </StackPanel>
@@ -274,6 +330,54 @@
                                        Foreground="{DynamicResource Theme.ForegroundMuted}"
                                        MaxWidth="210"
                                        TextTrimming="CharacterEllipsis"/>
+
+                            <!-- Interval Quick Action Bar (When Interval Mode Active) -->
+                            <StackPanel x:Name="IntervalHeroActionBar"
+                                        Orientation="Horizontal"
+                                        Margin="0 4 0 0"
+                                        Visibility="Collapsed">
+                                <Button x:Name="HeroStopBreakButton"
+                                        Content="⚡ Stop Break &amp; Work"
+                                        ToolTip="Stop break early and start the next focus sprint immediately"
+                                        Style="{StaticResource SuccessButton}"
+                                        Height="22"
+                                        Padding="8 0"
+                                        FontSize="10"
+                                        FontWeight="Bold"
+                                        Margin="0 0 4 0"
+                                        Visibility="Collapsed"
+                                        Click="HeroStopBreakButton_Click"/>
+                                <Button x:Name="HeroNextSessionButton"
+                                        Content="⏩ Next Session"
+                                        ToolTip="Complete current sprint and start next focus session (skip break)"
+                                        Style="{StaticResource GhostButton}"
+                                        Height="22"
+                                        Padding="6 0"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Margin="0 0 4 0"
+                                        Visibility="Collapsed"
+                                        Click="HeroNextSessionButton_Click"/>
+                                <Button x:Name="HeroTakeBreakButton"
+                                        Content="☕ Take Break"
+                                        ToolTip="End focus sprint early and start rest break"
+                                        Style="{StaticResource GhostButton}"
+                                        Height="22"
+                                        Padding="6 0"
+                                        FontSize="10"
+                                        Margin="0 0 4 0"
+                                        Visibility="Collapsed"
+                                        Click="HeroTakeBreakButton_Click"/>
+                                <Button x:Name="HeroExtraRestButton"
+                                        Content="☕ +5m"
+                                        ToolTip="Add 5 minutes to current rest break"
+                                        Style="{StaticResource GhostButton}"
+                                        Height="22"
+                                        Padding="6 0"
+                                        FontSize="10"
+                                        Visibility="Collapsed"
+                                        Click="HeroExtraRestButton_Click"/>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -427,11 +531,22 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="⏱️ Session Recorded — Ready to Save" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Theme.Foreground}"/>
-                                <TextBlock Text="Review project and notes, then save to work log below." FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                <TextBlock Text="⏱️ Session Recorded — Ready to Save or Resume" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Theme.Foreground}"/>
+                                <TextBlock Text="Review details to save, resume session, or discard." FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="ResumeSessionButton"
+                                        Content="▶ Resume"
+                                        ToolTip="Resume this session and continue tracking time"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Height="28"
+                                        Padding="12 0"
+                                        FontWeight="Bold"
+                                        FontSize="11"
+                                        Margin="0 0 6 0"
+                                        Click="ResumeButton_Click"/>
+
                                 <Button x:Name="SaveEntryButton"
                                         Content="✔ Save Entry"
                                         Style="{StaticResource SuccessButton}"
@@ -737,11 +852,11 @@
                         Margin="0 0 6 0"
                         Click="OpenCalendarPlanner_Click"/>
                 <Button Content="📁 Manage Projects"
-                        Width="125"
+                        Width="140"
                         Margin="0 0 6 0"
                         Click="AddNewProjectButton_Click"/>
                 <Button Content="🏷️ Manage Activities"
-                        Width="130"
+                        Width="150"
                         Margin="0 0 6 0"
                         Click="AddNewActivityButton_Click"/>
                 <Button Content="📊 Analytics"
@@ -753,7 +868,7 @@
                 <Button x:Name="DeleteSelectedButton"
                         Content="🗑 Delete Selected"
                         Style="{StaticResource GhostDangerButton}"
-                        Width="120"
+                        Width="130"
                         Margin="0 0 6 0"
                         Click="DeleteSelectedButton_Click"/>
                 <Button Content="📥 Export CSV"

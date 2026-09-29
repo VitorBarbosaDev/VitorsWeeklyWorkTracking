@@ -19,6 +19,22 @@ public class FocusCompanionStorage
                 var settings = JsonSerializer.Deserialize<WorkRestSettings>(json);
                 if (settings != null)
                 {
+                    if (settings.EnabledSoundVariations == null || settings.EnabledSoundVariations.Count == 0)
+                    {
+                        settings.EnabledSoundVariations = new WorkRestSettings().EnabledSoundVariations;
+                    }
+                    else
+                    {
+                        var defaultVariations = new WorkRestSettings().EnabledSoundVariations;
+                        foreach (var def in defaultVariations)
+                        {
+                            var prefix = def.Split('_')[0];
+                            if (!settings.EnabledSoundVariations.Any(v => v.StartsWith(prefix + "_", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                settings.EnabledSoundVariations.Add(def);
+                            }
+                        }
+                    }
                     return settings;
                 }
             }

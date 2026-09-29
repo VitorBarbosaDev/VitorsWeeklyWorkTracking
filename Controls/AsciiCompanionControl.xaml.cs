@@ -20,6 +20,7 @@ public partial class AsciiCompanionControl : UserControl
     private string? _customCheerMessage;
 
     // Cache current state
+    private bool _isInitializing = true;
     private bool _isTracking = false;
     private double _currentProgressFraction = 0.0;
     private bool _isGoalReached = false;
@@ -28,6 +29,7 @@ public partial class AsciiCompanionControl : UserControl
     public event Action<WorkRestSettings>? SettingsChanged;
     public event Action? IntervalModeToggled;
     public event Action? SkipPhaseRequested;
+    public event Action? NextSessionRequested;
     public event Action<int>? ExtraRestRequested;
     public event Action? OpenSettingsRequested;
 
@@ -36,7 +38,6 @@ public partial class AsciiCompanionControl : UserControl
         InitializeComponent();
 
         SceneComboBox.ItemsSource = ArtSceneOption.AvailableScenes;
-        SceneComboBox.SelectedIndex = 0;
 
         VisualCompanionDisplay.Clicked += () => TriggerCheer();
 
@@ -51,18 +52,26 @@ public partial class AsciiCompanionControl : UserControl
 
     public void Initialize(FocusIntervalManager intervalManager)
     {
+        _isInitializing = true;
         _intervalManager = intervalManager;
 
         // Select saved scene
-        var savedScene = ArtSceneOption.AvailableScenes.FirstOrDefault(s => s.Id == _intervalManager.Settings.SelectedSceneId);
-        if (savedScene != null)
-        {
-            SceneComboBox.SelectedItem = savedScene;
-        }
+        var targetSceneId = !string.IsNullOrEmpty(_intervalManager.Settings.SelectedSceneId)
+            ? _intervalManager.Settings.SelectedSceneId
+            : "cycling";
+
+        var savedScene = ArtSceneOption.AvailableScenes.FirstOrDefault(s => string.Equals(s.Id, targetSceneId, StringComparison.OrdinalIgnoreCase))
+            ?? ArtSceneOption.AvailableScenes[0];
+
+        SceneComboBox.SelectedItem = savedScene;
+        _intervalManager.Settings.SelectedSceneId = savedScene.Id;
 
         ApplyArtModeState(_intervalManager.Settings.ArtMode);
         ApplyExpandedState(_intervalManager.Settings.CompanionExpanded);
         UpdateIntervalModeUi();
+
+        _isInitializing = false;
+        RenderCurrentFrame();
     }
 
     public void UpdateDisplay(
@@ -138,15 +147,18 @@ public partial class AsciiCompanionControl : UserControl
         }
     }
 
-    private void UpdateIntervalModeUi()
+    public void UpdateIntervalModeUi()
     {
         if (_intervalManager == null) return;
 
         bool isInterval = _intervalManager.Settings.IntervalModeEnabled;
-        IntervalModeToggleButton.Content = isInterval ? "🍅 Work/Rest: ON" : "🍅 Work/Rest: OFF";
+        IntervalModeToggleButton.Content = isInterval ? "🍅 Pomodoro: ON" : "🍅 Pomodoro: OFF";
         IntervalModeToggleButton.Foreground = isInterval
             ? (TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue)
-            : (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Gray);
+            : (TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray);
+        IntervalModeToggleButton.ToolTip = isInterval
+            ? "Pomodoro Mode Active (Focus sprints & rest breaks) • Click to switch to Continuous Work Tracking"
+            : "Continuous Work Tracking Active (No breaks/alerts) • Click to enable Pomodoro Interval Mode";
 
         if (isInterval && _isTracking)
         {
@@ -167,7 +179,9 @@ public partial class AsciiCompanionControl : UserControl
                 var remaining = _intervalManager.Remaining;
                 IntervalPhaseTimerText.Text = $"{remaining:mm\\:ss} left • Take a deep breath & stretch!";
                 ExtraRestButton.Visibility = Visibility.Visible;
-                SkipPhaseButton.Content = "⚡ Start Focus Now";
+                NextSessionButton.Visibility = Visibility.Collapsed;
+                SkipPhaseButton.Content = "⚡ Stop Break & Start Focus";
+                SkipPhaseButton.ToolTip = "Stop rest break early and start next focus session";
             }
             else
             {
@@ -177,7 +191,11 @@ public partial class AsciiCompanionControl : UserControl
                 var remaining = _intervalManager.Remaining;
                 IntervalPhaseTimerText.Text = $"{remaining:mm\\:ss} left • Session {currentCycle} of {totalCycles}";
                 ExtraRestButton.Visibility = Visibility.Collapsed;
-                SkipPhaseButton.Content = "☕ Take Break Now";
+                NextSessionButton.Visibility = Visibility.Visible;
+                NextSessionButton.Content = "⏩ Next Session";
+                NextSessionButton.ToolTip = "Skip break and start next focus sprint";
+                SkipPhaseButton.Content = "☕ Take Break";
+                SkipPhaseButton.ToolTip = "End focus sprint early and take rest break";
             }
         }
         else if (isInterval && !_isTracking)
@@ -200,10 +218,13 @@ public partial class AsciiCompanionControl : UserControl
 
     private void SceneComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_isInitializing) return;
+
         if (SceneComboBox.SelectedItem is ArtSceneOption scene && _intervalManager != null)
         {
             _intervalManager.Settings.SelectedSceneId = scene.Id;
             FocusCompanionStorage.Save(_intervalManager.Settings);
+            SettingsChanged?.Invoke(_intervalManager.Settings);
             RenderCurrentFrame();
         }
     }
@@ -242,7 +263,7 @@ public partial class AsciiCompanionControl : UserControl
             _ => "✨ Cheering you on! Fantastic focus energy!"
         };
 
-        FocusIntervalManager.PlayAlertSound();
+        SoundEffectManager.PlayCheerSound(selectedScene.Id, _intervalManager.Settings);
         RenderCurrentFrame();
     }
 
@@ -316,6 +337,11 @@ public partial class AsciiCompanionControl : UserControl
     private void SkipPhaseButton_Click(object sender, RoutedEventArgs e)
     {
         SkipPhaseRequested?.Invoke();
+    }
+
+    private void NextSessionButton_Click(object sender, RoutedEventArgs e)
+    {
+        NextSessionRequested?.Invoke();
     }
 
     private void ExtraRestButton_Click(object sender, RoutedEventArgs e)

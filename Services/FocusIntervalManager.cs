@@ -26,6 +26,15 @@ public class FocusIntervalManager
 
     public event EventHandler<IntervalAlertEventArgs>? AlertTriggered;
     public event EventHandler<IntervalPhase>? PhaseChanged;
+    public event EventHandler? AlertDismissed;
+
+    private IntervalPhase _pausedPhase = IntervalPhase.None;
+    private int _pausedCycle = 1;
+    private TimeSpan _pausedPhaseElapsed = TimeSpan.Zero;
+    private TimeSpan _pausedExtraBreak = TimeSpan.Zero;
+    private bool _isPaused = false;
+
+    public bool IsPaused => _isPaused;
 
     private static readonly string[] RestTips =
     {
@@ -54,6 +63,44 @@ public class FocusIntervalManager
     {
         Settings = settings;
         FocusCompanionStorage.Save(Settings);
+    }
+
+    public void SetIntervalMode(bool enabled, DateTime? currentTime = null)
+    {
+        Settings.IntervalModeEnabled = enabled;
+        FocusCompanionStorage.Save(Settings);
+
+        if (enabled)
+        {
+            DismissAlert();
+            if (PhaseStartTime != null && CurrentPhase == IntervalPhase.None)
+            {
+                CurrentPhase = IntervalPhase.Focus;
+                PhaseStartTime = currentTime ?? DateTime.Now;
+                CurrentCycle = 1;
+                ExtraBreakTime = TimeSpan.Zero;
+                PhaseChanged?.Invoke(this, CurrentPhase);
+            }
+            else if (PhaseStartTime == null)
+            {
+                CurrentCycle = 1;
+            }
+        }
+        else
+        {
+            CurrentPhase = IntervalPhase.None;
+            ExtraBreakTime = TimeSpan.Zero;
+            CurrentCycle = 1;
+            DismissAlert();
+            PhaseChanged?.Invoke(this, CurrentPhase);
+        }
+    }
+
+    public void ResetCycles()
+    {
+        CurrentCycle = 1;
+        ExtraBreakTime = TimeSpan.Zero;
+        DismissAlert();
     }
 
     public bool IsRestPhase => CurrentPhase == IntervalPhase.ShortBreak || CurrentPhase == IntervalPhase.LongBreak;
@@ -103,14 +150,24 @@ public class FocusIntervalManager
         }
     }
 
-    public void StartTracking(DateTime startTime)
+    public void StartTracking(DateTime startTime, bool resetCycle = true)
     {
+        if (resetCycle)
+        {
+            CurrentCycle = 1;
+        }
+
+        _isPaused = false;
+        _pausedPhase = IntervalPhase.None;
+        _pausedPhaseElapsed = TimeSpan.Zero;
+        _pausedExtraBreak = TimeSpan.Zero;
+        ExtraBreakTime = TimeSpan.Zero;
+        DismissAlert();
+
         if (Settings.IntervalModeEnabled)
         {
             CurrentPhase = IntervalPhase.Focus;
             PhaseStartTime = startTime;
-            ExtraBreakTime = TimeSpan.Zero;
-            IsAlertPending = false;
             PhaseChanged?.Invoke(this, CurrentPhase);
         }
         else
@@ -120,12 +177,80 @@ public class FocusIntervalManager
         }
     }
 
+    public void PauseTracking(DateTime? pauseTime = null)
+    {
+        var now = pauseTime ?? DateTime.Now;
+        if (PhaseStartTime.HasValue && CurrentPhase != IntervalPhase.None)
+        {
+            _pausedPhase = CurrentPhase;
+            _pausedCycle = CurrentCycle;
+            _pausedPhaseElapsed = now - PhaseStartTime.Value;
+            _pausedExtraBreak = ExtraBreakTime;
+            _isPaused = true;
+        }
+        else if (PhaseStartTime.HasValue)
+        {
+            _pausedPhase = IntervalPhase.None;
+            _pausedCycle = CurrentCycle;
+            _pausedPhaseElapsed = now - PhaseStartTime.Value;
+            _pausedExtraBreak = TimeSpan.Zero;
+            _isPaused = true;
+        }
+        else
+        {
+            _isPaused = false;
+            _pausedPhase = IntervalPhase.None;
+            _pausedPhaseElapsed = TimeSpan.Zero;
+            _pausedExtraBreak = TimeSpan.Zero;
+        }
+
+        CurrentPhase = IntervalPhase.None;
+        PhaseStartTime = null;
+        DismissAlert();
+    }
+
+    public void ResumeTracking(DateTime? resumeTime = null)
+    {
+        var now = resumeTime ?? DateTime.Now;
+        DismissAlert();
+
+        if (_isPaused && _pausedPhase != IntervalPhase.None && Settings.IntervalModeEnabled)
+        {
+            CurrentPhase = _pausedPhase;
+            CurrentCycle = _pausedCycle;
+            ExtraBreakTime = _pausedExtraBreak;
+            PhaseStartTime = now - _pausedPhaseElapsed;
+            _isPaused = false;
+            PhaseChanged?.Invoke(this, CurrentPhase);
+        }
+        else
+        {
+            _isPaused = false;
+            if (Settings.IntervalModeEnabled)
+            {
+                CurrentPhase = IntervalPhase.Focus;
+                PhaseStartTime = now - _pausedPhaseElapsed;
+                PhaseChanged?.Invoke(this, CurrentPhase);
+            }
+            else
+            {
+                CurrentPhase = IntervalPhase.None;
+                PhaseStartTime = now - _pausedPhaseElapsed;
+            }
+        }
+    }
+
     public void StopTracking()
     {
         CurrentPhase = IntervalPhase.None;
         PhaseStartTime = null;
         ExtraBreakTime = TimeSpan.Zero;
-        IsAlertPending = false;
+        CurrentCycle = 1;
+        _isPaused = false;
+        _pausedPhase = IntervalPhase.None;
+        _pausedPhaseElapsed = TimeSpan.Zero;
+        _pausedExtraBreak = TimeSpan.Zero;
+        DismissAlert();
     }
 
     public void CheckTick(DateTime now)
@@ -152,7 +277,7 @@ public class FocusIntervalManager
     {
         var prev = CurrentPhase;
         ExtraBreakTime = TimeSpan.Zero;
-        IsAlertPending = false;
+        DismissAlert();
 
         if (prev == IntervalPhase.Focus)
         {
@@ -194,18 +319,69 @@ public class FocusIntervalManager
         AdvanceToNextPhase(DateTime.Now);
     }
 
+    public void StopBreakAndStartFocus(DateTime? atTime = null)
+    {
+        var prev = CurrentPhase;
+        ExtraBreakTime = TimeSpan.Zero;
+        DismissAlert();
+
+        if (prev == IntervalPhase.ShortBreak)
+        {
+            CurrentCycle++;
+            CurrentPhase = IntervalPhase.Focus;
+        }
+        else if (prev == IntervalPhase.LongBreak)
+        {
+            CurrentCycle = 1;
+            CurrentPhase = IntervalPhase.Focus;
+        }
+        else
+        {
+            CurrentPhase = IntervalPhase.Focus;
+        }
+
+        PhaseStartTime = atTime ?? DateTime.Now;
+        PhaseChanged?.Invoke(this, CurrentPhase);
+    }
+
+    public void SkipToNextSession(DateTime? atTime = null)
+    {
+        DismissAlert();
+        if (IsRestPhase)
+        {
+            StopBreakAndStartFocus(atTime);
+        }
+        else
+        {
+            // If in focus session, award progress for finishing sprint and advance directly to the next focus sprint (skipping break)
+            Settings.TotalSessionsCompleted++;
+            Settings.FocusXp += 25;
+            FocusCompanionStorage.Save(Settings);
+
+            CurrentCycle = (CurrentCycle >= Settings.CyclesBeforeLongBreak) ? 1 : CurrentCycle + 1;
+            CurrentPhase = IntervalPhase.Focus;
+            PhaseStartTime = atTime ?? DateTime.Now;
+            ExtraBreakTime = TimeSpan.Zero;
+            PhaseChanged?.Invoke(this, CurrentPhase);
+        }
+    }
+
     public void AddExtraBreak(int extraMinutes)
     {
         if (IsRestPhase)
         {
             ExtraBreakTime += TimeSpan.FromMinutes(extraMinutes);
-            IsAlertPending = false;
+            DismissAlert();
         }
     }
 
     public void DismissAlert()
     {
-        IsAlertPending = false;
+        if (IsAlertPending)
+        {
+            IsAlertPending = false;
+            AlertDismissed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void TriggerPhaseEndAlert()
@@ -246,7 +422,14 @@ public class FocusIntervalManager
 
         if (Settings.SoundAlertEnabled)
         {
-            PlayAlertSound();
+            if (CurrentPhase == IntervalPhase.Focus)
+            {
+                SoundEffectManager.PlayBreakStartSound(Settings);
+            }
+            else
+            {
+                SoundEffectManager.PlayBreakEndSound(Settings);
+            }
         }
 
         AlertTriggered?.Invoke(this, alert);
@@ -254,17 +437,6 @@ public class FocusIntervalManager
 
     public static void PlayAlertSound()
     {
-        Task.Run(() =>
-        {
-            try
-            {
-                // Play pleasant system chime
-                SystemSounds.Asterisk.Play();
-            }
-            catch
-            {
-                // Ignore audio playback exceptions if system has no sound device
-            }
-        });
+        SoundEffectManager.PlayBreakStartSound();
     }
 }

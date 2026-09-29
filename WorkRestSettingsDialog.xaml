@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Work &amp; Rest Interval Settings"
         Icon="VitorWeeklyWorkTracking.ico"
-        Width="460"
-        Height="540"
+        Width="510"
+        Height="620"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource Theme.WindowBackground}"
@@ -34,6 +34,28 @@
         <!-- Main Form -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,16">
             <StackPanel>
+                <!-- Master Toggle Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <CheckBox x:Name="IntervalModeEnabledCheckBox"
+                                  Content="🍅 Enable Pomodoro / Interval Mode (Work &amp; Rest Cycles)"
+                                  FontWeight="Bold"
+                                  FontSize="13"
+                                  Foreground="{DynamicResource Theme.Primary}"
+                                  IsChecked="True"/>
+                        <TextBlock Text="When enabled, time tracking runs in structured focus sprints with break reminders. When disabled, you can track continuous time with no interruptions."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="24,4,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Preset Selector -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
@@ -115,6 +137,730 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Audio & Sound Effects Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <CheckBox x:Name="SoundAlertCheckBox"
+                                  Content="🔊 Enable Sound Effects"
+                                  FontWeight="Bold"
+                                  FontSize="13"
+                                  Foreground="{DynamicResource Theme.Primary}"
+                                  IsChecked="True"
+                                  Checked="SoundAlertCheckBox_Changed"
+                                  Unchecked="SoundAlertCheckBox_Changed"/>
+
+                        <!-- Volume & Event Sounds Group -->
+                        <Border x:Name="SoundControlsContainer"
+                                Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,10"
+                                Margin="0,10,0,0">
+                            <StackPanel>
+                                <!-- Master Volume Slider -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="45"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="🔊 Volume:" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                    <Slider x:Name="VolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" SmallChange="5" LargeChange="10" TickFrequency="10" IsSnapToTickEnabled="False" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
+                                    <TextBlock x:Name="VolumeValueText" Grid.Column="2" Text="75%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <Button x:Name="TestVolumeButton" Grid.Column="3" Content="▶ Test" Style="{StaticResource GhostButton}" Padding="8,2" Margin="8,0,0,0" Height="24" FontSize="11" ToolTip="Test audio volume" Click="TestVolumeButton_Click"/>
+                                </Grid>
+
+                                <Separator Background="{DynamicResource Theme.CardBorder}" Margin="0,2,0,8"/>
+
+                                <TextBlock Text="Toggle sound events and their variations. When an event triggers, a random variation from its enabled choices will play:"
+                                           FontSize="11"
+                                           FontWeight="Normal"
+                                           Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,10"/>
+
+                                <!-- 1. On Session Start Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnStartCheckBox"
+                                                      Content="▶ On Session Start"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="Start"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled start variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="StartVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_start_ascending" Content="🎵 Ascending Chime (C5 → E5 → G5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="start_ascending" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_start_pop" Content="✨ Quick Pop-Brite (G5 → C6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="start_pop" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_start_marimba" Content="🪵 Warm Marimba (A4 → C#5 → E5 → A5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="start_marimba" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_start_digital" Content="⚡ Digital Power-Up (D5 → F#5 → A5 → D6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="start_digital" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 2. On Session End Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnEndCheckBox"
+                                                      Content="⏹ On Session End (Stop Tracking)"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="End"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled session end variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="EndVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_end_completion" Content="🔔 Gentle Completion Bell (C6 → G5 → E5 → C5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="end_completion" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_end_accomplished" Content="🏆 Mission Accomplished (E5 → A4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="end_accomplished" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_end_sparkle" Content="✨ Sparkle Wind-Down (G5 → E5 → C5 → A4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="end_sparkle" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_end_calm" Content="🌿 Calm Acoustic Chord (C4 + E4 + G4 + B4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="end_calm" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 3. On Session Goal Achieved Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnGoalCheckBox"
+                                                      Content="🎯 On Session Goal Achieved"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="GoalAchieved"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled goal fanfare variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="GoalVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_goal_victory" Content="🎉 Victory Fanfare (C5 → E5 → G5 → C6 → E6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="goal_victory" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_goal_levelup" Content="🌟 Level-Up Triumph (D5 → F#5 → A5 → D6 → F#6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="goal_levelup" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_goal_bell" Content="🔔 Golden Bell Melody (G5 → B5 → D6 → G6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="goal_bell" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_goal_cosmic" Content="🪐 Cosmic Sparkles (E5 → G#5 → B5 → E6 → G#6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="goal_cosmic" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 4. On Daily Work Goal Reached Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnDailyGoalCheckBox"
+                                                      Content="📅 On Daily Work Goal Reached (Planner 100%)"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="DailyGoalAchieved"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled daily goal fanfare variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="DailyGoalVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_daily_triumph" Content="🏆 Daily Triumph Fanfare (C5 → E5 → G5 → C6 → E6 → G6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="daily_triumph" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_daily_sunburst" Content="🌅 Sunburst Achievement (D4/A4 → D5 → F#5 → A5 → D6 → F#6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="daily_sunburst" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_daily_chime" Content="🔔 Master Day Chimes (G5 → B5 → D6 → G6 → B6)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="daily_chime" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_daily_quest" Content="🌟 Daily Quest Complete (E5 → G#5 → B5 → E6 → G#6 → B6 → E7)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="daily_quest" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 5. On Weekly Work Goal Reached Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnWeeklyGoalCheckBox"
+                                                      Content="👑 On Weekly Work Goal Reached (Planner 100%)"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="WeeklyGoalAchieved"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled weekly goal fanfare variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="WeeklyGoalVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_weekly_grand" Content="👑 Grand Weekly Victory (Majestic Multi-Chord Symphony)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="weekly_grand" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_weekly_champions" Content="🏆 Champions Heroic Anthem (Heroic Royal Fanfare)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="weekly_champions" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_weekly_fiesta" Content="🎉 Weekly Fiesta Sparkle (Cascading Celebration Bells)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="weekly_fiesta" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_weekly_celestial" Content="✨ Celestial Masterpiece Chord (Lush Major-9th Harmonic Swell)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="weekly_celestial" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 6. On Break Start Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnBreakStartCheckBox"
+                                                      Content="☕ On Break Start (Rest Phase)"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="BreakStart"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled break start variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="BreakStartVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakstart_zen" Content="🧘 Peaceful Zen Bell (E5 → B4 → G4 + E4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakstart_zen" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakstart_lofi" Content="☕ Cozy Lo-Fi Drop (A4 → E4 → C4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakstart_lofi" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakstart_bowl" Content="🍵 Singing Bowl Resonator (D4 → A4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakstart_bowl" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakstart_waterdrop" Content="💧 Gentle Waterdrop Chime (F5 → C5 → A4)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakstart_waterdrop" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 7. On Break End Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnBreakEndCheckBox"
+                                                      Content="⚡ On Break End (Ready to Focus)"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="BreakEnd"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random enabled break end variation"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <StackPanel x:Name="BreakEndVariationsPanel" Margin="22,6,0,0">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakend_wakeup" Content="⚡ Energetic Wake-Up (G4 → C5 → E5 → G5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakend_wakeup" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakend_ready" Content="⏱️ Ready-Set-Go Ping (C5 → C5 → G5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakend_ready" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakend_morning" Content="🌅 Morning Sunbeam (D4 → G4 → B4 → D5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakend_morning" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <CheckBox x:Name="Var_breakend_focusbell" Content="🔔 Focus Bell Resonator (E5 → B5)" FontSize="11" VerticalAlignment="Center" IsChecked="True"/>
+                                                <Button Tag="breakend_focusbell" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="24" Height="20" Padding="0" FontSize="10" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 8. Companion Scene Interaction & Pet Sounds Group -->
+                                <Border Background="{DynamicResource Theme.CardBackground}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox x:Name="SoundOnCheerCheckBox"
+                                                      Content="🐾 Companion Scene Interaction &amp; Pet Sounds"
+                                                      FontWeight="SemiBold"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="True"
+                                                      Checked="SoundEventToggle_Changed"
+                                                      Unchecked="SoundEventToggle_Changed"/>
+                                            <Button Tag="Cheer"
+                                                    Grid.Column="1"
+                                                    Content="🎲 Test Random"
+                                                    Style="{StaticResource GhostButton}"
+                                                    Padding="8,2"
+                                                    Height="22"
+                                                    FontSize="10.5"
+                                                    ToolTip="Preview a random companion interaction sound"
+                                                    Click="TestEventButton_Click"/>
+                                        </Grid>
+                                        <TextBlock Text="Each companion scene has unique themed sound effects when clicked or cheered:" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="22,4,0,6"/>
+                                        <StackPanel x:Name="CheerVariationsPanel" Margin="22,2,0,0">
+                                            <!-- Cycling -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🚴 Boy Cycling Home" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="cycling" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cycling_bell" Content="🔔 Bicycle Bell 'Ding-Ding!' (E6 → E6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cycling_bell" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cycling_bark" Content="🐶 Puppy Basket Bark (F#5 → A5 → D6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cycling_bark" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cycling_whistle" Content="🎶 Meadow Trail Whistle (E5 → G5 → B5 → E6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cycling_whistle" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Cafe -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="☕ Rainy Window Coffee" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="cafe" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cafe_cup" Content="☕ Porcelain Mug Clink (A5 + E6 + C5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cafe_cup" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cafe_raindrop" Content="💧 Crystalline Raindrop (C6 → G5 → E5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cafe_raindrop" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cafe_steam" Content="🌿 Cozy Steam Swell (C4 + E4 + G4 + C5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cafe_steam" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Coffee Jazz -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🎷 Coffee Jazz Window" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="coffeejazz" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_jazz_sax" Content="🎷 Smooth Sax Lick (D5 → F#5 → A5 → C6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_jazz_sax" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_jazz_piano" Content="🎹 Rhodes E-Piano Major-9th (F4 + A4 + C5 + E5 + G5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_jazz_piano" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_jazz_sparkle" Content="🍂 Autumn Sparkle Cascade (B5 → G#5 → E5 → B4)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_jazz_sparkle" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Ice Cream -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🍦 Pastel Ice Cream Truck" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="icecream" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_icecream_jingle" Content="🍦 Carousel Music Box (E5 → G5 → A5 → E5 → C5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_icecream_jingle" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_icecream_pop" Content="🍬 Pastel Candy Pop (C6 → E6 → G6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_icecream_pop" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_icecream_bell" Content="🔔 Shop Counter Ding (D6 → A6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_icecream_bell" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metro -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🎧 Tokyo Metro Lo-Fi Girl" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="metro" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_metro_melody" Content="🎧 Tokyo Station Departure Jingle (E5 → G5 → B5 → A5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_metro_melody" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_metro_lofi" Content="🎵 Lo-Fi Headphone Beat (A4 + C5 + E5 + G#5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_metro_lofi" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_metro_doors" Content="🚇 Tokyo Subway Dual Chime (C6 → G5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_metro_doors" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Cat -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🐱 Playful Focus Kitty" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="cat" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cat_meow" Content="🐱 Kawaii Kitty Meow (A5 → C#6 → E6 → C#6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cat_meow" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cat_purr" Content="💖 Purr &amp; Collar Bell (G5 + D6 + G6 + G3)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cat_purr" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_cat_bounce" Content="🧶 Playful Yarn Squeak (E6 → G6 → A6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_cat_bounce" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Rocket -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🚀 Space Rocket Launch" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="rocket" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_rocket_laser" Content="🚀 Cosmic Laser Boost (C6 → G6 → C7)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_rocket_laser" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_rocket_beacon" Content="🪐 Satellite Radar Ping (A6 → E6 Echo)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_rocket_beacon" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_rocket_warp" Content="✨ Hyperspace Warp Sweep (D5 → A5 → D6 → D7)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_rocket_warp" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Runner -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="🏃 Chibi Marathon Runner" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="runner" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_runner_whistle" Content="🏃 Coach Sport Whistle (G6 Rapid Vibrato)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_runner_whistle" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_runner_horn" Content="🎺 Stadium Victory Horn (C5 → E5 → G5 → C6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_runner_horn" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_runner_squeak" Content="👟 Sprint Sneaker Squeak (A5 → D6 → F#6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_runner_squeak" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Tamagotchi -->
+                                            <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6">
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="👾 Focus Pet Tamagotchi" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Button Tag="tamagotchi" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_pet_happy" Content="👾 8-Bit Happy Chirp (C6 → E6 → G6 → C7)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_pet_happy" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,2">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_pet_levelup" Content="🌟 Pixel Item Power-Up (F5 → A5 → C6 → F6)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_pet_levelup" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                    <Grid Margin="6,0,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox x:Name="Var_cheer_pet_heart" Content="💖 Pixel Pet Love Beep (G6 → C7)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <Button Tag="cheer_pet_heart" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Floating Mini Timer & Display Monitor Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🖥️ Floating Mini Timer &amp; Display Monitor" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Choose which monitor and screen corner the floating mini timer displays on by default when minimized."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Target Monitor Selection -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="🖥️ Default Monitor:" VerticalAlignment="Center" FontSize="11.5" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="MiniMonitorComboBox"
+                                      Grid.Column="1"
+                                      DisplayMemberPath="DisplayName"/>
+                        </Grid>
+
+                        <!-- Default Screen Corner Selection -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="📍 Default Corner:" VerticalAlignment="Center" FontSize="11.5" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="MiniCornerComboBox" Grid.Column="1">
+                                <ComboBoxItem Content="↘ Bottom-Right (Standard)"/>
+                                <ComboBoxItem Content="↙ Bottom-Left"/>
+                                <ComboBoxItem Content="↗ Top-Right"/>
+                                <ComboBoxItem Content="↖ Top-Left"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <CheckBox x:Name="MiniTimerEnabledCheckBox"
+                                  Content="🗗 Show floating mini timer overlay when main window is minimized"
+                                  IsChecked="True"
+                                  Margin="0,0,0,4"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Preferences Card -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
@@ -122,12 +868,7 @@
                         CornerRadius="8"
                         Padding="14">
                     <StackPanel>
-                        <TextBlock Text="🔔 Alert &amp; Transition Options" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
-
-                        <CheckBox x:Name="SoundAlertCheckBox"
-                                  Content="🔔 Play pleasant audio chime when Rest or Focus starts"
-                                  IsChecked="True"
-                                  Margin="0,0,0,8"/>
+                        <TextBlock Text="⚙️ Transition &amp; Companion Options" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
 
                         <CheckBox x:Name="AutoAdvanceCheckBox"
                                   Content="⏩ Automatically advance to next phase when timer finishes"

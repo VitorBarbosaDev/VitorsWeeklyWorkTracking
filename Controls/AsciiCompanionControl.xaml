@@ -38,6 +38,7 @@
                     <ComboBox x:Name="SceneComboBox"
                               Width="150"
                               Height="26"
+                              SelectedValuePath="Id"
                               DisplayMemberPath="DisplayName"
                               SelectionChanged="SceneComboBox_SelectionChanged"/>
                 </StackPanel>
@@ -97,8 +98,8 @@
 
                     <!-- Work & Rest Mode Toggle -->
                     <Button x:Name="IntervalModeToggleButton"
-                            Content="🍅 Work/Rest"
-                            ToolTip="Toggle Work &amp; Rest Interval Mode (Pomodoro / Study Cycles)"
+                            Content="🍅 Pomodoro: OFF"
+                            ToolTip="Toggle Pomodoro / Interval Mode (Work sprints &amp; rest breaks vs continuous tracking)"
                             Style="{StaticResource GhostButton}"
                             Padding="6,2"
                             Height="24"
@@ -236,6 +237,17 @@
                                 Margin="0,0,6,0"
                                 Visibility="Collapsed"
                                 Click="ExtraRestButton_Click"/>
+
+                        <Button x:Name="NextSessionButton"
+                                Content="⏩ Next Session"
+                                ToolTip="Skip break and start next focus sprint"
+                                Style="{StaticResource GhostButton}"
+                                Padding="8,1"
+                                Height="22"
+                                FontSize="10"
+                                Margin="0,0,6,0"
+                                Visibility="Collapsed"
+                                Click="NextSessionButton_Click"/>
 
                         <Button x:Name="SkipPhaseButton"
                                 Content="⏩ Next Phase"
