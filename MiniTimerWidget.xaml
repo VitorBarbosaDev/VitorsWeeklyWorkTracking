@@ -310,6 +310,17 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="MiniTakeBreakButton"
+                            Content="☕ Rest"
+                            ToolTip="Take rest break now (end focus sprint)"
+                            Style="{StaticResource GhostButton}"
+                            Height="24"
+                            Padding="6,0"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Margin="0,0,4,0"
+                            Visibility="Collapsed"
+                            Click="MiniTakeBreakButton_Click"/>
                     <Button x:Name="MiniStopBreakButton"
                             Content="⚡ Skip Break"
                             ToolTip="Stop break early and start next focus sprint"

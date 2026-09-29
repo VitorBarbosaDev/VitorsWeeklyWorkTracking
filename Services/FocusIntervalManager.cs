@@ -76,7 +76,7 @@ public class FocusIntervalManager
             if (PhaseStartTime != null && CurrentPhase == IntervalPhase.None)
             {
                 CurrentPhase = IntervalPhase.Focus;
-                PhaseStartTime = currentTime ?? DateTime.Now;
+                PhaseStartTime = DateTime.Now;
                 CurrentCycle = 1;
                 ExtraBreakTime = TimeSpan.Zero;
                 PhaseChanged?.Invoke(this, CurrentPhase);
@@ -288,7 +288,6 @@ public class FocusIntervalManager
             if (CurrentCycle >= Settings.CyclesBeforeLongBreak)
             {
                 CurrentPhase = IntervalPhase.LongBreak;
-                CurrentCycle = 1;
             }
             else
             {

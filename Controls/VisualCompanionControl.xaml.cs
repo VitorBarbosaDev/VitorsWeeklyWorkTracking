@@ -151,16 +151,16 @@ public partial class VisualCompanionControl : UserControl
                 break;
         }
 
-        // Cheer overlay sparkles
+        // Cheer overlay celebration matching the active scene theme
         if (_cheerAnimationTicks > 0)
         {
-            RenderCheerSparkles(dc, w, h);
+            RenderSceneCelebration(dc, w, h);
         }
 
         dc.Pop(); // Pop clip
     }
 
-    #region Helper Drawing Methods
+    #region Helper Drawing Methods & Celebrations
 
     private static FormattedText CreateText(string text, double size, Brush brush, FontWeight? weight = null)
     {
@@ -174,17 +174,442 @@ public partial class VisualCompanionControl : UserControl
             1.0);
     }
 
-    private void RenderCheerSparkles(DrawingContext dc, double w, double h)
+    private void RenderSceneCelebration(DrawingContext dc, double w, double h)
+    {
+        double cheerProgress = Math.Clamp(1.0 - (_cheerAnimationTicks / 28.0), 0.0, 1.0);
+        double cheerFade = _cheerAnimationTicks <= 7 ? (_cheerAnimationTicks / 7.0) : 1.0;
+
+        switch (SceneId)
+        {
+            case "icecream":
+                RenderIceCreamCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "metro":
+                RenderMetroCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "cycling":
+                RenderCyclingCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "cafe":
+                RenderCafeCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "coffeejazz":
+                RenderCoffeeJazzCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "rocket":
+                RenderRocketCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "cat":
+                RenderCatCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "runner":
+                RenderRunnerCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "tamagotchi":
+                RenderTamagotchiCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            default:
+                RenderDefaultCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+        }
+    }
+
+    private void RenderIceCreamCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Shimmering pastel rainbow ribbon across the sky
+        if (!IsMiniMode)
+        {
+            var rainbowBrush = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new(Color.FromArgb((byte)(110 * cheerFade), 255, 140, 170), 0.0),
+                    new(Color.FromArgb((byte)(110 * cheerFade), 255, 215, 110), 0.35),
+                    new(Color.FromArgb((byte)(110 * cheerFade), 130, 225, 200), 0.70),
+                    new(Color.FromArgb((byte)(110 * cheerFade), 195, 175, 255), 1.0)
+                },
+                new Point(0, 0),
+                new Point(1, 0));
+
+            var arcGeom = new PathGeometry();
+            var arcFig = new PathFigure { StartPoint = new Point(0, h * 0.40) };
+            arcFig.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.5, h * 0.05 - (cheerProgress * 15)), new Point(w, h * 0.40), true));
+            arcFig.Segments.Add(new LineSegment(new Point(w, h * 0.40 + 8), true));
+            arcFig.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.5, h * 0.05 - (cheerProgress * 15) + 8), new Point(0, h * 0.40 + 8), true));
+            arcFig.IsClosed = true;
+            arcGeom.Figures.Add(arcFig);
+            dc.DrawGeometry(rainbowBrush, null, arcGeom);
+        }
+
+        // 2. Pastel Sprinkles Confetti Blast
+        var rand = new Random(333 + (_frameTick / 2));
+        var sprinkleColors = new[]
+        {
+            Color.FromRgb(255, 130, 160), Color.FromRgb(255, 220, 95), Color.FromRgb(120, 225, 195),
+            Color.FromRgb(175, 150, 245), Color.FromRgb(255, 170, 120), Color.FromRgb(255, 255, 255)
+        };
+
+        int sprinkleCount = IsMiniMode ? 14 : 26;
+        for (int i = 0; i < sprinkleCount; i++)
+        {
+            double angle = (i / (double)sprinkleCount) * Math.PI * 1.8 - 0.4;
+            double speed = 25.0 + (rand.NextDouble() * (IsMiniMode ? 60 : 120));
+            double burstDist = speed * Math.Sin(cheerProgress * Math.PI * 0.5);
+            double sx = (w * 0.45) + (Math.Cos(angle) * burstDist);
+            double sy = (h * 0.55) - (Math.Sin(angle) * burstDist * 0.75) + (cheerProgress * cheerProgress * 45);
+
+            var spColor = sprinkleColors[i % sprinkleColors.Length];
+            var spBrush = new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), spColor.R, spColor.G, spColor.B));
+
+            if (i % 3 == 0)
+            {
+                DrawSparkle(dc, sx, sy, (IsMiniMode ? 3.0 : 4.5) * cheerFade, spBrush);
+            }
+            else
+            {
+                dc.PushTransform(new RotateTransform((_frameTick * 5.0) + (i * 35), sx, sy));
+                dc.DrawRoundedRectangle(spBrush, null, new Rect(sx - 1.5, sy - 3.5, 3.0, 7.0), 1.0, 1.0);
+                dc.Pop();
+            }
+        }
+
+        // 3. Floating Ice Cream Icons & Treats
+        var treatIcons = new[] { "🍦", "🍓", "🍨", "🍒", "🍧" };
+        int treatCount = IsMiniMode ? 3 : 5;
+        for (int t = 0; t < treatCount; t++)
+        {
+            double tx = (w * 0.15) + (t * (w * 0.70 / Math.Max(1, treatCount - 1))) + (Math.Sin((_frameTick * 0.1) + t) * 6);
+            double ty = (h * 0.75) - (cheerProgress * (h * 0.65)) + (Math.Cos((_frameTick * 0.12) + t) * 4);
+            double scaleTreat = IsMiniMode ? 10 : 14;
+
+            var haloBrush = new RadialGradientBrush(Color.FromArgb((byte)(120 * cheerFade), 255, 235, 200), Color.FromArgb(0, 255, 235, 200));
+            dc.DrawEllipse(haloBrush, null, new Point(tx + 4, ty + 4), scaleTreat * 1.3, scaleTreat * 1.3);
+
+            var ft = CreateText(treatIcons[t % treatIcons.Length], scaleTreat, new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255)), FontWeights.Bold);
+            dc.DrawText(ft, new Point(tx - (ft.Width * 0.5), ty - (ft.Height * 0.5)));
+        }
+
+        // 4. Celebration Floating Banner
+        string msg = IsMiniMode ? "🍦 SWEET PROGRESS! 🎉" : "✨ 🍦 SWEET FOCUS PROGRESS! 🍨 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(235 * cheerFade), 255, 215, 230), Color.FromArgb((byte)(235 * cheerFade), 220, 245, 240), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 120, 160)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 110, 45, 75));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderMetroCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Cyberpunk Neon Bokeh Discs floating in background
+        var neonColors = new[]
+        {
+            Color.FromRgb(0, 240, 255),   // Cyan
+            Color.FromRgb(255, 0, 135),   // Hot Magenta
+            Color.FromRgb(160, 40, 255),  // Electric Violet
+            Color.FromRgb(255, 230, 0)    // Neon Yellow
+        };
+
+        var rand = new Random(555 + (_frameTick / 2));
+        int bokehCount = IsMiniMode ? 6 : 12;
+        for (int i = 0; i < bokehCount; i++)
+        {
+            double bx = (i / (double)bokehCount) * w + (Math.Sin((_frameTick * 0.08) + i) * 15);
+            double by = (h * 0.65) - (cheerProgress * (h * 0.55)) + (rand.NextDouble() * 20);
+            double br = (IsMiniMode ? 6 : 12) + (rand.NextDouble() * 6);
+            var col = neonColors[i % neonColors.Length];
+
+            var bokehBrush = new RadialGradientBrush(Color.FromArgb((byte)(160 * cheerFade), col.R, col.G, col.B), Color.FromArgb(0, col.R, col.G, col.B));
+            dc.DrawEllipse(bokehBrush, null, new Point(bx, by), br, br);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(190 * cheerFade), 255, 255, 255)), null, new Point(bx, by), br * 0.25, br * 0.25);
+        }
+
+        // 2. Animated Jumping Equalizer Wavebars along window
+        if (!IsMiniMode)
+        {
+            int eqBars = 16;
+            double eqW = w * 0.40;
+            double eqStartX = w * 0.08;
+            double eqY = h * 0.62;
+            double barWidth = (eqW / eqBars) * 0.65;
+
+            for (int b = 0; b < eqBars; b++)
+            {
+                double barH = (Math.Sin((_frameTick * 0.4) + (b * 0.7)) * 0.5 + 0.5) * (18 * cheerFade);
+                double barX = eqStartX + (b * (eqW / eqBars));
+                var eqGrad = new LinearGradientBrush(Color.FromArgb((byte)(220 * cheerFade), 0, 240, 255), Color.FromArgb((byte)(220 * cheerFade), 255, 0, 135), new Point(0, 1), new Point(0, 0));
+                dc.DrawRoundedRectangle(eqGrad, null, new Rect(barX, eqY - barH, barWidth, barH + 2), 1.5, 1.5);
+            }
+        }
+
+        // 3. Floating Neon Music Notes (🎧 ♫ 🎵 ♩)
+        var notes = new[] { "🎧", "♫", "🎵", "♩", "✨" };
+        for (int n = 0; n < (IsMiniMode ? 3 : 5); n++)
+        {
+            double nx = (w * 0.60) + (Math.Sin((_frameTick * 0.12) + n) * (w * 0.18));
+            double ny = (h * 0.65) - (cheerProgress * (h * 0.60)) + (n * (IsMiniMode ? 6 : 10));
+            var ft = CreateText(notes[n % notes.Length], IsMiniMode ? 10 : 13, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255)), FontWeights.Bold);
+            dc.DrawText(ft, new Point(nx, ny));
+        }
+
+        // 4. Cyberpunk Neon Floating Badge
+        string msg = IsMiniMode ? "🎧 LO-FI FLOW! ⚡" : "⚡ 🎧 LO-FI GROOVE! TOKYO BEATS 🚉 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 25, 20, 50), Color.FromArgb((byte)(240 * cheerFade), 45, 15, 65), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255)), 1.5);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderCyclingCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Golden Sunburst Rays flashing from top-right
+        double sunX = w * 0.88;
+        double sunY = h * 0.20;
+        int rayCount = IsMiniMode ? 8 : 14;
+        for (int r = 0; r < rayCount; r++)
+        {
+            double angle = (r * Math.PI * 2.0 / rayCount) + (_frameTick * 0.03);
+            double r1 = IsMiniMode ? 14 : 24;
+            double r2 = r1 + (cheerProgress * (IsMiniMode ? 40 : 80));
+            var rayPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(160 * cheerFade), 255, 225, 90)), 2.0);
+            dc.DrawLine(rayPen, new Point(sunX + (Math.Cos(angle) * r1), sunY + (Math.Sin(angle) * r1)), new Point(sunX + (Math.Cos(angle) * r2), sunY + (Math.Sin(angle) * r2)));
+        }
+
+        // 2. Swirling Wind Streaks & Floating Leaves / Petals
+        var leafColors = new[]
+        {
+            Color.FromRgb(255, 180, 70),  // Golden amber
+            Color.FromRgb(255, 140, 170), // Cherry blossom pink
+            Color.FromRgb(140, 215, 110), // Meadow green
+            Color.FromRgb(255, 110, 60)   // Autumn red
+        };
+
+        int leafCount = IsMiniMode ? 6 : 12;
+        for (int i = 0; i < leafCount; i++)
+        {
+            double lx = (w * 0.05) + ((_frameTick * 4.5 + (i * 45)) % (w + 40)) - 20;
+            double ly = (h * 0.40) + (Math.Sin((_frameTick * 0.15) + i) * (h * 0.22));
+            var lBrush = new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), leafColors[i % leafColors.Length].R, leafColors[i % leafColors.Length].G, leafColors[i % leafColors.Length].B));
+            DrawLeaf(dc, lx, ly, (IsMiniMode ? 3.5 : 5.5) * cheerFade, (_frameTick * 0.1) + i, lBrush);
+        }
+
+        // 3. Golden Starbursts
+        for (int s = 0; s < (IsMiniMode ? 4 : 8); s++)
+        {
+            double sx = (w * 0.15) + (s * (w * 0.70 / (IsMiniMode ? 4 : 8)));
+            double sy = (h * 0.35) + (Math.Sin((_frameTick * 0.2) + s) * 12);
+            DrawStar5(dc, sx, sy, 5.0 * cheerFade, 2.5 * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 255, 220, 60)));
+        }
+
+        // 4. Floating Banner
+        string msg = IsMiniMode ? "🚴 SPEED BOOST! 🌟" : "✨ 🚴 SPEED BOOST! KEEP PEDALING! 🌟 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(235 * cheerFade), 255, 240, 195), Color.FromArgb((byte)(235 * cheerFade), 255, 205, 120), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 225, 150, 30)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 85, 45, 10));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderCafeCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Rising Glowing Fireplace Embers
+        var emberColors = new[]
+        {
+            Color.FromRgb(255, 200, 80),  // Gold
+            Color.FromRgb(255, 120, 50),  // Orange
+            Color.FromRgb(255, 70, 60)    // Fiery red
+        };
+
+        var rand = new Random(777 + (_frameTick / 2));
+        int emberCount = IsMiniMode ? 10 : 20;
+        for (int e = 0; e < emberCount; e++)
+        {
+            double ex = (w * 0.20) + (rand.NextDouble() * (w * 0.60)) + (Math.Sin((_frameTick * 0.1) + e) * 8);
+            double ey = (h * 0.85) - (cheerProgress * (h * 0.75)) + (rand.NextDouble() * 15);
+            var col = emberColors[e % emberColors.Length];
+            var eBrush = new SolidColorBrush(Color.FromArgb((byte)(210 * cheerFade), col.R, col.G, col.B));
+            DrawSparkle(dc, ex, ey, (IsMiniMode ? 2.5 : 4.0) * cheerFade, eBrush);
+        }
+
+        // 2. Warm Steam Hearts rising from cocoa mug
+        for (int sh = 0; sh < (IsMiniMode ? 2 : 4); sh++)
+        {
+            double hx = (w * 0.48) + (Math.Sin((_frameTick * 0.12) + sh) * 12);
+            double hy = (h * 0.60) - (cheerProgress * (h * 0.50)) - (sh * (IsMiniMode ? 8 : 14));
+            DrawHeart(dc, hx, hy, (IsMiniMode ? 4.0 : 6.5) * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(200 * cheerFade), 255, 150, 180)));
+        }
+
+        // 3. Floating Banner
+        string msg = IsMiniMode ? "🔥 STAY COZY! ☕" : "✨ 🔥 COZY HEARTH & WARM FOCUS! ☕ ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(235 * cheerFade), 95, 45, 30), Color.FromArgb((byte)(235 * cheerFade), 60, 25, 20), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 165, 80)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 235, 195));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderCoffeeJazzCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Concentric Vinyl Soundwave Ripples from turntable
+        double vinylX = w * 0.75;
+        double vinylY = h * 0.55;
+        for (int r = 1; r <= 3; r++)
+        {
+            double waveR = (r * (IsMiniMode ? 14 : 26)) + (cheerProgress * (IsMiniMode ? 30 : 60));
+            double waveAlpha = Math.Clamp(1.0 - (cheerProgress * 0.9), 0.0, 1.0) * cheerFade;
+            var wavePen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(160 * waveAlpha), 255, 200, 100)), 1.5);
+            dc.DrawEllipse(null, wavePen, new Point(vinylX, vinylY), waveR, waveR * 0.6);
+        }
+
+        // 2. Floating Neon Jazz Musical Notes (🎷 🎵 🎶 ♩ ♪ ♫)
+        var jazzNotes = new[] { "🎷", "🎵", "🎶", "♩", "♪", "♫" };
+        var noteColors = new[] { Color.FromRgb(255, 195, 80), Color.FromRgb(215, 130, 255), Color.FromRgb(100, 235, 220) };
+        for (int j = 0; j < (IsMiniMode ? 4 : 7); j++)
+        {
+            double jx = (w * 0.15) + (j * (w * 0.70 / (IsMiniMode ? 4 : 7))) + (Math.Sin((_frameTick * 0.14) + j) * 8);
+            double jy = (h * 0.70) - (cheerProgress * (h * 0.60)) + (Math.Cos((_frameTick * 0.16) + j) * 6);
+            var col = noteColors[j % noteColors.Length];
+            var ft = CreateText(jazzNotes[j % jazzNotes.Length], IsMiniMode ? 10 : 14, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), col.R, col.G, col.B)), FontWeights.Bold);
+            dc.DrawText(ft, new Point(jx, jy));
+        }
+
+        // 3. Floating Banner
+        string msg = IsMiniMode ? "🎷 JAZZY VIBES! ☕" : "✨ 🎷 SMOOTH JAZZ FOCUS VIBES! ☕ ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 45, 25, 60), Color.FromArgb((byte)(240 * cheerFade), 25, 15, 35), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 190, 80)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 235, 200));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderRocketCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Rocket Booster Mega Flare Blast
+        double flareX = w * 0.50;
+        double flareY = h * 0.65;
+        var flareBrush = new RadialGradientBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 240, 120), Color.FromArgb(0, 255, 80, 20));
+        dc.DrawEllipse(flareBrush, null, new Point(flareX, flareY), (IsMiniMode ? 35 : 70) * (cheerProgress + 0.3), IsMiniMode ? 20 : 40);
+
+        // 2. Streaking Shooting Stars with comet tails
+        for (int st = 0; st < (IsMiniMode ? 3 : 6); st++)
+        {
+            double startX = (w * 0.1) + (st * (w * 0.85 / (IsMiniMode ? 3 : 6)));
+            double startY = (h * 0.15) + (st * 10);
+            double dist = cheerProgress * (IsMiniMode ? 50 : 100);
+            double sx = startX + dist;
+            double sy = startY + (dist * 0.5);
+
+            var tailPen = new Pen(new LinearGradientBrush(Color.FromArgb(0, 0, 240, 255), Color.FromArgb((byte)(220 * cheerFade), 255, 255, 255), new Point(0, 0), new Point(1, 1)), 1.8);
+            dc.DrawLine(tailPen, new Point(sx - (20 * cheerFade), sy - (10 * cheerFade)), new Point(sx, sy));
+            DrawStar5(dc, sx, sy, 4.5 * cheerFade, 2.0 * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255)));
+        }
+
+        // 3. Floating Banner
+        string msg = IsMiniMode ? "🚀 WARP SPEED! 🌟" : "✨ 🚀 WARP SPEED ENGAGED! TO THE STARS! 🌌 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 15, 20, 50), Color.FromArgb((byte)(240 * cheerFade), 10, 10, 30), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 0, 230, 255)), 1.5);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderCatCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Cute Pastel Cat Paw Prints walking across
+        var pawBrush = new SolidColorBrush(Color.FromArgb((byte)(210 * cheerFade), 255, 160, 190));
+        for (int p = 0; p < (IsMiniMode ? 4 : 7); p++)
+        {
+            double px = (w * 0.12) + (p * (w * 0.76 / (IsMiniMode ? 4 : 7)));
+            double py = (h * 0.42) + (Math.Sin((p * 1.2) + (_frameTick * 0.1)) * (h * 0.12));
+            DrawPawPrint(dc, px, py, (IsMiniMode ? 0.75 : 1.1) * cheerFade, pawBrush);
+        }
+
+        // 2. Expanding Purring Heart Rings
+        for (int hr = 1; hr <= (IsMiniMode ? 2 : 4); hr++)
+        {
+            double hx = (w * 0.50) + (Math.Sin((_frameTick * 0.1) + hr) * 20);
+            double hy = (h * 0.65) - (cheerProgress * (h * 0.55)) - (hr * (IsMiniMode ? 7 : 12));
+            DrawHeart(dc, hx, hy, (IsMiniMode ? 4.5 : 7.0) * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(210 * cheerFade), 255, 120, 160)));
+        }
+
+        // 3. Floating Banner
+        string msg = IsMiniMode ? "🐾 PURR-FECT FOCUS! 💕" : "✨ 🐾 PURR-FECT FOCUS! KITTY CHEERS! 💕 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(235 * cheerFade), 255, 230, 240), Color.FromArgb((byte)(235 * cheerFade), 255, 205, 220), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 130, 170)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 120, 40, 70));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderRunnerCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Dynamic Electric Speed Lines & Lightning Sparks
+        var speedPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(200 * cheerFade), 255, 220, 60)), 1.8);
+        for (int l = 0; l < (IsMiniMode ? 4 : 8); l++)
+        {
+            double lx = ((_frameTick * 6.0 + (l * 40)) % (w + 60)) - 30;
+            double ly = (h * 0.30) + (l * (h * 0.08));
+            dc.DrawLine(speedPen, new Point(lx, ly), new Point(lx + (IsMiniMode ? 20 : 40), ly));
+        }
+
+        // 2. Gold Starbursts & Confetti Explosion
+        for (int g = 0; g < (IsMiniMode ? 4 : 8); g++)
+        {
+            double gx = (w * 0.15) + (g * (w * 0.70 / (IsMiniMode ? 4 : 8)));
+            double gy = (h * 0.65) - (cheerProgress * (h * 0.55)) + (Math.Sin((_frameTick * 0.2) + g) * 8);
+            DrawStar5(dc, gx, gy, 5.5 * cheerFade, 2.5 * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), 255, 215, 50)));
+        }
+
+        // 3. Floating Banner
+        string msg = IsMiniMode ? "⚡ POWER SPRINT! 🏆" : "✨ ⚡ POWER SPRINT! UNSTOPPABLE! 🏆 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 255, 140, 40), Color.FromArgb((byte)(240 * cheerFade), 220, 50, 40), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 230, 80)), 1.5);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderTamagotchiCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        // 1. Retro 8-bit Pixel Hearts floating in discrete steps
+        double pxSize = IsMiniMode ? 2.0 : 3.0;
+        for (int ph = 0; ph < (IsMiniMode ? 3 : 5); ph++)
+        {
+            double px = (w * 0.20) + (ph * (w * 0.60 / (IsMiniMode ? 3 : 5)));
+            double py = (h * 0.70) - (Math.Floor(cheerProgress * 12.0) * (h * 0.04)) - (ph * (IsMiniMode ? 6 : 10));
+            DrawPixelHeart(dc, px, py, pxSize, new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 255, 60, 110)));
+        }
+
+        // 2. Retro 8-bit Dialog Box Badge
+        string msg = IsMiniMode ? "★ LEVEL UP! +10 XP ★" : "★ LEVEL UP! PET HAPPINESS +10 ★";
+        var bg = new SolidColorBrush(Color.FromArgb((byte)(245 * cheerFade), 20, 25, 30));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 255, 220, 60)), 2.0);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 235, 80));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderDefaultCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
     {
         var rand = new Random(42 + (_frameTick / 2));
         for (int i = 0; i < (IsMiniMode ? 8 : 16); i++)
         {
             double sx = rand.NextDouble() * w;
-            double sy = rand.NextDouble() * h;
-            double size = 3 + rand.Next(4);
+            double sy = (h * 0.75) - (cheerProgress * (h * 0.65)) + (rand.NextDouble() * 15);
+            double size = (3 + rand.Next(4)) * cheerFade;
             var color = Color.FromRgb((byte)rand.Next(220, 255), (byte)rand.Next(180, 255), (byte)rand.Next(100, 255));
-            DrawSparkle(dc, sx, sy, size, new SolidColorBrush(color));
+            DrawSparkle(dc, sx, sy, size, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), color.R, color.G, color.B)));
         }
+
+        string msg = IsMiniMode ? "✨ GREAT FOCUS! ✨" : "✨ FANTASTIC PROGRESS! KEEP GOING! ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(235 * cheerFade), 40, 50, 70), Color.FromArgb((byte)(235 * cheerFade), 20, 25, 40), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(220 * cheerFade), 255, 215, 80)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void DrawCelebrationBanner(DrawingContext dc, double w, double h, string text, Brush bgBrush, Pen borderPen, Brush textBrush, double cheerProgress, double cheerFade)
+    {
+        double bounce = Math.Sin(cheerProgress * Math.PI) * (IsMiniMode ? 4 : 8);
+        double bannerW = IsMiniMode ? Math.Min(w - 16, 210) : Math.Min(w - 40, 320);
+        double bannerH = IsMiniMode ? 20 : 26;
+        double bx = (w - bannerW) * 0.5;
+        double by = (IsMiniMode ? 4 : 8) + (8 - bounce);
+
+        dc.DrawRoundedRectangle(bgBrush, borderPen, new Rect(bx, by, bannerW, bannerH), 5, 5);
+
+        var ft = CreateText(text, IsMiniMode ? 10 : 12.5, textBrush, FontWeights.Bold);
+        dc.DrawText(ft, new Point(bx + ((bannerW - ft.Width) * 0.5), by + ((bannerH - ft.Height) * 0.5)));
     }
 
     private static void DrawSparkle(DrawingContext dc, double x, double y, double size, Brush brush)
@@ -207,6 +632,73 @@ public partial class VisualCompanionControl : UserControl
         fig.Segments.Add(new BezierSegment(new Point(x + (size * 0.4), y - size), new Point(x + (size * 0.7), y - (size * 0.4)), new Point(x, y + (size * 0.35)), true));
         geom.Figures.Add(fig);
         dc.DrawGeometry(brush, null, geom);
+    }
+
+    private static void DrawStar5(DrawingContext dc, double cx, double cy, double rOuter, double rInner, Brush brush, Pen? pen = null)
+    {
+        var geom = new PathGeometry();
+        var fig = new PathFigure();
+        for (int i = 0; i < 10; i++)
+        {
+            double angle = (i * Math.PI / 5.0) - (Math.PI * 0.5);
+            double r = (i % 2 == 0) ? rOuter : rInner;
+            var pt = new Point(cx + (Math.Cos(angle) * r), cy + (Math.Sin(angle) * r));
+            if (i == 0)
+                fig.StartPoint = pt;
+            else
+                fig.Segments.Add(new LineSegment(pt, true));
+        }
+        fig.IsClosed = true;
+        geom.Figures.Add(fig);
+        dc.DrawGeometry(brush, pen, geom);
+    }
+
+    private static void DrawPawPrint(DrawingContext dc, double x, double y, double scale, Brush brush)
+    {
+        dc.DrawEllipse(brush, null, new Point(x, y + (2 * scale)), 4.5 * scale, 3.5 * scale);
+        dc.DrawEllipse(brush, null, new Point(x - (4 * scale), y - (1.5 * scale)), 1.6 * scale, 1.8 * scale);
+        dc.DrawEllipse(brush, null, new Point(x - (1.5 * scale), y - (4 * scale)), 1.7 * scale, 2.0 * scale);
+        dc.DrawEllipse(brush, null, new Point(x + (1.5 * scale), y - (4 * scale)), 1.7 * scale, 2.0 * scale);
+        dc.DrawEllipse(brush, null, new Point(x + (4 * scale), y - (1.5 * scale)), 1.6 * scale, 1.8 * scale);
+    }
+
+    private static void DrawLeaf(DrawingContext dc, double x, double y, double size, double angle, Brush brush)
+    {
+        dc.PushTransform(new RotateTransform(angle * 180.0 / Math.PI, x, y));
+        var geom = new PathGeometry();
+        var fig = new PathFigure { StartPoint = new Point(x, y - size) };
+        fig.Segments.Add(new QuadraticBezierSegment(new Point(x + (size * 0.7), y), new Point(x, y + size), true));
+        fig.Segments.Add(new QuadraticBezierSegment(new Point(x - (size * 0.7), y), new Point(x, y - size), true));
+        geom.Figures.Add(fig);
+        dc.DrawGeometry(brush, null, geom);
+        dc.Pop();
+    }
+
+    private static void DrawPixelHeart(DrawingContext dc, double x, double y, double pxSize, Brush brush)
+    {
+        int[,] heartMatrix =
+        {
+            { 0, 1, 1, 0, 1, 1, 0 },
+            { 1, 1, 1, 1, 1, 1, 1 },
+            { 1, 1, 1, 1, 1, 1, 1 },
+            { 0, 1, 1, 1, 1, 1, 0 },
+            { 0, 0, 1, 1, 1, 0, 0 },
+            { 0, 0, 0, 1, 0, 0, 0 }
+        };
+
+        double startX = x - (3.5 * pxSize);
+        double startY = y - (3.0 * pxSize);
+
+        for (int r = 0; r < 6; r++)
+        {
+            for (int c = 0; c < 7; c++)
+            {
+                if (heartMatrix[r, c] == 1)
+                {
+                    dc.DrawRectangle(brush, null, new Rect(startX + (c * pxSize), startY + (r * pxSize), pxSize, pxSize));
+                }
+            }
+        }
     }
 
     private static Color LerpColor(Color a, Color b, double t)

@@ -14,45 +14,65 @@ public class CalendarPlanStorage
     public static CalendarPlanStorage Instance => _instance ??= new CalendarPlanStorage();
 
     public event Action? PlansChanged;
+    private readonly object _lock = new();
+    private List<PlannedWorkItem>? _cachedPlans;
 
     public List<PlannedWorkItem> Load()
     {
-        try
+        lock (_lock)
         {
-            if (!File.Exists(FilePath))
-                return new List<PlannedWorkItem>();
+            if (_cachedPlans != null)
+            {
+                return new List<PlannedWorkItem>(_cachedPlans);
+            }
 
-            string json = File.ReadAllText(FilePath);
-            return JsonSerializer.Deserialize<List<PlannedWorkItem>>(json) ?? new List<PlannedWorkItem>();
-        }
-        catch (Exception ex)
-        {
-            StoragePathHelper.LogError(ex, "CalendarPlanStorage.Load");
-            return new List<PlannedWorkItem>();
+            try
+            {
+                if (!File.Exists(FilePath))
+                {
+                    _cachedPlans = new List<PlannedWorkItem>();
+                    return new List<PlannedWorkItem>(_cachedPlans);
+                }
+
+                string json = File.ReadAllText(FilePath);
+                var items = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json) ?? new List<PlannedWorkItem>();
+                _cachedPlans = items;
+                return new List<PlannedWorkItem>(_cachedPlans);
+            }
+            catch (Exception ex)
+            {
+                StoragePathHelper.LogError(ex, "CalendarPlanStorage.Load");
+                _cachedPlans = new List<PlannedWorkItem>();
+                return new List<PlannedWorkItem>(_cachedPlans);
+            }
         }
     }
 
     public void Save(List<PlannedWorkItem> plans)
     {
-        try
+        lock (_lock)
         {
-            string json = JsonSerializer.Serialize(plans, new JsonSerializerOptions
+            _cachedPlans = new List<PlannedWorkItem>(plans);
+            try
             {
-                WriteIndented = true
-            });
+                string json = JsonSerializer.Serialize(plans, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
 
-            var dir = Path.GetDirectoryName(FilePath);
-            if (!string.IsNullOrEmpty(dir))
-            {
-                StoragePathHelper.EnsureDirectoryExists(dir);
+                var dir = Path.GetDirectoryName(FilePath);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    StoragePathHelper.EnsureDirectoryExists(dir);
+                }
+
+                File.WriteAllText(FilePath, json);
+                PlansChanged?.Invoke();
             }
-
-            File.WriteAllText(FilePath, json);
-            PlansChanged?.Invoke();
-        }
-        catch (Exception ex)
-        {
-            StoragePathHelper.LogError(ex, "CalendarPlanStorage.Save");
+            catch (Exception ex)
+            {
+                StoragePathHelper.LogError(ex, "CalendarPlanStorage.Save");
+            }
         }
     }
 

@@ -28,6 +28,7 @@ public partial class MiniTimerWidget : Window
     public event Action? ResumeClicked;
     public event Action? StopClicked;
     public event Action? StopBreakRequested;
+    public event Action? TakeBreakRequested;
     public event Action? NextSessionRequested;
     public event Action? ToggleCountModeClicked;
     public event Action? PomodoroModeToggled;
@@ -271,7 +272,8 @@ public partial class MiniTimerWidget : Window
         int petHappiness = 100,
         string artMode = "graphics",
         string? asciiArtText = null,
-        bool isPaused = false)
+        bool isPaused = false,
+        bool isIntervalMode = false)
     {
         _currentSceneId = sceneId ?? "cycling";
         _currentProgressFraction = progressFraction;
@@ -355,18 +357,24 @@ public partial class MiniTimerWidget : Window
             MiniResumeButton.Visibility = Visibility.Collapsed;
             MiniStopButton.Visibility = Visibility.Visible;
 
-            if (isRestPhase)
+            if (isIntervalMode || statusText.Contains("FOCUS", StringComparison.OrdinalIgnoreCase) || statusText.Contains("REST", StringComparison.OrdinalIgnoreCase))
             {
-                MiniStopBreakButton.Visibility = Visibility.Visible;
-                MiniNextSessionButton.Visibility = Visibility.Collapsed;
-            }
-            else if (statusText.Contains("FOCUS", StringComparison.OrdinalIgnoreCase) || statusText.Contains("INTERVAL", StringComparison.OrdinalIgnoreCase))
-            {
-                MiniStopBreakButton.Visibility = Visibility.Collapsed;
-                MiniNextSessionButton.Visibility = Visibility.Visible;
+                if (isRestPhase)
+                {
+                    MiniTakeBreakButton.Visibility = Visibility.Collapsed;
+                    MiniStopBreakButton.Visibility = Visibility.Visible;
+                    MiniNextSessionButton.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    MiniTakeBreakButton.Visibility = Visibility.Visible;
+                    MiniStopBreakButton.Visibility = Visibility.Collapsed;
+                    MiniNextSessionButton.Visibility = Visibility.Visible;
+                }
             }
             else
             {
+                MiniTakeBreakButton.Visibility = Visibility.Collapsed;
                 MiniStopBreakButton.Visibility = Visibility.Collapsed;
                 MiniNextSessionButton.Visibility = Visibility.Collapsed;
             }
@@ -376,6 +384,7 @@ public partial class MiniTimerWidget : Window
             MiniStartButton.Visibility = Visibility.Collapsed;
             MiniResumeButton.Visibility = Visibility.Visible;
             MiniStopButton.Visibility = Visibility.Collapsed;
+            MiniTakeBreakButton.Visibility = Visibility.Collapsed;
             MiniStopBreakButton.Visibility = Visibility.Collapsed;
             MiniNextSessionButton.Visibility = Visibility.Collapsed;
         }
@@ -384,6 +393,7 @@ public partial class MiniTimerWidget : Window
             MiniStartButton.Visibility = Visibility.Visible;
             MiniResumeButton.Visibility = Visibility.Collapsed;
             MiniStopButton.Visibility = Visibility.Collapsed;
+            MiniTakeBreakButton.Visibility = Visibility.Collapsed;
             MiniStopBreakButton.Visibility = Visibility.Collapsed;
             MiniNextSessionButton.Visibility = Visibility.Collapsed;
         }
@@ -423,12 +433,12 @@ public partial class MiniTimerWidget : Window
 
         if (today.PlannedHours > 0)
         {
-            MiniTodayGoalLabel.Text = $"📅 {today.ActualHours:0.#}h/{today.PlannedHours:0.#}h ({today.FormattedCompletionPercentage})";
+            MiniTodayGoalLabel.Text = $"📅 Today: {today.ActualHours:0.#}h/{today.PlannedHours:0.#}h ({today.FormattedCompletionPercentage})";
         }
         else
         {
             MiniTodayGoalLabel.Text = today.ActualHours > 0
-                ? $"📅 {today.ActualHours:0.#}h"
+                ? $"📅 Today: {today.ActualHours:0.#}h"
                 : "📅 Today: 0.0h";
         }
     }
@@ -436,6 +446,14 @@ public partial class MiniTimerWidget : Window
     private void MiniAlertBanner_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         MiniAlertBanner.Visibility = Visibility.Collapsed;
+        if (_isRestPhase)
+        {
+            StopBreakRequested?.Invoke();
+        }
+        else if (_isTracking)
+        {
+            TakeBreakRequested?.Invoke();
+        }
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -616,6 +634,12 @@ public partial class MiniTimerWidget : Window
     private void MiniStopButton_Click(object sender, RoutedEventArgs e)
     {
         StopClicked?.Invoke();
+    }
+
+    private void MiniTakeBreakButton_Click(object sender, RoutedEventArgs e)
+    {
+        MiniAlertBanner.Visibility = Visibility.Collapsed;
+        TakeBreakRequested?.Invoke();
     }
 
     private void MiniStopBreakButton_Click(object sender, RoutedEventArgs e)

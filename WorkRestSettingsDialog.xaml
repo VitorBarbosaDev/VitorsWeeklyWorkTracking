@@ -871,7 +871,8 @@
                         <TextBlock Text="⚙️ Transition &amp; Companion Options" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
 
                         <CheckBox x:Name="AutoAdvanceCheckBox"
-                                  Content="⏩ Automatically advance to next phase when timer finishes"
+                                  Content="⏩ Automatically advance to next session (Work → Break → Work → Break)"
+                                  ToolTip="When enabled, automatically transitions between Focus sprints and Rest breaks (Work → Break → Work → Break) when each timer finishes."
                                   IsChecked="False"
                                   Margin="0,0,0,8"/>
 

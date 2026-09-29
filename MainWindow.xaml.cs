@@ -645,12 +645,21 @@ public partial class MainWindow : Window
             _miniWidget.StopBreakRequested += () =>
             {
                 DismissIntervalAlert();
+                SoundEffectManager.PlayBreakEndSound(_workRestSettings);
                 _intervalManager.StopBreakAndStartFocus();
+                UpdateStatus();
+            };
+            _miniWidget.TakeBreakRequested += () =>
+            {
+                DismissIntervalAlert();
+                SoundEffectManager.PlayBreakStartSound(_workRestSettings);
+                _intervalManager.SkipToNextPhase();
                 UpdateStatus();
             };
             _miniWidget.NextSessionRequested += () =>
             {
                 DismissIntervalAlert();
+                SoundEffectManager.PlayBreakEndSound(_workRestSettings);
                 _intervalManager.SkipToNextSession();
                 UpdateStatus();
             };
@@ -701,6 +710,7 @@ public partial class MainWindow : Window
                 FocusCompanionStorage.Save(_workRestSettings);
                 RefreshMiniMonitorSelector();
             };
+            UpdateGoalProgressCard();
         }
     }
 
@@ -1424,7 +1434,8 @@ public partial class MainWindow : Window
                     focusXp: _intervalManager.Settings.FocusXp,
                     petHappiness: 100,
                     artMode: _intervalManager.Settings.ArtMode,
-                    asciiArtText: miniScene.AsciiArt);
+                    asciiArtText: miniScene.AsciiArt,
+                    isIntervalMode: isIntervalMode);
             }
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
@@ -1487,7 +1498,8 @@ public partial class MainWindow : Window
                     petHappiness: 100,
                     artMode: _intervalManager.Settings.ArtMode,
                     asciiArtText: reviewScene.AsciiArt,
-                    isPaused: true);
+                    isPaused: true,
+                    isIntervalMode: isIntervalMode);
             }
         }
         else
@@ -1552,9 +1564,12 @@ public partial class MainWindow : Window
                     focusXp: _intervalManager.Settings.FocusXp,
                     petHappiness: 100,
                     artMode: _intervalManager.Settings.ArtMode,
-                    asciiArtText: idleScene.AsciiArt);
+                    asciiArtText: idleScene.AsciiArt,
+                    isIntervalMode: isIntervalMode);
             }
         }
+
+        UpdateGoalProgressCard();
     }
 
     private static string FormatCompact(TimeSpan ts)
@@ -1639,6 +1654,27 @@ public partial class MainWindow : Window
     {
         var weeklySummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
         var todaySummary = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
+
+        double activeElapsedHours = 0;
+        if (_currentStartTime != null)
+        {
+            activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
+        }
+        else if (_pendingStartTime != null && _pendingEndTime != null)
+        {
+            activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
+        }
+
+        if (activeElapsedHours > 0)
+        {
+            todaySummary.ActualHours += activeElapsedHours;
+            weeklySummary.TotalActualHours += activeElapsedHours;
+            var todayDaily = weeklySummary.DailySummaries.FirstOrDefault(d => d.Date.Date == DateTime.Today);
+            if (todayDaily != null)
+            {
+                todayDaily.ActualHours += activeElapsedHours;
+            }
+        }
 
         if (todaySummary.ActualHours < todaySummary.PlannedHours)
         {
