@@ -57,6 +57,9 @@ public class WorkRestSettings
     public string MiniWidgetTargetMonitor { get; set; } = "Primary"; // "Primary" or device name / monitor id
     public int MiniWidgetMonitorIndex { get; set; } = -1; // -1 for auto/primary, 0, 1, 2... for explicit monitor index
     public bool MiniWidgetEnabled { get; set; } = true;
+    public string UserName { get; set; } = string.Empty;
+    public bool WelcomePopupEnabled { get; set; } = true;
+    public DateTime? LastWelcomePopupDate { get; set; } = null;
     public int FocusXp { get; set; } = 0;
     public int FocusStreak { get; set; } = 0;
     public int TotalSessionsCompleted { get; set; } = 0;

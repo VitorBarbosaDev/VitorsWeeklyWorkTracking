@@ -118,6 +118,39 @@ public partial class MainWindow : Window
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
         UpdateStatus();
+
+        Loaded += MainWindow_Loaded;
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        CheckDailyWelcome();
+    }
+
+    private void CheckDailyWelcome()
+    {
+        if (!_workRestSettings.WelcomePopupEnabled)
+            return;
+
+        var today = DateTime.Today;
+        if (_workRestSettings.LastWelcomePopupDate.HasValue && _workRestSettings.LastWelcomePopupDate.Value.Date == today)
+            return;
+
+        _workRestSettings.LastWelcomePopupDate = today;
+        FocusCompanionStorage.Save(_workRestSettings);
+
+        var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(today);
+        var welcomeDialog = new WelcomeBackDialog(_workRestSettings.UserName, todayPlans)
+        {
+            Owner = this
+        };
+
+        welcomeDialog.ShowDialog();
+
+        if (welcomeDialog.RequestOpenPlanner)
+        {
+            OpenCalendarPlanner_Click(this, new RoutedEventArgs());
+        }
     }
 
     private void InitializeCompanionControl()

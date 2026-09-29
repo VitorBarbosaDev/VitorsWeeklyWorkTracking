@@ -9,7 +9,7 @@
 
 **A modern, feature-packed work-hour tracker, Pomodoro focus companion, and productivity planner for Windows.**
 
-[Features](#-features) • [Visual Companion & Themes](#-visual-companion--themes) • [Installation & Build](#-installation--build) • [Getting Started](#-getting-started) • [Tech Stack](#-tech-stack)
+[Features](#-features) • [Installation & Build](#-installation--build) • [Getting Started](#-getting-started) • [Tech Stack](#-tech-stack)
 
 </div>
 
@@ -17,11 +17,19 @@
 
 ## 🌟 Overview
 
-**Vitor's Weekly Work Tracking** is a comprehensive desktop productivity application built with WPF and .NET 9. It combines flexible time tracking, structured Pomodoro focus cycles, weekly work planning, visual & ASCII companion animations, gamified focus progression, detailed analytics with interactive charts, and floating mini-widgets to keep your workday organized and motivating.
+**Vitor's Weekly Work Tracking** is a comprehensive desktop productivity application built with WPF and .NET 9. It combines flexible real-time time tracking, structured Pomodoro focus cycles, weekly work planning, daily welcome kickoffs, visual & ASCII companion animations, gamified focus progression, celebration milestones, detailed analytics with interactive charts, and floating mini-widgets to keep your workday organized, healthy, and motivating.
 
 ---
 
 ## ✨ Features
+
+### 👋 Daily Welcome & Scheduled Agenda
+- **Personalized Daily Greeting**: Greets you on first launch each day with customizable user name personalization (`👋 Welcome back, [Name]!`).
+- **Today's Scheduled Goals Overview**: Automatically pulls planned tasks from your Calendar Planner, displaying project targets, notes, and total planned hours.
+- **Daily Motivational Quotes**: Fresh, encouraging daily quotes to set a positive tone for your workday.
+- **Empty-State Planning Prompt**: Gentle reminders and one-click shortcuts to schedule tasks on days with no set goals.
+- **Instant Actions**: Start your day immediately or jump directly into the Calendar Planner.
+- **Greeting Preview**: Test and preview your welcome popup directly from the Settings dialog anytime.
 
 ### ⏱️ Time Tracking & Project Management
 - **One-Click Real-time Tracking**: Start, pause, resume, and stop timers instantly.
@@ -33,6 +41,8 @@
 - **Configurable Work/Rest Cycles**: Customizable Focus duration, Short Break, Long Break, and Cycle limits.
 - **Built-in Presets**: Quick-switch between Classic Pomodoro (25/5), Long Focus (50/10), Sprint sessions, and custom intervals.
 - **Phase Notifications & Sound Effects**: Procedurally synthesized retro and ambient chimes for focus starts, break transitions, and goal milestones.
+- **Interactive Rest Alerts**: Prompts with hydration and stretching reminders during breaks.
+- **Celebration Effects**: Themed celebrations and visual confetti rewards upon completing milestones and focus sessions.
 - **Gamified Focus XP & Streaks**: Earn focus XP, level up your profile, and build daily focus streaks.
 
 ### 🎨 Visual & ASCII Companion Modes
@@ -58,22 +68,25 @@
 - **Multi-Monitor Support**: Snap to bottom-right or bottom-left corners across any connected display.
 
 ### 📅 Calendar & Goal Planner
-- **Target Setting**: Set daily and weekly target hours per project.
+- **Target Setting**: Set daily and weekly target hours per project with task notes.
+- **Daily Welcome Sync**: Seamlessly populates your daily scheduled goals on startup.
 - **Progress Cards**: Live completion rings and motivational indicators directly on the main dashboard.
 
-### 🎨 11 Handcrafted Themes
-Switch themes instantly with real-time UI re-coloring:
-- ☀️ **Modern Light**
-- 🖤 **Pitch Black (OLED)**
-- 🌙 **Dark Slate**
-- 🔮 **Midnight Neon**
-- ⚡ **Cyberpunk Synthwave**
-- 💻 **Matrix Terminal**
-- ❄️ **Nordic Frost**
-- 🌲 **Emerald Forest**
-- 🌅 **Sunset Glow**
-- ☕ **Warm Espresso**
-- 🍬 **Candy Pop**
+### 🎨 11 Handcrafted Themes & Themed UI
+- **Instant Palette Switching**: Real-time UI re-coloring across 11 vibrant themes:
+  - ☀️ **Modern Light**
+  - 🖤 **Pitch Black (OLED)**
+  - 🌙 **Dark Slate**
+  - 🔮 **Midnight Neon**
+  - ⚡ **Cyberpunk Synthwave**
+  - 💻 **Matrix Terminal**
+  - ❄️ **Nordic Frost**
+  - 🌲 **Emerald Forest**
+  - 🌅 **Sunset Glow**
+  - ☕ **Warm Espresso**
+  - 🍬 **Candy Pop**
+- **Themed Title Bars & Dialogs**: Native Windows DWM title bar styling, custom themed message boxes (`ThemedMessageBox`), and dialogs matching the active theme.
+- **Single-Instance Application**: Safe single-instance startup with automatic window activation if the app is already open.
 
 ---
 
@@ -137,11 +150,13 @@ The output binary will be located in `bin/Release/net9.0-windows/win-x64/publish
 
 ## 📖 Getting Started
 
-1. **Create Projects & Activities**: Open *Project Management* or *Activity Management* to set up the tasks you will track.
-2. **Start Tracking**: Select your current task from the dropdown and hit **Start**.
-3. **Enable Pomodoro Mode**: Turn on Interval Mode to structure your day into focus and rest periods.
-4. **Choose Your Companion**: Pick an animated visual companion and theme that matches your vibe.
-5. **Review Analytics**: Check your daily/weekly breakdown in the **Analytics** window or export your entries to CSV.
+1. **Set Up Your Profile & Preferences**: Click **⚙️ Settings** to enter your name, configure focus/break durations, customize audio chimes, and preview your Daily Welcome greeting.
+2. **Plan Your Work Schedule**: Open the **📅 Calendar Planner** to schedule your target hours and project notes across the week.
+3. **Daily Welcome Kickoff**: On first launch each day, review your scheduled agenda, total planned hours, and motivational quote in the **Welcome Back** modal.
+4. **Create Projects & Activities**: Use *Project Management* or *Activity Management* to organize custom categories and tasks.
+5. **Start Tracking & Stay Focused**: Select your current task from the dropdown and hit **Start** to track time with live vector/ASCII companions and structured Pomodoro intervals.
+6. **Use the Floating Mini Widget**: Switch to the floating mini-widget HUD for unobtrusive always-on-top tracking across any monitor.
+7. **Review Analytics & Celebrate**: Open **Analytics** to view interactive pie charts, daily comparisons, XP streaks, or export reports to CSV.
 
 ---
 

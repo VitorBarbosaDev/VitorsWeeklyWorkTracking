@@ -95,6 +95,9 @@ public partial class WorkRestSettingsDialog : Window
             MiniWidgetTargetMonitor = currentSettings.MiniWidgetTargetMonitor,
             MiniWidgetMonitorIndex = currentSettings.MiniWidgetMonitorIndex,
             MiniWidgetEnabled = currentSettings.MiniWidgetEnabled,
+            UserName = currentSettings.UserName,
+            WelcomePopupEnabled = currentSettings.WelcomePopupEnabled,
+            LastWelcomePopupDate = currentSettings.LastWelcomePopupDate,
             FocusXp = currentSettings.FocusXp,
             FocusStreak = currentSettings.FocusStreak,
             TotalSessionsCompleted = currentSettings.TotalSessionsCompleted
@@ -108,6 +111,9 @@ public partial class WorkRestSettingsDialog : Window
         _isUpdatingUi = true;
 
         PresetComboBox.ItemsSource = _presets;
+
+        UserNameTextBox.Text = Settings.UserName ?? string.Empty;
+        WelcomePopupEnabledCheckBox.IsChecked = Settings.WelcomePopupEnabled;
 
         IntervalModeEnabledCheckBox.IsChecked = Settings.IntervalModeEnabled;
 
@@ -416,6 +422,8 @@ public partial class WorkRestSettingsDialog : Window
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox.IsChecked ?? true;
+        Settings.UserName = UserNameTextBox.Text.Trim();
+        Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox.IsChecked ?? true;
         Settings.FocusMinutes = (int)FocusSlider.Value;
         Settings.ShortBreakMinutes = (int)ShortBreakSlider.Value;
         Settings.LongBreakMinutes = (int)LongBreakSlider.Value;
@@ -531,5 +539,16 @@ public partial class WorkRestSettingsDialog : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void PreviewWelcomeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var previewName = UserNameTextBox.Text.Trim();
+        var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(DateTime.Today);
+        var previewDialog = new WelcomeBackDialog(previewName, todayPlans)
+        {
+            Owner = this
+        };
+        previewDialog.ShowDialog();
     }
 }
