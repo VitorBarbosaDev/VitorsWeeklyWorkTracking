@@ -574,7 +574,7 @@ public partial class MiniTimerWidget : Window
         ClosedByUser?.Invoke();
     }
 
-    public void SetPomodoroState(bool isIntervalMode)
+    /*public void SetPomodoroState(bool isIntervalMode)
     {
         if (MiniPomodoroButton != null)
         {
@@ -586,7 +586,7 @@ public partial class MiniTimerWidget : Window
                 ? "Pomodoro Mode Active (Click to switch to Continuous Tracking)"
                 : "Continuous Work Tracking Active (Click to switch to Pomodoro Interval Mode)";
         }
-    }
+    }*/
 
     private void MiniTimerText_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {

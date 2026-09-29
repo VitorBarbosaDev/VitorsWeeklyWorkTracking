@@ -286,7 +286,7 @@ public partial class MainWindow : Window
 
         UpdatePomodoroButtonStates();
         CompanionControl.UpdateIntervalModeUi();
-        _miniWidget?.SetPomodoroState(enabled);
+        //_miniWidget?.SetPomodoroState(enabled);
         UpdateStatus();
     }
 
@@ -307,7 +307,7 @@ public partial class MainWindow : Window
 
         if (_miniWidget != null)
         {
-            _miniWidget.SetPomodoroState(enabled);
+            //_miniWidget.SetPomodoroState(enabled);
         }
     }
 

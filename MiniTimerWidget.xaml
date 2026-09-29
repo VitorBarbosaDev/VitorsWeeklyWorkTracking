@@ -64,17 +64,6 @@
                             Margin="0,0,4,0"
                             Click="PinOnTopButton_Click"/>
 
-                    <!-- Switch Monitor button -->
-                    <Button x:Name="MonitorSwitchButton"
-                            Content="🖥️ M1"
-                            ToolTip="Switch Display Monitor (Click to cycle to next screen)"
-                            Style="{StaticResource GhostButton}"
-                            Padding="5,1"
-                            Height="20"
-                            FontSize="10"
-                            Margin="0,0,4,0"
-                            Click="MonitorSwitchButton_Click"/>
-
                     <!-- Switch Corner button -->
                     <Button x:Name="CornerSwitchButton"
                             Content="📍 Flip"
@@ -157,18 +146,16 @@
                            MouseLeftButtonUp="MiniTimerText_MouseLeftButtonUp"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Pomodoro Mode Toggle -->
-                    <Button x:Name="MiniPomodoroButton"
-                            Content="🍅"
-                            ToolTip="Toggle Pomodoro Mode (Sprints &amp; Breaks ↔ Continuous Tracking)"
+                    <!-- Switch Monitor button -->
+                    <Button x:Name="MonitorSwitchButton"
+                            Content="🖥️ M1"
+                            ToolTip="Switch Display Monitor (Click to cycle to next screen)"
                             Style="{StaticResource GhostButton}"
+                            Padding="5,1"
+                            Height="20"
                             FontSize="10"
-                            FontWeight="SemiBold"
-                            Padding="5,2"
-                            Height="22"
                             Margin="0,0,4,0"
-                            VerticalAlignment="Center"
-                            Click="MiniPomodoroButton_Click"/>
+                            Click="MonitorSwitchButton_Click"/>
 
                     <!-- Art Mode switcher (Graphics / ASCII) -->
                     <Button x:Name="MiniArtModeButton"
