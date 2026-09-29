@@ -294,7 +294,7 @@ public partial class MainWindow : Window
     {
         bool enabled = _intervalManager.Settings.IntervalModeEnabled;
 
-        if (PomodoroQuickToggleButton != null)
+        /*if (PomodoroQuickToggleButton != null)
         {
             PomodoroQuickToggleButton.Content = enabled ? "🍅 Pomodoro: ON" : "🍅 Pomodoro: OFF";
             PomodoroQuickToggleButton.Foreground = enabled
@@ -303,7 +303,7 @@ public partial class MainWindow : Window
             PomodoroQuickToggleButton.ToolTip = enabled
                 ? "Pomodoro Mode Active (Focus sprints & rest breaks) • Click to switch to Continuous Work Tracking"
                 : "Continuous Work Tracking Active (No breaks/alerts) • Click to enable Pomodoro Interval Mode";
-        }
+        }*/
 
         if (_miniWidget != null)
         {
@@ -387,7 +387,7 @@ public partial class MainWindow : Window
 
     private void InitializeMiniCornerSelector()
     {
-        MiniCornerComboBox.Items.Clear();
+        /*MiniCornerComboBox.Items.Clear();
         MiniCornerComboBox.Items.Add("↘ Bottom-Right");
         MiniCornerComboBox.Items.Add("↙ Bottom-Left");
         MiniCornerComboBox.Items.Add("↗ Top-Right");
@@ -407,13 +407,14 @@ public partial class MainWindow : Window
                 ScreenCorner.TopLeft => 3,
                 _ => 0
             };
-        }
+        }*/
     }
 
     private void RefreshMiniCornerSelector()
     {
         _isInitializing = true;
-        if (!_miniTimerEnabled)
+        
+        /*if (!_miniTimerEnabled)
         {
             MiniCornerComboBox.SelectedIndex = 4;
         }
@@ -427,29 +428,29 @@ public partial class MainWindow : Window
                 ScreenCorner.TopLeft => 3,
                 _ => 0
             };
-        }
+        }*/
         _isInitializing = false;
     }
 
     private void InitializeMiniMonitorSelector()
     {
         var monitors = ScreenHelper.GetMonitors();
-        MiniMonitorComboBox.ItemsSource = monitors;
+    //    MiniMonitorComboBox.ItemsSource = monitors;
 
         var targetMon = ScreenHelper.GetMonitor(_workRestSettings.MiniWidgetTargetMonitor, _workRestSettings.MiniWidgetMonitorIndex);
         var matched = monitors.FirstOrDefault(m => m.Index == targetMon.Index) ?? monitors.FirstOrDefault();
-        MiniMonitorComboBox.SelectedItem = matched;
+       // MiniMonitorComboBox.SelectedItem = matched;
     }
 
     private void RefreshMiniMonitorSelector()
     {
         _isInitializing = true;
         var monitors = ScreenHelper.GetMonitors();
-        MiniMonitorComboBox.ItemsSource = monitors;
+        /*MiniMonitorComboBox.ItemsSource = monitors;*/
 
         var targetMon = ScreenHelper.GetMonitor(_workRestSettings.MiniWidgetTargetMonitor, _workRestSettings.MiniWidgetMonitorIndex);
         var matched = monitors.FirstOrDefault(m => m.Index == targetMon.Index) ?? monitors.FirstOrDefault();
-        MiniMonitorComboBox.SelectedItem = matched;
+        /*MiniMonitorComboBox.SelectedItem = matched;*/
         _isInitializing = false;
     }
 
@@ -458,13 +459,13 @@ public partial class MainWindow : Window
         if (_isInitializing)
             return;
 
-        if (MiniMonitorComboBox.SelectedItem is MonitorDisplayInfo mon)
+        /*if (MiniMonitorComboBox.SelectedItem is MonitorDisplayInfo mon)
         {
             _workRestSettings.MiniWidgetTargetMonitor = mon.DeviceName;
             _workRestSettings.MiniWidgetMonitorIndex = mon.Index;
             FocusCompanionStorage.Save(_workRestSettings);
             _miniWidget?.SetMonitor(mon.DeviceName, mon.Index);
-        }
+        }*/
     }
 
     private void MiniCornerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -472,7 +473,7 @@ public partial class MainWindow : Window
         if (_isInitializing)
             return;
 
-        switch (MiniCornerComboBox.SelectedIndex)
+        /*switch (MiniCornerComboBox.SelectedIndex)
         {
             case 0:
                 _miniTimerEnabled = true;
@@ -512,7 +513,7 @@ public partial class MainWindow : Window
                 FocusCompanionStorage.Save(_workRestSettings);
                 _miniWidget?.Hide();
                 break;
-        }
+        }*/
     }
 
     private void GoalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -681,14 +682,14 @@ public partial class MainWindow : Window
                 _workRestSettings.MiniWidgetCorner = corner.ToString();
                 FocusCompanionStorage.Save(_workRestSettings);
                 _isInitializing = true;
-                MiniCornerComboBox.SelectedIndex = corner switch
+                /*MiniCornerComboBox.SelectedIndex = corner switch
                 {
                     ScreenCorner.BottomRight => 0,
                     ScreenCorner.BottomLeft => 1,
                     ScreenCorner.TopRight => 2,
                     ScreenCorner.TopLeft => 3,
                     _ => 0
-                };
+                };*/
                 _isInitializing = false;
             };
             _miniWidget.MonitorChanged += (monitorId, monitorIndex) =>

@@ -510,10 +510,33 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="100"/>
                                     <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="95"/>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160"/>
-                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="130"/>
+                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding ProjectName}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="130">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding Activity}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTextColumn Header="Planned Hours" Binding="{Binding PlannedHours, StringFormat=\{0:F1\} hrs}" Width="105"/>
-                                    <DataGridTextColumn Header="Notes / Description" Binding="{Binding Note}" Width="*"/>
+                                    <DataGridTextColumn Header="Notes / Description" Binding="{Binding Note}" Width="*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding Note}"/>
+                                                <Setter Property="ToolTipService.ShowDuration" Value="30000"/>
+                                                <Setter Property="ToolTipService.InitialShowDelay" Value="150"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTemplateColumn Header="Action" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>

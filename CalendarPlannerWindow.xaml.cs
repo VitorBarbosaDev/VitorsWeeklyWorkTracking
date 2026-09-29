@@ -363,7 +363,116 @@ public partial class CalendarPlannerWindow : Window
         stack.Children.Add(actionsPanel);
 
         card.Child = stack;
+
+        // Tooltip displaying whole notes and plan details on hover
+        card.ToolTip = CreatePlanCardTooltip(plan);
+        ToolTipService.SetShowDuration(card, 30000);
+        ToolTipService.SetInitialShowDelay(card, 150);
+
         return card;
+    }
+
+    private object CreatePlanCardTooltip(PlannedWorkItem plan)
+    {
+        var container = new StackPanel { MaxWidth = 360 };
+
+        // Header: Project Name & Formatted Hours
+        var headerPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        headerPanel.Children.Add(new TextBlock
+        {
+            Text = plan.ProjectName,
+            FontWeight = FontWeights.Bold,
+            FontSize = 12,
+            Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black
+        });
+        headerPanel.Children.Add(new TextBlock
+        {
+            Text = $" ({plan.FormattedHours})",
+            FontWeight = FontWeights.Bold,
+            FontSize = 12,
+            Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue,
+            Margin = new Thickness(4, 0, 0, 0)
+        });
+        container.Children.Add(headerPanel);
+
+        // Activity tag if present
+        if (!string.IsNullOrWhiteSpace(plan.Activity))
+        {
+            var actText = new TextBlock
+            {
+                Text = $"🏷️ {plan.Activity}",
+                FontSize = 10.5,
+                Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+                Margin = new Thickness(0, 0, 0, 3)
+            };
+            container.Children.Add(actText);
+        }
+
+        // Date info
+        var dateText = new TextBlock
+        {
+            Text = $"📅 {plan.Date:dddd, dd MMM yyyy}",
+            FontSize = 10,
+            Foreground = TryFindResource("Theme.ForegroundSubtle") as Brush ?? Brushes.DarkGray,
+            Margin = new Thickness(0, 0, 0, 6)
+        };
+        container.Children.Add(dateText);
+
+        // Notes section
+        if (!string.IsNullOrWhiteSpace(plan.Note))
+        {
+            var notesBorder = new Border
+            {
+                Background = TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White,
+                BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 6, 8, 6),
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+
+            var notesStack = new StackPanel();
+            notesStack.Children.Add(new TextBlock
+            {
+                Text = "📝 Notes:",
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 10,
+                Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+                Margin = new Thickness(0, 0, 0, 3)
+            });
+
+            notesStack.Children.Add(new TextBlock
+            {
+                Text = plan.Note,
+                FontSize = 11,
+                Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black,
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 16
+            });
+
+            notesBorder.Child = notesStack;
+            container.Children.Add(notesBorder);
+        }
+        else
+        {
+            container.Children.Add(new TextBlock
+            {
+                Text = "(No notes added)",
+                FontSize = 10,
+                FontStyle = FontStyles.Italic,
+                Foreground = TryFindResource("Theme.ForegroundSubtle") as Brush ?? Brushes.Gray,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+        }
+
+        return new ToolTip
+        {
+            Content = container,
+            Background = TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.White,
+            BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.Gray,
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(10, 8, 10, 8)
+        };
     }
 
     private bool ConfirmDiscardUnsavedNotes(string actionDescription = "start a new plan")

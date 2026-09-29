@@ -73,7 +73,7 @@
 
             <!-- Right Controls: Mini Timer Corner Selector & Theme Switcher -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Pomodoro Mode Quick Toggle Button -->
+                <!--~1~ Pomodoro Mode Quick Toggle Button @1@
                 <Button x:Name="PomodoroQuickToggleButton"
                         Content="🍅 Pomodoro: OFF"
                         ToolTip="Toggle Pomodoro Interval Mode (Focus sprints &amp; rest breaks vs continuous tracking)"
@@ -83,7 +83,7 @@
                         FontSize="11"
                         FontWeight="SemiBold"
                         Margin="0 0 6 0"
-                        Click="PomodoroQuickToggleButton_Click"/>
+                        Click="PomodoroQuickToggleButton_Click"/>-->
 
                 <!-- Sound & Settings Quick Button -->
                 <Button x:Name="AudioSettingsQuickButton"
@@ -109,7 +109,7 @@
 
                 <!-- Mini Floating Timer Options -->
                 <TextBlock Text="🗗 Mini:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" VerticalAlignment="Center"/>
-                <ComboBox x:Name="MiniMonitorComboBox"
+                <!--<ComboBox x:Name="MiniMonitorComboBox"
                           Width="98"
                           Margin="0 0 4 0"
                           ToolTip="Select target display monitor for the floating mini timer"
@@ -119,7 +119,7 @@
                           Width="88"
                           Margin="0 0 4 0"
                           ToolTip="Select screen corner or disable mini timer"
-                          SelectionChanged="MiniCornerComboBox_SelectionChanged"/>
+                          SelectionChanged="MiniCornerComboBox_SelectionChanged"/>-->
                 
                 <Button x:Name="MiniOverlayQuickButton"
                         Content="↘ Mini"
