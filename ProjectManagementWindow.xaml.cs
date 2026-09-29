@@ -50,13 +50,13 @@ public partial class ProjectManagementWindow : Window
         var name = NewProjectTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            MessageBox.Show("Please enter a project name.", "Invalid Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "Please enter a project name.", "Invalid Name");
             return;
         }
 
         if (_projects.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
         {
-            MessageBox.Show("A project with this name already exists.", "Duplicate Project", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "A project with this name already exists.", "Duplicate Project");
             return;
         }
 
@@ -84,7 +84,7 @@ public partial class ProjectManagementWindow : Window
         }
         else
         {
-            MessageBox.Show("Please select an active project to archive.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "Please select an active project to archive.", "No Selection");
         }
     }
 
@@ -98,7 +98,7 @@ public partial class ProjectManagementWindow : Window
         }
         else
         {
-            MessageBox.Show("Please select an inactive project to activate.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "Please select an inactive project to activate.", "No Selection");
         }
     }
 

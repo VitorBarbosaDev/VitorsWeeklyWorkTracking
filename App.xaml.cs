@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using VitorsWeeklyWorkTracking.Services;
@@ -12,6 +15,30 @@ namespace VitorsWeeklyWorkTracking;
 /// </summary>
 public partial class App : Application
 {
+    private static Mutex? _singleInstanceMutex;
+    private const string SingleInstanceMutexName = @"Local\VitorsWeeklyWorkTracking_Singleton_Mutex_Guid_2026";
+    public const string ShowInstanceMessage = "VitorsWeeklyWorkTracking_ShowInstance_Broadcast_Msg";
+    public static readonly int WM_SHOWINSTANCE = RegisterWindowMessage(ShowInstanceMessage);
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern int RegisterWindowMessage(string lpString);
+
+    [DllImport("user32.dll")]
+    public static extern bool PostMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+
+    private const int HWND_BROADCAST = 0xffff;
+    private const int SW_RESTORE = 9;
+    private const int SW_SHOW = 5;
+
     public App()
     {
         // Global unhandled exception handlers to prevent silent crashes
@@ -40,6 +67,24 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        try
+        {
+            _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
+            if (!createdNew)
+            {
+                // Another instance of the application is already running in the background.
+                // Bring the existing instance to the foreground and terminate this duplicate instance immediately.
+                BringExistingInstanceToFront();
+                Shutdown();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            StoragePathHelper.LogError(ex, "App.SingleInstanceMutex");
+        }
+
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
         DispatcherUnhandledException += App_DispatcherUnhandledException;
 
         try
@@ -61,6 +106,62 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+    }
+
+    private static void BringExistingInstanceToFront()
+    {
+        try
+        {
+            if (WM_SHOWINSTANCE != 0)
+            {
+                PostMessage((IntPtr)HWND_BROADCAST, WM_SHOWINSTANCE, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            var currentProcess = Process.GetCurrentProcess();
+            var processes = Process.GetProcessesByName(currentProcess.ProcessName);
+            foreach (var proc in processes)
+            {
+                if (proc.Id == currentProcess.Id) continue;
+                var handle = proc.MainWindowHandle;
+                if (handle != IntPtr.Zero)
+                {
+                    if (IsIconic(handle))
+                    {
+                        ShowWindow(handle, SW_RESTORE);
+                    }
+                    else
+                    {
+                        ShowWindow(handle, SW_SHOW);
+                    }
+                    SetForegroundWindow(handle);
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StoragePathHelper.LogError(ex, "BringExistingInstanceToFront");
+        }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_singleInstanceMutex != null)
+        {
+            try
+            {
+                _singleInstanceMutex.ReleaseMutex();
+            }
+            catch { }
+            try
+            {
+                _singleInstanceMutex.Dispose();
+            }
+            catch { }
+            _singleInstanceMutex = null;
+        }
+
+        base.OnExit(e);
     }
 
     private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

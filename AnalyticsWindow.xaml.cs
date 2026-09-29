@@ -621,7 +621,7 @@ public partial class AnalyticsWindow : Window
         }
 
         File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
-        MessageBox.Show($"Analytics report saved to:\n{dialog.FileName}", "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+        ThemedMessageBox.ShowSuccess(this, $"Analytics report saved to:\n{dialog.FileName}", "Export Complete");
     }
 
     private static string Escape(string value)

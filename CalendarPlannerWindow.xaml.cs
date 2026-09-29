@@ -479,13 +479,14 @@ public partial class CalendarPlannerWindow : Window
     {
         if (!string.IsNullOrWhiteSpace(PlanNoteTextBox.Text))
         {
-            var result = MessageBox.Show(
+            return ThemedMessageBox.Confirm(
+                this,
                 $"You have unsaved text in Notes:\n\"{PlanNoteTextBox.Text.Trim()}\"\n\nDo you want to discard it and {actionDescription}?",
-                "Unsaved Notes",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            return result == MessageBoxResult.Yes;
+                title: "Unsaved Notes",
+                confirmButtonText: "Discard Notes",
+                cancelButtonText: "Keep Notes",
+                isDanger: true,
+                subtitle: "Unsaved changes");
         }
         return true;
     }
@@ -555,13 +556,13 @@ public partial class CalendarPlannerWindow : Window
 
         if (string.IsNullOrWhiteSpace(project))
         {
-            MessageBox.Show("Please select or enter a project name.", "Project Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "Please select or enter a project name.", "Project Required");
             return;
         }
 
         if (!double.TryParse(PlanHoursTextBox.Text.Trim(), out double hours) || hours <= 0 || hours > 24)
         {
-            MessageBox.Show("Please enter a valid planned hours amount between 0.1 and 24 hours.", "Invalid Hours", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "Please enter a valid planned hours amount between 0.1 and 24 hours.", "Invalid Hours");
             return;
         }
 
@@ -583,13 +584,17 @@ public partial class CalendarPlannerWindow : Window
 
     private void DeletePlan(PlannedWorkItem plan)
     {
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete planned session for '{plan.ProjectName}' on {plan.Date:yyyy-MM-dd} ({plan.FormattedHours})?",
-            "Confirm Delete Plan",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+        string detail = $"Project: {plan.ProjectName}\nDate: {plan.Date:yyyy-MM-dd} ({plan.FormattedHours})\nActivity: {plan.Activity}";
 
-        if (result == MessageBoxResult.Yes)
+        var confirmed = ThemedMessageBox.ConfirmDelete(
+            this,
+            $"Are you sure you want to delete planned session for '{plan.ProjectName}'?",
+            title: "Confirm Delete Plan",
+            deleteButtonText: "Delete Plan",
+            cancelButtonText: "Cancel",
+            detailText: detail);
+
+        if (confirmed)
         {
             CalendarPlanStorage.Instance.DeletePlan(plan.Id);
             if (_editingPlanId == plan.Id)
@@ -734,13 +739,14 @@ public partial class CalendarPlannerWindow : Window
         var project = PlanProjectComboBox.SelectedItem?.ToString() ?? "General Freelance";
         var activity = PlanActivityComboBox.SelectedItem?.ToString() ?? "Development";
 
-        var result = MessageBox.Show(
+        var confirmed = ThemedMessageBox.Confirm(
+            this,
             $"Apply '{templateName}' to project '{project}' for week {_currentMonday:yyyy-MM-dd} to {_currentMonday.AddDays(dayCount - 1):yyyy-MM-dd}?",
-            "Apply Weekly Template",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            title: "Apply Weekly Template",
+            confirmButtonText: "Apply Template",
+            cancelButtonText: "Cancel");
 
-        if (result != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         for (int i = 0; i < dayCount; i++)
         {
@@ -768,17 +774,18 @@ public partial class CalendarPlannerWindow : Window
 
         if (prevPlans.Count == 0)
         {
-            MessageBox.Show("No planned sessions found in the previous week to copy.", "Nothing to Copy", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "No planned sessions found in the previous week to copy.", "Nothing to Copy");
             return;
         }
 
-        var result = MessageBox.Show(
+        var confirmed = ThemedMessageBox.Confirm(
+            this,
             $"Copy {prevPlans.Count} planned sessions from previous week ({prevMonday:dd MMM} - {prevSunday:dd MMM}) to this week?",
-            "Copy Previous Week Plans",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            title: "Copy Previous Week Plans",
+            confirmButtonText: "Copy Plans",
+            cancelButtonText: "Cancel");
 
-        if (result != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         foreach (var p in prevPlans)
         {
@@ -807,17 +814,19 @@ public partial class CalendarPlannerWindow : Window
 
         if (weekPlans.Count == 0)
         {
-            MessageBox.Show("No planned sessions exist in this week to clear.", "Week is Empty", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "No planned sessions exist in this week to clear.", "Week is Empty");
             return;
         }
 
-        var result = MessageBox.Show(
+        var confirmed = ThemedMessageBox.ConfirmDelete(
+            this,
             $"Are you sure you want to delete all {weekPlans.Count} planned sessions for this week ({_currentMonday:dd MMM} - {sunday:dd MMM})?",
-            "Confirm Clear Week",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            title: "Confirm Clear Week",
+            deleteButtonText: "Clear All Plans",
+            cancelButtonText: "Cancel",
+            detailText: $"{weekPlans.Count} planned items will be permanently deleted.");
 
-        if (result != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         foreach (var p in weekPlans)
         {

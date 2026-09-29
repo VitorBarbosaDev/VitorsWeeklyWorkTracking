@@ -1,18 +1,20 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Shell;
+using Microsoft.Win32;
 using VitorsWeeklyWorkTracking.Models;
 using VitorsWeeklyWorkTracking.Services;
-using Microsoft.Win32;
-using System.IO;
 
 namespace VitorsWeeklyWorkTracking;
 
@@ -702,11 +704,138 @@ public partial class MainWindow : Window
         }
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        try
+        {
+            var helper = new WindowInteropHelper(this);
+            if (helper.Handle != IntPtr.Zero)
+            {
+                var source = HwndSource.FromHwnd(helper.Handle);
+                source?.AddHook(WndProc);
+            }
+        }
+        catch (Exception ex)
+        {
+            StoragePathHelper.LogError(ex, "MainWindow.OnSourceInitialized");
+        }
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == App.WM_SHOWINSTANCE && msg != 0)
+        {
+            Dispatcher.InvokeAsync(RestoreMainWindow);
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
     private void RestoreMainWindow()
     {
-        WindowState = WindowState.Normal;
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        Show();
         Activate();
+        Topmost = true;
+        Topmost = false;
         Focus();
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_currentStartTime != null)
+        {
+            var selectedProject = ProjectComboBox.SelectedItem as Project;
+            var projectName = selectedProject?.Name ?? ProjectComboBox.Text?.Trim();
+            string taskInfo = !string.IsNullOrWhiteSpace(projectName)
+                ? $" for \"{projectName}\""
+                : "";
+
+            var confirmed = ThemedMessageBox.ConfirmClose(
+                this,
+                $"You are currently tracking a task{taskInfo}.\n\nAre you sure you want to stop tracking and close the application?",
+                title: "Tracking Active - Confirm Exit",
+                exitButtonText: "Close Application",
+                stayButtonText: "Keep Tracking",
+                subtitle: "Active timer running");
+
+            if (!confirmed)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+        else if (_pendingStartTime != null && _pendingEndTime != null)
+        {
+            var confirmed = ThemedMessageBox.ConfirmClose(
+                this,
+                "You have an unsaved time entry recorded.\n\nAre you sure you want to discard it and close the application?",
+                title: "Unsaved Session - Confirm Exit",
+                exitButtonText: "Discard & Exit",
+                stayButtonText: "Keep Working",
+                subtitle: "Unsaved session in progress");
+
+            if (!confirmed)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
+        base.OnClosing(e);
+
+        if (!e.Cancel)
+        {
+            CleanupAndCloseApplication();
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        CleanupAndCloseApplication();
+        Application.Current?.Shutdown();
+    }
+
+    private void CleanupAndCloseApplication()
+    {
+        try
+        {
+            _timer.Stop();
+
+            if (_miniWidget != null)
+            {
+                try
+                {
+                    _miniWidget.Close();
+                }
+                catch { }
+                _miniWidget = null;
+            }
+
+            if (Application.Current != null)
+            {
+                foreach (var win in Application.Current.Windows.OfType<Window>().ToArray())
+                {
+                    if (win != this)
+                    {
+                        try
+                        {
+                            win.Close();
+                        }
+                        catch { }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StoragePathHelper.LogError(ex, "MainWindow.CleanupAndCloseApplication");
+        }
     }
 
     private void InitializeThemeSelector()
@@ -1742,7 +1871,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            MessageBox.Show("Please select a task from the list to delete.", "No Task Selected", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "Please select a task from the list to delete.", "No Task Selected");
         }
     }
 
@@ -1761,13 +1890,17 @@ public partial class MainWindow : Window
             ? $"\"{entry.Description}\""
             : (!string.IsNullOrWhiteSpace(entry.ProjectName) ? $"entry for {entry.ProjectName}" : "this task");
 
-        var result = MessageBox.Show(
-            $"Are you sure you want to delete {taskDesc} ({entry.StartTime:g} - {entry.Duration:hh\\:mm\\:ss})?",
-            "Confirm Delete Task",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+        string detail = $"Project: {entry.ProjectName ?? "None"}\nActivity: {entry.Activity ?? "General"}\nTime: {entry.StartTime:g} ({entry.Duration:hh\\:mm\\:ss})";
 
-        if (result == MessageBoxResult.Yes)
+        var confirmed = ThemedMessageBox.ConfirmDelete(
+            this,
+            $"Are you sure you want to delete {taskDesc}?",
+            title: "Confirm Delete Task",
+            deleteButtonText: "Delete Task",
+            cancelButtonText: "Cancel",
+            detailText: detail);
+
+        if (confirmed)
         {
             _entries.Remove(entry);
             _storage.Save(_entries);
@@ -1794,7 +1927,7 @@ public partial class MainWindow : Window
             return;
 
         CsvExportService.Export(_filteredEntries, dialog.FileName);
-        MessageBox.Show($"Export complete:\n{dialog.FileName}");
+        ThemedMessageBox.ShowSuccess(this, $"Export complete:\n{dialog.FileName}", "Export Complete");
     }
 }
 

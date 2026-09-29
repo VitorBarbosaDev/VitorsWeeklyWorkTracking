@@ -50,13 +50,13 @@ public partial class ActivityManagementWindow : Window
         var name = NewActivityTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            MessageBox.Show("Please enter an activity name.", "Invalid Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "Please enter an activity name.", "Invalid Name");
             return;
         }
 
         if (_activities.Any(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
         {
-            MessageBox.Show("An activity with this name already exists.", "Duplicate Activity", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "An activity with this name already exists.", "Duplicate Activity");
             return;
         }
 
@@ -84,7 +84,7 @@ public partial class ActivityManagementWindow : Window
         }
         else
         {
-            MessageBox.Show("Please select an active activity to archive.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "Please select an active activity to archive.", "No Selection");
         }
     }
 
@@ -98,7 +98,7 @@ public partial class ActivityManagementWindow : Window
         }
         else
         {
-            MessageBox.Show("Please select an inactive activity to activate.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.ShowInfo(this, "Please select an inactive activity to activate.", "No Selection");
         }
     }
 

@@ -629,4 +629,14 @@ public partial class MiniTimerWidget : Window
         MiniAlertBanner.Visibility = Visibility.Collapsed;
         NextSessionRequested?.Invoke();
     }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        try
+        {
+            _animTimer.Stop();
+        }
+        catch { }
+    }
 }

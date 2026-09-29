@@ -33,7 +33,7 @@ public partial class CustomGoalDialog : Window
         }
         else
         {
-            MessageBox.Show("Please enter a valid positive number of minutes.", "Invalid Goal", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.ShowWarning(this, "Please enter a valid positive number of minutes.", "Invalid Goal");
             MinutesTextBox.Focus();
             MinutesTextBox.SelectAll();
         }
