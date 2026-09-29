@@ -31,7 +31,7 @@ public class ThemeOption
 
 public static class ThemeManager
 {
-    private static readonly string SettingsFilePath = Path.Combine(AppContext.BaseDirectory, "theme.json");
+    private static readonly string SettingsFilePath = StoragePathHelper.GetFilePath("theme.json");
     private static AppTheme _currentTheme = AppTheme.ModernLight;
 
     public static AppTheme CurrentTheme => _currentTheme;
@@ -824,13 +824,19 @@ public static class ThemeManager
     {
         try
         {
+            var dir = Path.GetDirectoryName(SettingsFilePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                StoragePathHelper.EnsureDirectoryExists(dir);
+            }
+
             var data = new { Theme = theme.ToString() };
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently ignore save errors
+            StoragePathHelper.LogError(ex, "ThemeManager.SaveTheme");
         }
     }
 }

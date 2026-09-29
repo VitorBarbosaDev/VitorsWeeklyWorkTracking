@@ -6,7 +6,12 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class ActivityStorage
 {
-    private readonly string _filePath = "activities.json";
+    private readonly string _filePath;
+
+    public ActivityStorage()
+    {
+        _filePath = StoragePathHelper.GetFilePath("activities.json");
+    }
 
     public static readonly string[] DefaultActivities = new[]
     {
@@ -64,11 +69,24 @@ public class ActivityStorage
 
     public void Save(List<ActivityItem> activities)
     {
-        string json = JsonSerializer.Serialize(activities, new JsonSerializerOptions
+        try
         {
-            WriteIndented = true
-        });
+            string json = JsonSerializer.Serialize(activities, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
 
-        File.WriteAllText(_filePath, json);
+            var dir = Path.GetDirectoryName(_filePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                StoragePathHelper.EnsureDirectoryExists(dir);
+            }
+
+            File.WriteAllText(_filePath, json);
+        }
+        catch (Exception ex)
+        {
+            StoragePathHelper.LogError(ex, "ActivityStorage.Save");
+        }
     }
 }

@@ -98,12 +98,37 @@ dotnet build -c Release
 dotnet run --project VitorsWeeklyWorkTracking.csproj
 ```
 
-### Publishing a Standalone Executable
+### Building the Windows Installer (.msi / .exe)
 
-To generate a single, self-contained Windows executable:
+To generate a full Windows installer package with Desktop shortcuts, Start Menu integration, and clean uninstallation:
+
+#### Option 1: One-Click Build Script
+Double-click `build-installer.cmd` or run in PowerShell:
+
+```powershell
+.\build-installer.ps1
+```
+
+This will automatically publish the self-contained application and generate:
+- **`bin/Release/VitorsWeeklyWorkTracking-Setup-x64.msi`** (Native Windows Installer via WiX Toolset)
+- **`bin/Release/VitorsWeeklyWorkTracking-Setup-x64.exe`** (Standard Setup Wizard via Inno Setup 6, if installed)
+
+#### Option 2: Manual WiX MSI Build
+
+```powershell
+# 1. Publish self-contained executable
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "bin\Release\net9.0-windows\win-x64\publish"
+
+# 2. Build MSI package
+wix build -ext WixToolset.UI.wixext -d SourceDir="." -d PublishDir="bin\Release\net9.0-windows\win-x64\publish" -arch x64 installer\Package.wxs -out "bin\Release\VitorsWeeklyWorkTracking-Setup-x64.msi"
+```
+
+### Publishing a Standalone Executable (Without Installer)
+
+To generate a single, self-contained Windows executable without an installer:
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
 The output binary will be located in `bin/Release/net9.0-windows/win-x64/publish/`.

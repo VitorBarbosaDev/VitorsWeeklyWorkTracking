@@ -7,7 +7,7 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class FocusCompanionStorage
 {
-    private static readonly string SettingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "focus-settings.json");
+    private static readonly string SettingsFilePath = StoragePathHelper.GetFilePath("focus-settings.json", "focus_companion_settings.json");
 
     public static WorkRestSettings Load()
     {
@@ -39,9 +39,9 @@ public class FocusCompanionStorage
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to default
+            StoragePathHelper.LogError(ex, "FocusCompanionStorage.Load");
         }
 
         return new WorkRestSettings();
@@ -51,12 +51,18 @@ public class FocusCompanionStorage
     {
         try
         {
+            var dir = Path.GetDirectoryName(SettingsFilePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                StoragePathHelper.EnsureDirectoryExists(dir);
+            }
+
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore error
+            StoragePathHelper.LogError(ex, "FocusCompanionStorage.Save");
         }
     }
 }

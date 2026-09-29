@@ -9,7 +9,7 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class CalendarPlanStorage
 {
-    private static readonly string FilePath = "calendar-plans.json";
+    private static readonly string FilePath = StoragePathHelper.GetFilePath("calendar-plans.json");
     private static CalendarPlanStorage? _instance;
     public static CalendarPlanStorage Instance => _instance ??= new CalendarPlanStorage();
 
@@ -17,16 +17,17 @@ public class CalendarPlanStorage
 
     public List<PlannedWorkItem> Load()
     {
-        if (!File.Exists(FilePath))
-            return new List<PlannedWorkItem>();
-
         try
         {
+            if (!File.Exists(FilePath))
+                return new List<PlannedWorkItem>();
+
             string json = File.ReadAllText(FilePath);
             return JsonSerializer.Deserialize<List<PlannedWorkItem>>(json) ?? new List<PlannedWorkItem>();
         }
-        catch
+        catch (Exception ex)
         {
+            StoragePathHelper.LogError(ex, "CalendarPlanStorage.Load");
             return new List<PlannedWorkItem>();
         }
     }
@@ -39,12 +40,19 @@ public class CalendarPlanStorage
             {
                 WriteIndented = true
             });
+
+            var dir = Path.GetDirectoryName(FilePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                StoragePathHelper.EnsureDirectoryExists(dir);
+            }
+
             File.WriteAllText(FilePath, json);
             PlansChanged?.Invoke();
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore write errors
+            StoragePathHelper.LogError(ex, "CalendarPlanStorage.Save");
         }
     }
 

@@ -1,0 +1,63 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Vitor's Weekly Work Tracking"
+           Manufacturer="Vitor"
+           Version="1.0.0"
+           UpgradeCode="9c7f051a-ddaa-42a4-91fa-bf45cd5cf8c4"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Vitor's Weekly Work Tracking is already installed." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.SourceDir)\VitorWeeklyWorkTracking.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Vitors Weekly Work Tracking">
+        <Component Id="MainExecutable" Guid="3F09C104-58F5-4D5E-8A01-C34E57B7E201">
+          <File Id="AppExe" Source="$(var.PublishDir)\VitorsWeeklyWorkTracking.exe" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Vitor's Weekly Work Tracking">
+        <Component Id="StartMenuShortcutComponent" Guid="A71295F8-18CE-4A85-8025-E93DC1EF5283">
+          <Shortcut Id="StartMenuAppShortcut"
+                    Name="Vitor's Weekly Work Tracking"
+                    Description="Vitor's Weekly Work Tracking Application"
+                    Target="[#AppExe]"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon" />
+          <RemoveFolder Id="CleanUpStartMenuFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\Vitor\VitorsWeeklyWorkTracking" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcutComponent" Guid="B49F9F83-6AE4-4321-9972-7F94F69B829A">
+        <Shortcut Id="DesktopAppShortcut"
+                  Name="Vitor's Weekly Work Tracking"
+                  Description="Vitor's Weekly Work Tracking Application"
+                  Target="[#AppExe]"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\Vitor\VitorsWeeklyWorkTracking" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Vitor's Weekly Work Tracking" Description="Core application files and Start Menu shortcut." Level="1" ConfigurableDirectory="INSTALLFOLDER" AllowAbsent="no">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="StartMenuShortcutComponent" />
+
+      <Feature Id="DesktopShortcutFeature" Title="Desktop Shortcut" Description="Add a shortcut to the Desktop." Level="1" AllowAbsent="yes">
+        <ComponentRef Id="DesktopShortcutComponent" />
+      </Feature>
+    </Feature>
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
+  </Package>
+</Wix>
