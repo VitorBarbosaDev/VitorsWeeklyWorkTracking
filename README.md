@@ -20,12 +20,14 @@
 **Vitor's Weekly Work Tracking** is a comprehensive desktop productivity application built with WPF and .NET 9. It combines flexible real-time time tracking, structured Pomodoro focus cycles, weekly work planning, daily welcome kickoffs, visual & ASCII companion animations, gamified focus progression, celebration milestones, detailed analytics with interactive charts, and floating mini-widgets to keep your workday organized, healthy, and motivating.
 
 ---
+## Screenshots
+
 <img width="919" height="748" alt="image" src="https://github.com/user-attachments/assets/ecfe0df3-3482-404f-a050-1233e593f40a" />
 <img width="880" height="281" alt="image" src="https://github.com/user-attachments/assets/aa51549a-b5ff-41f9-a150-c316d14da258" />
 <img width="948" height="704" alt="image" src="https://github.com/user-attachments/assets/d2118e93-8ea4-4f95-9b33-8656532219a7" />
 <img width="936" height="704" alt="image" src="https://github.com/user-attachments/assets/82c66a56-c946-4113-a7d5-8854891f77ff" />
 
-
+---
 ## ✨ Features
 
 ### 👋 Daily Welcome & Scheduled Agenda
