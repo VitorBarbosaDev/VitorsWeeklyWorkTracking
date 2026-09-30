@@ -23,6 +23,7 @@ AllowNoIcons=yes
 OutputDir=..\bin\Release
 OutputBaseFilename=VitorsWeeklyWorkTracking-Setup-x64
 SetupIconFile=..\VitorWeeklyWorkTracking.ico
+LicenseFile=License.rtf
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -41,6 +42,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "..\bin\Release\net9.0-windows\win-x64\publish\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\bin\Release\net9.0-windows\win-x64\publish\*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "License.rtf"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

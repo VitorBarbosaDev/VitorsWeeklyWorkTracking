@@ -13,11 +13,15 @@
     <Icon Id="AppIcon" SourceFile="$(var.SourceDir)\VitorWeeklyWorkTracking.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.SourceDir)\installer\License.rtf" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="Vitors Weekly Work Tracking">
         <Component Id="MainExecutable" Guid="3F09C104-58F5-4D5E-8A01-C34E57B7E201">
           <File Id="AppExe" Source="$(var.PublishDir)\VitorsWeeklyWorkTracking.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="LicenseFile" Guid="B8F1A25C-4091-491C-9E2A-59BE3E2C4D78">
+          <File Id="LicenseRtf" Source="$(var.SourceDir)\installer\License.rtf" KeyPath="yes" />
         </Component>
       </Directory>
     </StandardDirectory>
@@ -51,6 +55,7 @@
 
     <Feature Id="MainFeature" Title="Vitor's Weekly Work Tracking" Description="Core application files and Start Menu shortcut." Level="1" ConfigurableDirectory="INSTALLFOLDER" AllowAbsent="no">
       <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="LicenseFile" />
       <ComponentRef Id="StartMenuShortcutComponent" />
 
       <Feature Id="DesktopShortcutFeature" Title="Desktop Shortcut" Description="Add a shortcut to the Desktop." Level="1" AllowAbsent="yes">

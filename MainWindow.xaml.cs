@@ -1924,6 +1924,144 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
     }
 
+    private void ViewEntryDetailsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is TimeEntry entry)
+        {
+            ShowTimeEntryDetails(entry);
+        }
+    }
+
+    private void ViewDetailsSelectedButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (EntriesDataGrid.SelectedItem is TimeEntry selectedEntry)
+        {
+            ShowTimeEntryDetails(selectedEntry);
+        }
+        else
+        {
+            ThemedMessageBox.ShowInfo(this, "Please select a task from the list to view its details.", "No Task Selected");
+        }
+    }
+
+    private void EntriesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (EntriesDataGrid.SelectedItem is TimeEntry selectedEntry)
+        {
+            ShowTimeEntryDetails(selectedEntry);
+        }
+    }
+
+    private void ShowTimeEntryDetails(TimeEntry entry)
+    {
+        var dialog = new TaskDetailsDialog(entry, _projects, _activities)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+
+        if (dialog.WasModified)
+        {
+            _storage.Save(_entries);
+            RefreshFilterProjectsDropdown(FilterProjectComboBox.SelectedItem?.ToString());
+            RefreshFilterActivitiesDropdown(FilterActivityComboBox.SelectedItem?.ToString());
+            RefreshGrid();
+        }
+    }
+
+    private void EditEntryButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is TimeEntry entry)
+        {
+            EditTimeEntry(entry);
+        }
+    }
+
+    private void EditSelectedButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (EntriesDataGrid.SelectedItem is TimeEntry selectedEntry)
+        {
+            EditTimeEntry(selectedEntry);
+        }
+        else
+        {
+            ThemedMessageBox.ShowInfo(this, "Please select a task from the list to edit.", "No Task Selected");
+        }
+    }
+
+    private void EditTimeEntry(TimeEntry entry)
+    {
+        var dialog = new EditTaskDialog(entry, _projects, _activities)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            _storage.Save(_entries);
+            RefreshFilterProjectsDropdown(FilterProjectComboBox.SelectedItem?.ToString());
+            RefreshFilterActivitiesDropdown(FilterActivityComboBox.SelectedItem?.ToString());
+            RefreshGrid();
+        }
+    }
+
+    private void ContextMenu_ViewDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is TimeEntry entry)
+        {
+            ShowTimeEntryDetails(entry);
+        }
+        else if (EntriesDataGrid.SelectedItem is TimeEntry selected)
+        {
+            ShowTimeEntryDetails(selected);
+        }
+    }
+
+    private void ContextMenu_Edit_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is TimeEntry entry)
+        {
+            EditTimeEntry(entry);
+        }
+        else if (EntriesDataGrid.SelectedItem is TimeEntry selected)
+        {
+            EditTimeEntry(selected);
+        }
+    }
+
+    private void ContextMenu_CopyNotes_Click(object sender, RoutedEventArgs e)
+    {
+        var entry = (sender as MenuItem)?.DataContext as TimeEntry ?? EntriesDataGrid.SelectedItem as TimeEntry;
+        if (entry != null)
+        {
+            string text = !string.IsNullOrWhiteSpace(entry.Note)
+                ? entry.Note
+                : $"Task: {entry.Description}\nProject: {entry.ProjectName}\nActivity: {entry.Activity}\nDate: {entry.StartTime:yyyy-MM-dd}\nTime: {entry.StartTime:HH:mm:ss} - {entry.EndTime:HH:mm:ss} ({entry.Duration:hh\\:mm\\:ss})";
+            try
+            {
+                Clipboard.SetText(text);
+                ThemedMessageBox.ShowSuccess(this, "Task notes / details copied to clipboard.", "Copied");
+            }
+            catch (Exception ex)
+            {
+                StoragePathHelper.LogError(ex, "MainWindow.ContextMenu_CopyNotes");
+            }
+        }
+    }
+
+    private void ContextMenu_Delete_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is TimeEntry entry)
+        {
+            DeleteTimeEntry(entry);
+        }
+        else if (EntriesDataGrid.SelectedItem is TimeEntry selected)
+        {
+            DeleteTimeEntry(selected);
+        }
+    }
+
     private void DeleteEntryButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement element && element.DataContext is TimeEntry entry)
@@ -1950,6 +2088,16 @@ public partial class MainWindow : Window
         {
             e.Handled = true;
             DeleteTimeEntry(selectedEntry);
+        }
+        else if (e.Key == Key.F2 && EntriesDataGrid.SelectedItem is TimeEntry editEntry)
+        {
+            e.Handled = true;
+            EditTimeEntry(editEntry);
+        }
+        else if (e.Key == Key.Enter && EntriesDataGrid.SelectedItem is TimeEntry viewEntry)
+        {
+            e.Handled = true;
+            ShowTimeEntryDetails(viewEntry);
         }
     }
 

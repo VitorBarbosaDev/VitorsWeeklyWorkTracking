@@ -624,6 +624,70 @@ public partial class AnalyticsWindow : Window
         ThemedMessageBox.ShowSuccess(this, $"Analytics report saved to:\n{dialog.FileName}", "Export Complete");
     }
 
+    private void ViewEntryDetailsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is TimeEntry entry)
+        {
+            ShowTimeEntryDetails(entry);
+        }
+    }
+
+    private void EntriesDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (EntriesDataGrid.SelectedItem is TimeEntry selectedEntry)
+        {
+            ShowTimeEntryDetails(selectedEntry);
+        }
+    }
+
+    private void ShowTimeEntryDetails(TimeEntry entry)
+    {
+        var dialog = new TaskDetailsDialog(entry, _allProjects, _allActivities)
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+
+        if (dialog.WasModified)
+        {
+            new TimeEntryStorage().Save(_allEntries);
+            RecalculateAnalytics();
+        }
+    }
+
+    private void ContextMenu_ViewDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.DataContext is TimeEntry entry)
+        {
+            ShowTimeEntryDetails(entry);
+        }
+        else if (EntriesDataGrid.SelectedItem is TimeEntry selected)
+        {
+            ShowTimeEntryDetails(selected);
+        }
+    }
+
+    private void ContextMenu_CopyNotes_Click(object sender, RoutedEventArgs e)
+    {
+        var entry = (sender as MenuItem)?.DataContext as TimeEntry ?? EntriesDataGrid.SelectedItem as TimeEntry;
+        if (entry != null)
+        {
+            string text = !string.IsNullOrWhiteSpace(entry.Note)
+                ? entry.Note
+                : $"Task: {entry.Description}\nProject: {entry.ProjectName}\nActivity: {entry.Activity}\nDate: {entry.StartTime:yyyy-MM-dd}\nTime: {entry.StartTime:HH:mm:ss} - {entry.EndTime:HH:mm:ss} ({entry.Duration:hh\\:mm\\:ss})";
+            try
+            {
+                Clipboard.SetText(text);
+                ThemedMessageBox.ShowSuccess(this, "Task notes / details copied to clipboard.", "Copied");
+            }
+            catch (Exception ex)
+            {
+                StoragePathHelper.LogError(ex, "AnalyticsWindow.ContextMenu_CopyNotes");
+            }
+        }
+    }
+
     private static string Escape(string value)
     {
         return value.Replace("\"", "\"\"");

@@ -623,7 +623,77 @@
                             <DataGrid x:Name="EntriesDataGrid"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
-                                      BorderThickness="0">
+                                      BorderThickness="0"
+                                      MouseDoubleClick="EntriesDataGrid_MouseDoubleClick">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="ℹ️ View Details..." Click="ContextMenu_ViewDetails_Click"/>
+                                        <MenuItem Header="📋 Copy Notes" Click="ContextMenu_CopyNotes_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="{x:Type DataGridRow}" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <Setter Property="ToolTipService.ShowDuration" Value="30000"/>
+                                        <Setter Property="ToolTipService.InitialShowDelay" Value="200"/>
+                                        <Setter Property="ToolTip">
+                                            <Setter.Value>
+                                                <ToolTip MaxWidth="440">
+                                                    <StackPanel Margin="3">
+                                                        <WrapPanel Margin="0 0 0 4">
+                                                            <TextBlock Text="{Binding ProjectName}" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                                            <TextBlock Text=" • " FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                                            <TextBlock Text="{Binding Activity}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                                        </WrapPanel>
+                                                        <TextBlock Text="{Binding Description}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Primary}" TextWrapping="Wrap" Margin="0 0 0 4"/>
+                                                        <!-- Timing info -->
+                                                        <TextBlock FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundSubtle}" Margin="0 0 0 6">
+                                                            <Run Text="📅 "/>
+                                                            <Run Text="{Binding StartTime, Mode=OneWay, StringFormat=\{0:yyyy-MM-dd\}}"/>
+                                                            <Run Text="  ⏱️ "/>
+                                                            <Run Text="{Binding StartTime, Mode=OneWay, StringFormat=\{0:HH:mm:ss\}}"/>
+                                                            <Run Text=" - "/>
+                                                            <Run Text="{Binding EndTime, Mode=OneWay, StringFormat=\{0:HH:mm:ss\}}"/>
+                                                            <Run Text=" ("/>
+                                                            <Run Text="{Binding Duration, Mode=OneWay, StringFormat=\{0:hh\\:mm\\:ss\}}"/>
+                                                            <Run Text=")"/>
+                                                        </TextBlock>
+                                                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="4"
+                                                                Padding="8 6"
+                                                                Margin="0 2 0 0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="📝 Notes:" FontWeight="SemiBold" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 0 2"/>
+                                                                <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Theme.Foreground}" TextWrapping="Wrap" LineHeight="16">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="{x:Type TextBlock}">
+                                                                            <Setter Property="Text" Value="{Binding Note}"/>
+                                                                            <Setter Property="FontStyle" Value="Normal"/>
+                                                                            <Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Note}" Value="">
+                                                                                    <Setter Property="Text" Value="(No notes recorded for this task)"/>
+                                                                                    <Setter Property="FontStyle" Value="Italic"/>
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource Theme.ForegroundSubtle}"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Note}" Value="{x:Null}">
+                                                                                    <Setter Property="Text" Value="(No notes recorded for this task)"/>
+                                                                                    <Setter Property="FontStyle" Value="Italic"/>
+                                                                                    <Setter Property="Foreground" Value="{DynamicResource Theme.ForegroundSubtle}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Date" Binding="{Binding StartTime, StringFormat=\{0:yyyy-MM-dd\}}" Width="95"/>
                                     <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="135"/>
@@ -631,8 +701,20 @@
                                     <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
                                     <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
                                     <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
-                                    <DataGridTextColumn Header="Duration" Binding="{Binding Duration, StringFormat=\{0:hh\\:mm\\:ss\}}" Width="80"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding Duration, Mode=OneWay, StringFormat=\{0:hh\\:mm\\:ss\}}" IsReadOnly="True" Width="80"/>
                                     <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="*"/>
+                                    <DataGridTemplateColumn Header="Action" Width="85">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="ℹ️ Details"
+                                                        Style="{StaticResource GhostButton}"
+                                                        ToolTip="View full task details and notes"
+                                                        FontSize="11"
+                                                        Padding="6 2"
+                                                        Click="ViewEntryDetailsButton_Click"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
 
