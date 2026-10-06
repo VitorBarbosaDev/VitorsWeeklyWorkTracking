@@ -138,13 +138,20 @@
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="QUICK TEMPLATES (MON-FRI)" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}" Margin="0 0 0 4"/>
                     <WrapPanel>
-                        <Button Content="⚡ 8h/day (40h)"
+                        <Button Content="⚡ 15M/day (1.25h)"
                                 Style="{StaticResource GhostButton}"
                                 FontSize="10"
                                 Padding="5 2"
                                 Height="22"
                                 Margin="0 0 4 4"
-                                Click="Template40Hours_Click"/>
+                                Click="Template15Minutes_Click"/>
+                        <Button Content="⚡ 4h/day (20h)"
+                                Style="{StaticResource GhostButton}"
+                                FontSize="10"
+                                Padding="5 2"
+                                Height="22"
+                                Margin="0 0 4 4"
+                                Click="Template20Hours_Click"/>
                         <Button Content="⚡ 5h/day (25h)"
                                 Style="{StaticResource GhostButton}"
                                 FontSize="10"
@@ -152,6 +159,13 @@
                                 Height="22"
                                 Margin="0 0 4 4"
                                 Click="Template25Hours_Click"/>
+                        <Button Content="⚡ 8h/day (40h)"
+                                Style="{StaticResource GhostButton}"
+                                FontSize="10"
+                                Padding="5 2"
+                                Height="22"
+                                Margin="0 0 4 4"
+                                Click="Template40Hours_Click"/>
                         <Button Content="📋 Copy Prev Week"
                                 Style="{StaticResource GhostButton}"
                                 FontSize="10"
@@ -207,10 +221,10 @@
                             <TextBox x:Name="PlanHoursTextBox" Width="44" Margin="0 0 4 0" Text="4.0" Padding="4 2" TextAlignment="Center"/>
 
                             <!-- Quick Hours presets -->
+                            <Button Content="15m" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="0.25"/>
                             <Button Content="1h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="1.0"/>
                             <Button Content="2h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="2.0"/>
                             <Button Content="4h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="4.0"/>
-                            <Button Content="6h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="6.0"/>
                             <Button Content="8h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="8.0"/>
 
                             <TextBlock Text="Notes:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>

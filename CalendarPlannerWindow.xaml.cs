@@ -607,6 +607,7 @@ public partial class CalendarPlannerWindow : Window
 
     private void EditPlanItemButton_Click(object sender, RoutedEventArgs e)
     {
+        PlannerTabControl.SelectedIndex = 0; // Switch to Planner tab
         if (sender is Button { Tag: PlannedWorkItem plan })
         {
             StartEditPlan(plan);
@@ -723,10 +724,18 @@ public partial class CalendarPlannerWindow : Window
             }
         }
     }
-
+    private void Template15Minutes_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyWeeklyTemplate(0.25, 5, "Mon-Fri 15min/day (1.25h total)");
+    }
+    
     private void Template40Hours_Click(object sender, RoutedEventArgs e)
     {
         ApplyWeeklyTemplate(8.0, 5, "Mon-Fri 8h/day (40h total)");
+    }
+    private void Template20Hours_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyWeeklyTemplate(4.0, 5, "Mon-Fri 4h/day (20h total)");
     }
 
     private void Template25Hours_Click(object sender, RoutedEventArgs e)
@@ -758,11 +767,11 @@ public partial class CalendarPlannerWindow : Window
                 ProjectName = project,
                 Activity = activity,
                 PlannedHours = hoursPerDay,
-                Note = $"{templateName} goal"
+                Note = !string.IsNullOrWhiteSpace(PlanNoteTextBox.Text) ? PlanNoteTextBox.Text.Trim()  : $"{templateName} goal"
             };
             CalendarPlanStorage.Instance.AddOrUpdatePlan(planItem);
         }
-
+        ResetEditor(clearNotes: true);
         LoadWeekData();
     }
 
