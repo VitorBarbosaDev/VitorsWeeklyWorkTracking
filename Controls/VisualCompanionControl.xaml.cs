@@ -1418,22 +1418,253 @@ public partial class VisualCompanionControl : UserControl
     {
         double scale = isMini ? 0.72 : 1.0;
 
-        // Picnic Blanket (Checkered Red/White)
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(240, 110, 100)), null, new Rect(x - (24 * scale), groundY - (6 * scale), 48 * scale, 6 * scale), 2, 2);
+        // 1. Picnic Blanket (Checkered Red/White Gingham with Fringes)
+        double blanketW = 58 * scale;
+        double blanketH = 15 * scale;
+        double blanketX = x - (29 * scale);
+        double blanketY = groundY - (10 * scale);
 
-        // Relaxing boy and puppy cuddled together
-        Point boyHead = new Point(x - (8 * scale), groundY - (20 * scale));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, boyHead, 6 * scale, 6 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(boyHead.X, boyHead.Y + (1 * scale)), 2 * scale, 1.2 * scale);
+        // Base red picnic blanket
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(235, 80, 75)), null, new Rect(blanketX, blanketY, blanketW, blanketH), 3 * scale, 3 * scale);
 
-        // Puppy sleeping beside boy
-        Point pup = new Point(x + (8 * scale), groundY - (10 * scale));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, pup, 7 * scale, 5 * scale);
+        // Checkered white/cream gingham stripes
+        var ginghamBrush = new SolidColorBrush(Color.FromArgb(140, 255, 245, 245));
+        for (int gx = 0; gx < 7; gx++)
+        {
+            if (gx % 2 == 1)
+            {
+                dc.DrawRectangle(ginghamBrush, null, new Rect(blanketX + (gx * 8.2 * scale), blanketY, 8.2 * scale, blanketH));
+            }
+        }
+        for (int gy = 0; gy < 3; gy++)
+        {
+            if (gy % 2 == 1)
+            {
+                dc.DrawRectangle(ginghamBrush, null, new Rect(blanketX, blanketY + (gy * 5.0 * scale), blanketW, 5.0 * scale));
+            }
+        }
+        // Blanket fringes at ends
+        var fringePen = new Pen(new SolidColorBrush(Color.FromRgb(255, 240, 230)), 1.2 * scale);
+        for (int f = 0; f < 4; f++)
+        {
+            double fy = blanketY + (2 * scale) + (f * 3.4 * scale);
+            dc.DrawLine(fringePen, new Point(blanketX, fy), new Point(blanketX - (2.5 * scale), fy));
+            dc.DrawLine(fringePen, new Point(blanketX + blanketW, fy), new Point(blanketX + blanketW + (2.5 * scale), fy));
+        }
 
-        // Floating rest tea & "z Z"
-        string zText = (_frameTick % 20 < 10) ? "🍵 z Z" : "🍵 Z z";
-        var ft = CreateText(zText, isMini ? 10 : 12, new SolidColorBrush(Color.FromRgb(255, 220, 90)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x + (14 * scale), groundY - (28 * scale)));
+        // 2. Soft Mint Pillow / Cushion for the boy's head
+        Point pillowPos = new Point(x - (18 * scale), groundY - (13.5 * scale));
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(165, 230, 210)), new Pen(new SolidColorBrush(Color.FromRgb(120, 195, 175)), 0.9 * scale), new Rect(pillowPos.X - (6.5 * scale), pillowPos.Y - (4.5 * scale), 13 * scale, 9 * scale), 3 * scale, 3 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(100, 175, 155)), null, pillowPos, 1.2 * scale, 1.2 * scale);
+
+        // 3. Boy's Bicycle Helmet set neatly beside the pillow
+        Point helmetPos = new Point(x - (25.5 * scale), groundY - (9 * scale));
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 218, 65)), null, helmetPos, 5.5 * scale, 4.2 * scale);
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 180, 20)), 1.8 * scale), new Point(helmetPos.X - (4 * scale), helmetPos.Y + (1 * scale)), new Point(helmetPos.X + (5 * scale), helmetPos.Y + (1 * scale)));
+        DrawSparkle(dc, helmetPos.X - (1 * scale), helmetPos.Y - (1 * scale), 1.8 * scale, new SolidColorBrush(Colors.White));
+
+        // 4. Lounging Chibi Boy (Naturally reclined with hoodie, shorts, sneakers, cuddling puppy)
+        double boyBreath = Math.Sin(_frameTick * 0.12) * (0.8 * scale);
+        Point boyHead = new Point(x - (13.5 * scale), groundY - (15.5 * scale) + boyBreath);
+        Point shoulder = new Point(boyHead.X + (3.2 * scale), boyHead.Y + (5.5 * scale));
+        Point hip = new Point(x - (2.0 * scale), groundY - (6.5 * scale));
+
+        var skinBrush = new SolidColorBrush(Color.FromRgb(255, 215, 180));
+        var hairBrush = new SolidColorBrush(Color.FromRgb(65, 45, 35));
+        var hoodieBrush = new LinearGradientBrush(Color.FromRgb(255, 110, 100), Color.FromRgb(235, 80, 70), new Point(0, 0), new Point(0, 1));
+        var denimBrush = new SolidColorBrush(Color.FromRgb(45, 80, 150));
+        var sneakerBrush = new SolidColorBrush(Color.FromRgb(255, 95, 85));
+
+        // 4a. Left / Supporting Arm (resting on cushion/blanket behind boy)
+        Point elbowLeft = new Point(boyHead.X - (3.5 * scale), groundY - (9.5 * scale));
+        Point handLeft = new Point(boyHead.X - (6.5 * scale), groundY - (7.5 * scale));
+        dc.DrawLine(new Pen(hoodieBrush, 3.6 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, shoulder, elbowLeft);
+        dc.DrawLine(new Pen(skinBrush, 2.6 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, elbowLeft, handLeft);
+        dc.DrawEllipse(skinBrush, null, handLeft, 1.6 * scale, 1.4 * scale);
+
+        // 4b. Back Leg (Far Leg - slightly elevated bent relaxed posture)
+        Point backKnee = new Point(hip.X + (5.0 * scale), groundY - (9.0 * scale));
+        Point backAnkle = new Point(hip.X + (10.5 * scale), groundY - (5.8 * scale));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(35, 65, 125)), 3.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, hip, backKnee);
+        dc.DrawLine(new Pen(skinBrush, 2.6 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, backKnee, backAnkle);
+        dc.DrawLine(new Pen(Brushes.White, 2.8 * scale), new Point(backAnkle.X - (1.0 * scale), backAnkle.Y), backAnkle);
+        // Far Sneaker
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(225, 75, 65)), null, new Rect(backAnkle.X - (0.5 * scale), backAnkle.Y - (2.0 * scale), 5.5 * scale, 2.6 * scale), 1.0 * scale, 1.0 * scale);
+        dc.DrawLine(new Pen(Brushes.White, 0.8 * scale), new Point(backAnkle.X, backAnkle.Y + (0.4 * scale)), new Point(backAnkle.X + (4.6 * scale), backAnkle.Y + (0.4 * scale)));
+
+        // 4c. Coral Hoodie Torso Body (Contoured polygon shape)
+        // White inner hood / collar trim
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 235, 230)), null, new Point(boyHead.X + (1.5 * scale), boyHead.Y + (4.0 * scale)), 4.2 * scale, 2.8 * scale);
+
+        var torsoGeom = new PathGeometry();
+        var tf = new PathFigure { StartPoint = new Point(boyHead.X + (1.0 * scale), boyHead.Y + (3.8 * scale)) };
+        tf.Segments.Add(new LineSegment(new Point(boyHead.X + (6.5 * scale), boyHead.Y + (6.0 * scale)), true)); // Front shoulder
+        tf.Segments.Add(new LineSegment(new Point(hip.X + (2.5 * scale), hip.Y + (0.5 * scale)), true)); // Front waist
+        tf.Segments.Add(new LineSegment(new Point(hip.X - (3.5 * scale), hip.Y - (1.5 * scale)), true)); // Back waist
+        tf.Segments.Add(new LineSegment(new Point(boyHead.X - (1.5 * scale), boyHead.Y + (5.5 * scale)), true)); // Back shoulder
+        tf.IsClosed = true;
+        torsoGeom.Figures.Add(tf);
+        dc.DrawGeometry(hoodieBrush, new Pen(new SolidColorBrush(Color.FromRgb(220, 65, 55)), 0.8 * scale), torsoGeom);
+
+        // Kangaroo Pouch Pocket on hoodie
+        var pocketGeom = new PathGeometry();
+        var pf = new PathFigure { StartPoint = new Point(hip.X - (0.5 * scale), hip.Y - (2.5 * scale)) };
+        pf.Segments.Add(new LineSegment(new Point(hip.X + (2.0 * scale), hip.Y - (1.0 * scale)), true));
+        pf.Segments.Add(new LineSegment(new Point(hip.X + (1.2 * scale), hip.Y + (0.5 * scale)), true));
+        pf.Segments.Add(new LineSegment(new Point(hip.X - (1.5 * scale), hip.Y - (0.8 * scale)), true));
+        pf.IsClosed = true;
+        pocketGeom.Figures.Add(pf);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(220, 70, 60)), null, pocketGeom);
+
+        // Hoodie Drawstrings
+        dc.DrawLine(new Pen(Brushes.White, 0.9 * scale), new Point(boyHead.X + (2.8 * scale), boyHead.Y + (4.8 * scale)), new Point(boyHead.X + (2.4 * scale), boyHead.Y + (8.5 * scale)));
+        dc.DrawLine(new Pen(Brushes.White, 0.9 * scale), new Point(boyHead.X + (4.0 * scale), boyHead.Y + (5.0 * scale)), new Point(boyHead.X + (3.8 * scale), boyHead.Y + (8.0 * scale)));
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(215, 215, 225)), null, new Point(boyHead.X + (2.4 * scale), boyHead.Y + (8.5 * scale)), 0.6 * scale, 0.6 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(215, 215, 225)), null, new Point(boyHead.X + (3.8 * scale), boyHead.Y + (8.0 * scale)), 0.6 * scale, 0.6 * scale);
+
+        // 4d. Denim Shorts Pelvis & Cuffs
+        dc.DrawRoundedRectangle(denimBrush, null, new Rect(hip.X - (3.5 * scale), hip.Y - (2.0 * scale), 7.5 * scale, 5.0 * scale), 1.8 * scale, 1.8 * scale);
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 235, 180)), 0.7 * scale), new Point(hip.X - (2.5 * scale), hip.Y + (0.5 * scale)), new Point(hip.X + (2.5 * scale), hip.Y + (1.5 * scale)));
+
+        // 4e. Front Leg (Near Leg - relaxed extended on blanket)
+        Point frontKnee = new Point(hip.X + (4.8 * scale), groundY - (6.0 * scale));
+        Point frontAnkle = new Point(hip.X + (12.0 * scale), groundY - (3.8 * scale));
+        dc.DrawLine(new Pen(denimBrush, 4.0 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, hip, frontKnee);
+        dc.DrawLine(new Pen(skinBrush, 2.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, frontKnee, frontAnkle);
+        dc.DrawLine(new Pen(Brushes.White, 3.0 * scale), new Point(frontAnkle.X - (1.2 * scale), frontAnkle.Y), frontAnkle);
+        // Near Sneaker
+        Rect shoeRect = new Rect(frontAnkle.X - (0.5 * scale), frontAnkle.Y - (2.2 * scale), 6.2 * scale, 3.0 * scale);
+        dc.DrawRoundedRectangle(sneakerBrush, null, shoeRect, 1.2 * scale, 1.2 * scale);
+        dc.DrawEllipse(Brushes.White, null, new Point(shoeRect.Right - (0.8 * scale), shoeRect.Y + (1.5 * scale)), 1.1 * scale, 1.1 * scale); // Rubber toe cap
+        dc.DrawLine(new Pen(Brushes.White, 0.9 * scale), new Point(shoeRect.Left, shoeRect.Bottom - (0.4 * scale)), new Point(shoeRect.Right, shoeRect.Bottom - (0.4 * scale))); // Sole
+        dc.DrawLine(new Pen(Brushes.White, 0.7 * scale), new Point(shoeRect.X + (2.0 * scale), shoeRect.Y + (0.8 * scale)), new Point(shoeRect.X + (3.8 * scale), shoeRect.Y + (0.8 * scale))); // Laces
+
+        // 4f. Head, Hair & Cute Chibi Face
+        dc.DrawEllipse(skinBrush, null, boyHead, 6.5 * scale, 6.5 * scale);
+        dc.DrawEllipse(skinBrush, null, new Point(boyHead.X - (4.8 * scale), boyHead.Y + (0.2 * scale)), 1.8 * scale, 2.0 * scale); // Ear
+
+        // Fluffy brown layered hair tufts
+        dc.DrawEllipse(hairBrush, null, new Point(boyHead.X - (2.0 * scale), boyHead.Y - (4.2 * scale)), 5.8 * scale, 4.0 * scale);
+        dc.DrawEllipse(hairBrush, null, new Point(boyHead.X - (5.8 * scale), boyHead.Y - (1.2 * scale)), 3.2 * scale, 3.2 * scale);
+        dc.DrawEllipse(hairBrush, null, new Point(boyHead.X + (2.0 * scale), boyHead.Y - (4.8 * scale)), 4.2 * scale, 3.0 * scale);
+        dc.DrawEllipse(hairBrush, null, new Point(boyHead.X + (4.0 * scale), boyHead.Y - (2.5 * scale)), 2.5 * scale, 2.2 * scale);
+
+        // Peaceful Smiling Eyes ( ᴗ ᴗ )
+        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(40, 30, 25)), 1.3 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var leftEye = new PathGeometry();
+        var lef = new PathFigure { StartPoint = new Point(boyHead.X - (3.5 * scale), boyHead.Y - (0.5 * scale)) };
+        lef.Segments.Add(new QuadraticBezierSegment(new Point(boyHead.X - (2.2 * scale), boyHead.Y + (0.6 * scale)), new Point(boyHead.X - (0.8 * scale), boyHead.Y - (0.5 * scale)), true));
+        leftEye.Figures.Add(lef);
+        dc.DrawGeometry(null, eyePen, leftEye);
+
+        var rightEye = new PathGeometry();
+        var refFig = new PathFigure { StartPoint = new Point(boyHead.X + (1.2 * scale), boyHead.Y - (0.5 * scale)) };
+        refFig.Segments.Add(new QuadraticBezierSegment(new Point(boyHead.X + (2.5 * scale), boyHead.Y + (0.6 * scale)), new Point(boyHead.X + (3.8 * scale), boyHead.Y - (0.5 * scale)), true));
+        rightEye.Figures.Add(refFig);
+        dc.DrawGeometry(null, eyePen, rightEye);
+
+        // Rosy Blushing Cheeks
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(170, 255, 120, 140)), null, new Point(boyHead.X - (2.2 * scale), boyHead.Y + (2.0 * scale)), 2.2 * scale, 1.3 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(170, 255, 120, 140)), null, new Point(boyHead.X + (2.8 * scale), boyHead.Y + (2.0 * scale)), 2.2 * scale, 1.3 * scale);
+
+        // Contented Resting Smile
+        var smilePen = new Pen(new SolidColorBrush(Color.FromRgb(185, 70, 75)), 1.1 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var smileGeom = new PathGeometry();
+        var smf = new PathFigure { StartPoint = new Point(boyHead.X, boyHead.Y + (2.8 * scale)) };
+        smf.Segments.Add(new QuadraticBezierSegment(new Point(boyHead.X + (1.2 * scale), boyHead.Y + (3.8 * scale)), new Point(boyHead.X + (2.2 * scale), boyHead.Y + (3.0 * scale)), true));
+        smileGeom.Figures.Add(smf);
+        dc.DrawGeometry(null, smilePen, smileGeom);
+
+        // 4g. Right Arm (Cuddling and petting the sleeping puppy)
+        Point cuddleHand = new Point(x + (6.0 * scale), groundY - (10.5 * scale) + boyBreath);
+        dc.DrawLine(new Pen(hoodieBrush, 3.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, shoulder, new Point(shoulder.X + (4.0 * scale), shoulder.Y + (2.5 * scale)));
+        dc.DrawLine(new Pen(skinBrush, 2.6 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(shoulder.X + (3.5 * scale), shoulder.Y + (2.5 * scale)), cuddleHand);
+        dc.DrawEllipse(skinBrush, null, cuddleHand, 1.9 * scale, 1.5 * scale);
+
+        // 5. Cuddled Sleeping Puppy 🐶💤
+        double pupBreath = Math.Sin((_frameTick * 0.12) + 0.8) * (0.6 * scale);
+        Point pupBody = new Point(x + (4 * scale), groundY - (7 * scale) + pupBreath);
+        Point pupHead = new Point(x + (1 * scale), groundY - (10 * scale) + pupBreath);
+
+        // Fluffy Golden Body & Head
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, pupBody, 6.5 * scale, 5 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, pupHead, 5 * scale, 4.5 * scale);
+
+        // Floppy Caramel Ears
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(195, 138, 78)), null, new Point(pupHead.X - (3 * scale), pupHead.Y + (0.5 * scale)), 2.2 * scale, 3.8 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(195, 138, 78)), null, new Point(pupHead.X + (3.5 * scale), pupHead.Y + (0.5 * scale)), 2.2 * scale, 3.8 * scale);
+
+        // Muzzle, Button Nose & Sleepy Eyes
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 245, 230)), null, new Point(pupHead.X, pupHead.Y + (1.5 * scale)), 2.4 * scale, 1.8 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Colors.Black), null, new Point(pupHead.X, pupHead.Y + (0.8 * scale)), 0.9 * scale, 0.7 * scale);
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(50, 35, 25)), 1 * scale), new Point(pupHead.X - (2.5 * scale), pupHead.Y - (0.5 * scale)), new Point(pupHead.X - (0.8 * scale), pupHead.Y - (0.5 * scale)));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(50, 35, 25)), 1 * scale), new Point(pupHead.X + (0.8 * scale), pupHead.Y - (0.5 * scale)), new Point(pupHead.X + (2.5 * scale), pupHead.Y - (0.5 * scale)));
+        // Puppy Blush
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(150, 255, 130, 150)), null, new Point(pupHead.X - (3 * scale), pupHead.Y + (1.5 * scale)), 1.5 * scale, 1 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(150, 255, 130, 150)), null, new Point(pupHead.X + (3 * scale), pupHead.Y + (1.5 * scale)), 1.5 * scale, 1 * scale);
+
+        // Puppy Paws
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, new Point(pupBody.X - (2 * scale), pupBody.Y + (3.5 * scale)), 1.8 * scale, 1.4 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, new Point(pupBody.X + (2.5 * scale), pupBody.Y + (3.5 * scale)), 1.8 * scale, 1.4 * scale);
+
+        // Curled Tail with gentle twitch
+        double pupTailWag = Math.Sin(_frameTick * 0.18) * (1.2 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(248, 198, 132)), null, new Point(pupBody.X + (6.5 * scale), pupBody.Y - (1 * scale) + pupTailWag), 2.2 * scale, 2.2 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 245, 230)), null, new Point(pupBody.X + (7.5 * scale), pupBody.Y - (2 * scale) + pupTailWag), 1.2 * scale, 1.2 * scale);
+
+        // 6. Picnic Basket & Steaming Cup of Tea 🧺🍵
+        if (!isMini)
+        {
+            Point basketPos = new Point(x + (18 * scale), groundY - (12 * scale));
+            double bW = 12 * scale;
+            double bH = 8.5 * scale;
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(218, 168, 108)), new Pen(new SolidColorBrush(Color.FromRgb(150, 100, 50)), 1 * scale), new Rect(basketPos.X, basketPos.Y, bW, bH), 2 * scale, 2 * scale);
+            // Basket arched handle
+            var handlePen = new Pen(new SolidColorBrush(Color.FromRgb(150, 100, 50)), 1.2 * scale);
+            dc.DrawLine(handlePen, new Point(basketPos.X + (bW * 0.2), basketPos.Y), new Point(basketPos.X + (bW * 0.5), basketPos.Y - (3.5 * scale)));
+            dc.DrawLine(handlePen, new Point(basketPos.X + (bW * 0.5), basketPos.Y - (3.5 * scale)), new Point(basketPos.X + (bW * 0.8), basketPos.Y));
+            // Gingham napkin drape
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 245, 245)), new Pen(new SolidColorBrush(Color.FromRgb(240, 90, 85)), 0.8 * scale), new Rect(basketPos.X + (1.5 * scale), basketPos.Y - (1 * scale), 4.5 * scale, 3.5 * scale), 1 * scale, 1 * scale);
+
+            // Teacup with Green Tea & Saucer
+            Point cupPos = new Point(basketPos.X - (6 * scale), groundY - (7 * scale));
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(245, 245, 250)), new Pen(new SolidColorBrush(Color.FromRgb(200, 200, 215)), 0.8 * scale), new Rect(cupPos.X, cupPos.Y, 5 * scale, 4.5 * scale), 1 * scale, 1 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(130, 200, 100)), null, new Point(cupPos.X + (2.5 * scale), cupPos.Y + (1 * scale)), 2 * scale, 0.9 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 235, 242)), null, new Point(cupPos.X + (2.5 * scale), cupPos.Y + (4.5 * scale)), 3.5 * scale, 1 * scale);
+
+            // Animated Rising Steam from Tea
+            double steamOffset = (_frameTick * 0.4) % 14;
+            double steamX = cupPos.X + (2.5 * scale) + (Math.Sin(_frameTick * 0.15) * (1.5 * scale));
+            double steamY = cupPos.Y - (2 * scale) - steamOffset;
+            byte steamAlpha = (byte)Math.Clamp(180 - (steamOffset * 12), 0, 180);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(steamAlpha, 235, 245, 255)), null, new Point(steamX, steamY), 1.2 * scale, 1.8 * scale);
+        }
+
+        // 7. Floating Animated Rest "z Z" & Love Heart 💖
+        double zShift = (_frameTick * 0.35) % 18;
+        double zX = boyHead.X + (5 * scale) + (Math.Sin(_frameTick * 0.12) * (3 * scale));
+        double zY = boyHead.Y - (8 * scale) - zShift;
+        byte zAlpha = (byte)Math.Clamp(230 - (zShift * 11), 0, 230);
+        string zText = (_frameTick % 20 < 10) ? "z Z" : "Z z";
+        var ftZ = CreateText(zText, isMini ? 9 : 11, new SolidColorBrush(Color.FromArgb(zAlpha, 255, 220, 100)), FontWeights.Bold);
+        dc.DrawText(ftZ, new Point(zX, zY));
+
+        double heartShift = ((_frameTick * 0.25) + 8) % 20;
+        double hX = pupHead.X + (7 * scale) + (Math.Cos(_frameTick * 0.1) * (2.5 * scale));
+        double hY = pupHead.Y - (5 * scale) - heartShift;
+        byte hAlpha = (byte)Math.Clamp(210 - (heartShift * 10), 0, 210);
+        DrawHeart(dc, hX, hY, 3 * scale, new SolidColorBrush(Color.FromArgb(hAlpha, 255, 130, 165)));
+
+        // Sparkles / Clovers around blanket
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 225, 80)), null, new Point(x - (32 * scale), groundY - (4 * scale)), 1.8 * scale, 1.8 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 140, 180)), null, new Point(x + (32 * scale), groundY - (5 * scale)), 1.8 * scale, 1.8 * scale);
+
+        // 8. Rest Banner Text
+        string text = isMini ? "🍵 Rest & Cuddle" : "🍵 Picnic Rest & Puppy Cuddles! 🐶💤✨";
+        var ft = CreateText(text, isMini ? 14 : 19, new SolidColorBrush(Color.FromRgb(255, 220, 80)), FontWeights.Bold);
+        Point center = CenterText(isMini, x, groundY);
+        double textX = isMini ? (ft.Width * 0.75) : center.X - (ft.Width * 0.5);
+        dc.DrawText(ft, new Point(textX, groundY - (42 * scale)));
     }
 
     #endregion
@@ -1929,19 +2160,22 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawCuteMoonLanding(DrawingContext dc, double x, double y, bool isMini)
     {
-        
         double scale = isMini ? 0.72 : 1.0;
 
-        
         DrawChunkyChibiRocket(dc, x - (12 * scale), y, isMini, false);
 
         // Planted Flagpole
-        Point flagPole = new Point(x+10 + (16 * scale), y - (20 * scale)-10);
+        Point flagPole = new Point(x + 10 + (16 * scale), y - (20 * scale) - 10);
         dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(235, 235, 245)), 2 * scale), flagPole, new Point(flagPole.X, flagPole.Y + (28 * scale)));
 
         // Flag banner with golden star
         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(255, 105, 95)), null, new Rect(flagPole.X, flagPole.Y, 16 * scale, 10 * scale));
         DrawSparkle(dc, flagPole.X + (8 * scale), flagPole.Y + (5 * scale), 3.5 * scale, new SolidColorBrush(Color.FromRgb(255, 225, 75)));
+
+        // Cute Astronaut standing on Moon celebrating! 👨‍🚀🚩
+        double astroX = flagPole.X + (16 * scale);
+        double astroY = y + (2 * scale);
+        DrawCuteChibiAstronaut(dc, astroX, astroY, scale * 0.82, isZeroG: false, isDrinkingBoba: false);
 
         string text = isMini ? "★ MOON BASE! ★" : "🚀 MISSION ACCOMPLISHED! 🌕✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
@@ -1953,23 +2187,255 @@ public partial class VisualCompanionControl : UserControl
     private void DrawCuteZeroGLounge(DrawingContext dc, double x, double y, bool isMini)
     {
         double scale = isMini ? 0.72 : 1.0;
-        double floatBob = Math.Sin(_frameTick * 0.18) * 4 * scale;
+        DrawCuteChibiAstronaut(dc, x, y, scale, isZeroG: true, isDrinkingBoba: true);
 
-        // Floating Cute Astronaut
-        Point astroCenter = new Point(x, y + floatBob);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(250, 252, 255)), new Pen(new SolidColorBrush(Color.FromRgb(120, 160, 200)), 1.8 * scale), astroCenter, 15 * scale, 15 * scale);
-        // Visor
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 60)), null, new Point(astroCenter.X + (2 * scale), astroCenter.Y), 7 * scale, 6 * scale);
-
-        // Floating Boba / Milk Tea Drink 🧋
-        Point boba = new Point(astroCenter.X + (18 * scale), astroCenter.Y - (4 * scale) - floatBob);
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(220, 255, 210, 175)), new Pen(new SolidColorBrush(Colors.White), 1.2), new Rect(boba.X, boba.Y, 9 * scale, 13 * scale), 2, 2);
-        // Straw
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 105, 150)), 1.8 * scale), new Point(boba.X + (4 * scale), boba.Y), new Point(boba.X + (7 * scale), boba.Y - (6 * scale)));
-
-        string text = isMini ? "☕ Zero-G Rest" : "🧋 Zero-G Chill Lounge • Take a sip! ✨";
+        string text = isMini ? "🧋 Zero-G Rest" : "🧋 Zero-G Chill Lounge • Take a sip! 👨‍🚀✨";
         var ft = CreateText(text, isMini ? 10 : 12, new SolidColorBrush(Color.FromRgb(160, 230, 255)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), y - (26 * scale) -12));
+        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), y - (28 * scale) - 12));
+    }
+
+    private void DrawCuteChibiAstronaut(DrawingContext dc, double x, double y, double scale, bool isZeroG, bool isDrinkingBoba)
+    {
+        double floatBob = isZeroG ? Math.Sin(_frameTick * 0.16) * (4.5 * scale) : 0;
+        double floatSway = isZeroG ? Math.Cos(_frameTick * 0.12) * (2.5 * scale) : 0;
+        double floatTilt = isZeroG ? Math.Sin(_frameTick * 0.14) * 5.0 : 0;
+
+        Point astro = new Point(x + floatSway, y + floatBob);
+        dc.PushTransform(new RotateTransform(floatTilt, astro.X, astro.Y));
+
+        // 1. Safety Tether Line (floating weightlessly in space)
+        if (isZeroG)
+        {
+            var tetherPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 120, 210, 255)), 1.4 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            var tetherGeom = new PathGeometry();
+            var tg = new PathFigure { StartPoint = new Point(astro.X - (15 * scale), astro.Y + (2 * scale)) };
+            tg.Segments.Add(new BezierSegment(
+                new Point(astro.X - (26 * scale), astro.Y + (10 * scale)),
+                new Point(astro.X - (34 * scale), astro.Y - (6 * scale)),
+                new Point(astro.X - (48 * scale), astro.Y + (2 * scale)),
+                true));
+            tetherGeom.Figures.Add(tg);
+            dc.DrawGeometry(null, tetherPen, tetherGeom);
+        }
+
+        // 2. Life Support Backpack (PLSS)
+        var backpackBrush = new LinearGradientBrush(Color.FromRgb(242, 246, 252), Color.FromRgb(205, 220, 238), new Point(0, 0), new Point(1, 1));
+        var backpackPen = new Pen(new SolidColorBrush(Color.FromRgb(140, 170, 205)), 1.1 * scale);
+        dc.DrawRoundedRectangle(backpackBrush, backpackPen, new Rect(astro.X - (15 * scale), astro.Y - (11 * scale), 9.5 * scale, 21 * scale), 3 * scale, 3 * scale);
+
+        // Twin Oxygen Cylinders on backpack
+        var tankBrush = new LinearGradientBrush(Color.FromRgb(220, 238, 252), Color.FromRgb(175, 205, 235), new Point(0, 0), new Point(1, 1));
+        dc.DrawRoundedRectangle(tankBrush, backpackPen, new Rect(astro.X - (14 * scale), astro.Y - (15.5 * scale), 3.6 * scale, 5.5 * scale), 1.5 * scale, 1.5 * scale);
+        dc.DrawRoundedRectangle(tankBrush, backpackPen, new Rect(astro.X - (9.5 * scale), astro.Y - (15.5 * scale), 3.6 * scale, 5.5 * scale), 1.5 * scale, 1.5 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(70, 170, 240)), null, new Point(astro.X - (12.2 * scale), astro.Y - (15.5 * scale)), 1.0 * scale, 0.8 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(70, 170, 240)), null, new Point(astro.X - (7.7 * scale), astro.Y - (15.5 * scale)), 1.0 * scale, 0.8 * scale);
+
+        // Telemetry status LED
+        bool ledBlink = (_frameTick % 20 < 10);
+        var ledBrush = new SolidColorBrush(ledBlink ? Color.FromRgb(80, 245, 170) : Color.FromRgb(30, 120, 75));
+        dc.DrawEllipse(ledBrush, null, new Point(astro.X - (10 * scale), astro.Y + (6 * scale)), 1.1 * scale, 1.1 * scale);
+
+        // Flexible corrugated oxygen hose connecting backpack to helmet collar
+        var hosePen = new Pen(new SolidColorBrush(Color.FromRgb(180, 205, 235)), 1.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var hoseGeom = new PathGeometry();
+        var hf = new PathFigure { StartPoint = new Point(astro.X - (10 * scale), astro.Y + (7 * scale)) };
+        hf.Segments.Add(new QuadraticBezierSegment(new Point(astro.X - (16 * scale), astro.Y - (1 * scale)), new Point(astro.X - (7 * scale), astro.Y - (5 * scale)), true));
+        hoseGeom.Figures.Add(hf);
+        dc.DrawGeometry(null, hosePen, hoseGeom);
+
+        // 3. Spacesuit Legs & Chunky Lunar Boots
+        var suitBrush = new LinearGradientBrush(Color.FromRgb(255, 255, 255), Color.FromRgb(225, 238, 252), new Point(0, 0), new Point(0, 1));
+        var suitBorderPen = new Pen(new SolidColorBrush(Color.FromRgb(140, 175, 215)), 1.2 * scale);
+        var bootSoleBrush = new SolidColorBrush(Color.FromRgb(45, 75, 135));
+
+        if (isZeroG)
+        {
+            // Back Leg (tucked up weightlessly)
+            Point backKnee = new Point(astro.X - (6 * scale), astro.Y + (14 * scale));
+            Point backFoot = new Point(astro.X - (2 * scale), astro.Y + (19 * scale));
+            dc.DrawLine(new Pen(suitBrush, 4.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X - (3 * scale), astro.Y + (8 * scale)), backKnee);
+            dc.DrawLine(new Pen(suitBrush, 4.0 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, backKnee, backFoot);
+            // Joint ring
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.2 * scale), new Point(backKnee.X - (1.5 * scale), backKnee.Y), new Point(backKnee.X + (1.5 * scale), backKnee.Y));
+            // Back Chunky Boot
+            Rect backBootRect = new Rect(backFoot.X - (1 * scale), backFoot.Y - (1 * scale), 6.5 * scale, 4.2 * scale);
+            dc.DrawRoundedRectangle(suitBrush, suitBorderPen, backBootRect, 1.5 * scale, 1.5 * scale);
+            dc.DrawRectangle(bootSoleBrush, null, new Rect(backBootRect.X, backBootRect.Bottom - (1.2 * scale), backBootRect.Width, 1.2 * scale));
+
+            // Front Leg (drifting gently forward)
+            Point frontKnee = new Point(astro.X + (5 * scale), astro.Y + (15 * scale));
+            Point frontFoot = new Point(astro.X + (9 * scale), astro.Y + (20 * scale));
+            dc.DrawLine(new Pen(suitBrush, 4.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X + (2 * scale), astro.Y + (8 * scale)), frontKnee);
+            dc.DrawLine(new Pen(suitBrush, 4.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, frontKnee, frontFoot);
+            // Joint ring
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.2 * scale), new Point(frontKnee.X - (1.5 * scale), frontKnee.Y), new Point(frontKnee.X + (1.5 * scale), frontKnee.Y));
+            // Front Chunky Boot
+            Rect frontBootRect = new Rect(frontFoot.X - (1 * scale), frontFoot.Y - (1 * scale), 7.2 * scale, 4.5 * scale);
+            dc.DrawRoundedRectangle(suitBrush, suitBorderPen, frontBootRect, 1.5 * scale, 1.5 * scale);
+            dc.DrawRectangle(bootSoleBrush, null, new Rect(frontBootRect.X, frontBootRect.Bottom - (1.3 * scale), frontBootRect.Width, 1.3 * scale));
+        }
+        else
+        {
+            // Standing firmly (Moon Landing)
+            Point leftFoot = new Point(astro.X - (4 * scale), astro.Y + (17 * scale));
+            Point rightFoot = new Point(astro.X + (4 * scale), astro.Y + (17 * scale));
+            dc.DrawLine(new Pen(suitBrush, 4.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X - (3 * scale), astro.Y + (8 * scale)), leftFoot);
+            dc.DrawLine(new Pen(suitBrush, 4.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X + (3 * scale), astro.Y + (8 * scale)), rightFoot);
+            Rect leftBoot = new Rect(leftFoot.X - (3 * scale), leftFoot.Y - (1 * scale), 6.5 * scale, 4.2 * scale);
+            Rect rightBoot = new Rect(rightFoot.X - (2.5 * scale), rightFoot.Y - (1 * scale), 6.5 * scale, 4.2 * scale);
+            dc.DrawRoundedRectangle(suitBrush, suitBorderPen, leftBoot, 1.5 * scale, 1.5 * scale);
+            dc.DrawRoundedRectangle(suitBrush, suitBorderPen, rightBoot, 1.5 * scale, 1.5 * scale);
+            dc.DrawRectangle(bootSoleBrush, null, new Rect(leftBoot.X, leftBoot.Bottom - (1.2 * scale), leftBoot.Width, 1.2 * scale));
+            dc.DrawRectangle(bootSoleBrush, null, new Rect(rightBoot.X, rightBoot.Bottom - (1.2 * scale), rightBoot.Width, 1.2 * scale));
+        }
+
+        // 4. Padded Spacesuit Torso & Chest Mission Pack
+        Rect torsoRect = new Rect(astro.X - (7.5 * scale), astro.Y - (4.5 * scale), 15 * scale, 14 * scale);
+        dc.DrawRoundedRectangle(suitBrush, suitBorderPen, torsoRect, 4.5 * scale, 4.5 * scale);
+
+        // Shoulder utility stripes
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.8 * scale), new Point(astro.X - (6 * scale), astro.Y - (3 * scale)), new Point(astro.X - (6 * scale), astro.Y + (1 * scale)));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.8 * scale), new Point(astro.X + (6 * scale), astro.Y - (3 * scale)), new Point(astro.X + (6 * scale), astro.Y + (1 * scale)));
+
+        // Golden Star Mission Patch
+        DrawSparkle(dc, astro.X - (4 * scale), astro.Y - (1 * scale), 1.8 * scale, new SolidColorBrush(Color.FromRgb(255, 215, 60)));
+
+        // Chest Control Panel Housing
+        Rect panelRect = new Rect(astro.X - (3.5 * scale), astro.Y + (1.2 * scale), 9.0 * scale, 6.8 * scale);
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(35, 48, 70)), new Pen(new SolidColorBrush(Color.FromRgb(80, 110, 150)), 0.8 * scale), panelRect, 1.8 * scale, 1.8 * scale);
+
+        // Control Panel Buttons
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(80, 220, 255)), null, new Point(astro.X - (1.5 * scale), astro.Y + (3.2 * scale)), 1.1 * scale, 1.1 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 105, 105)), null, new Point(astro.X + (1.2 * scale), astro.Y + (3.2 * scale)), 0.9 * scale, 0.9 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 60)), null, new Point(astro.X + (3.6 * scale), astro.Y + (3.2 * scale)), 0.9 * scale, 0.9 * scale);
+
+        // Telemetry mini meter bar
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(80, 245, 170)), null, new Rect(astro.X - (1.8 * scale), astro.Y + (5.4 * scale), 4.0 * scale, 1.2 * scale));
+
+        // 5. Spacesuit Arms & Mitten Gloves
+        // Left Arm (Floating/waving weightlessly in zero-G or giving peace sign)
+        Point leftElbow = new Point(astro.X - (11 * scale), astro.Y - (4 * scale));
+        Point leftHand = new Point(astro.X - (14 * scale), astro.Y - (10 * scale));
+        dc.DrawLine(new Pen(suitBrush, 4.0 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X - (6 * scale), astro.Y - (1 * scale)), leftElbow);
+        dc.DrawLine(new Pen(suitBrush, 3.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, leftElbow, leftHand);
+        // Ribbed joint
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.2 * scale), new Point(leftElbow.X - (1 * scale), leftElbow.Y), new Point(leftElbow.X + (1 * scale), leftElbow.Y));
+        // White glove with thumb waving
+        dc.DrawEllipse(suitBrush, suitBorderPen, leftHand, 2.2 * scale, 2.2 * scale);
+        dc.DrawEllipse(suitBrush, suitBorderPen, new Point(leftHand.X + (1.5 * scale), leftHand.Y + (0.5 * scale)), 1.1 * scale, 1.1 * scale);
+
+        // Right Arm (Holding boba straw or celebrating)
+        Point rightElbow = new Point(astro.X + (10 * scale), astro.Y + (1 * scale));
+        Point rightHand = isDrinkingBoba ? new Point(astro.X + (15 * scale), astro.Y - (2 * scale)) : new Point(astro.X + (13 * scale), astro.Y - (8 * scale));
+        dc.DrawLine(new Pen(suitBrush, 4.0 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(astro.X + (6 * scale), astro.Y - (1 * scale)), rightElbow);
+        dc.DrawLine(new Pen(suitBrush, 3.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, rightElbow, rightHand);
+        // Ribbed joint
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 140, 230)), 1.2 * scale), new Point(rightElbow.X - (1 * scale), rightElbow.Y), new Point(rightElbow.X + (1 * scale), rightElbow.Y));
+        // White glove
+        dc.DrawEllipse(suitBrush, suitBorderPen, rightHand, 2.2 * scale, 2.2 * scale);
+
+        // 6. Helmet Neck Collar Ring, Helmet Dome & Cute Face Visor
+        // Metallic neck seal collar
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(185, 210, 235)), new Pen(new SolidColorBrush(Color.FromRgb(130, 160, 195)), 0.9 * scale), new Rect(astro.X - (7.5 * scale), astro.Y - (7.0 * scale), 15 * scale, 3.5 * scale), 1.5 * scale, 1.5 * scale);
+
+        // Helmet Dome
+        Point helmetCenter = new Point(astro.X, astro.Y - (13.5 * scale));
+        var helmetDomeBrush = new RadialGradientBrush(Color.FromRgb(255, 255, 255), Color.FromRgb(215, 230, 248));
+        dc.DrawEllipse(helmetDomeBrush, suitBorderPen, helmetCenter, 11.5 * scale, 11.5 * scale);
+
+        // Side Communications Pod & Antenna
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(190, 215, 240)), new Pen(new SolidColorBrush(Color.FromRgb(140, 170, 205)), 0.8 * scale), new Rect(astro.X - (12.8 * scale), astro.Y - (15.5 * scale), 2.8 * scale, 4.5 * scale), 1.0 * scale, 1.0 * scale);
+        // Antenna
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(160, 190, 225)), 1.1 * scale), new Point(astro.X - (11.5 * scale), astro.Y - (15.5 * scale)), new Point(astro.X - (13.5 * scale), astro.Y - (22 * scale)));
+        var beaconBrush = new SolidColorBrush(ledBlink ? Color.FromRgb(255, 85, 105) : Color.FromRgb(80, 240, 255));
+        dc.DrawEllipse(beaconBrush, null, new Point(astro.X - (13.5 * scale), astro.Y - (22 * scale)), 1.4 * scale, 1.4 * scale);
+        if (ledBlink)
+        {
+            DrawSparkle(dc, astro.X - (13.5 * scale), astro.Y - (22 * scale), 1.8 * scale, beaconBrush);
+        }
+
+        // Cute Big Visor with Face Inside!
+        Point visorCenter = new Point(astro.X + (1.2 * scale), astro.Y - (13.0 * scale));
+        double visorRx = 8.2 * scale;
+        double visorRy = 7.0 * scale;
+
+        // Visor Gradient (Warm Golden Sunset / Amber Cosmic Tint)
+        var visorBrush = new LinearGradientBrush(
+            Color.FromArgb(235, 255, 215, 65),
+            Color.FromArgb(235, 255, 140, 50),
+            new Point(0, 0),
+            new Point(1, 1));
+        var visorPen = new Pen(new SolidColorBrush(Color.FromRgb(180, 110, 30)), 1.0 * scale);
+        dc.DrawEllipse(visorBrush, visorPen, visorCenter, visorRx, visorRy);
+
+        // Chibi Astronaut Eyes Inside Visor (^ ᵕ ^)
+        var astroEyePen = new Pen(new SolidColorBrush(Color.FromRgb(55, 35, 20)), 1.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        // Left Eye Arc
+        var leftEyeG = new PathGeometry();
+        var legFig = new PathFigure { StartPoint = new Point(visorCenter.X - (3.5 * scale), visorCenter.Y - (0.5 * scale)) };
+        legFig.Segments.Add(new QuadraticBezierSegment(new Point(visorCenter.X - (2.2 * scale), visorCenter.Y - (1.6 * scale)), new Point(visorCenter.X - (0.8 * scale), visorCenter.Y - (0.5 * scale)), true));
+        leftEyeG.Figures.Add(legFig);
+        dc.DrawGeometry(null, astroEyePen, leftEyeG);
+
+        // Right Eye Arc
+        var rightEyeG = new PathGeometry();
+        var regFig = new PathFigure { StartPoint = new Point(visorCenter.X + (0.8 * scale), visorCenter.Y - (0.5 * scale)) };
+        regFig.Segments.Add(new QuadraticBezierSegment(new Point(visorCenter.X + (2.2 * scale), visorCenter.Y - (1.6 * scale)), new Point(visorCenter.X + (3.5 * scale), visorCenter.Y - (0.5 * scale)), true));
+        rightEyeG.Figures.Add(regFig);
+        dc.DrawGeometry(null, astroEyePen, rightEyeG);
+
+        // Cute rosy blushed cheeks
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(170, 255, 100, 130)), null, new Point(visorCenter.X - (2.5 * scale), visorCenter.Y + (1.8 * scale)), 1.8 * scale, 1.1 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(170, 255, 100, 130)), null, new Point(visorCenter.X + (2.5 * scale), visorCenter.Y + (1.8 * scale)), 1.8 * scale, 1.1 * scale);
+
+        // Sweet resting smile
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(160, 60, 40)), 1.0 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(visorCenter.X - (0.5 * scale), visorCenter.Y + (2.8 * scale)), new Point(visorCenter.X + (1.2 * scale), visorCenter.Y + (2.8 * scale)));
+
+        // Glossy Curved Specular Highlight Arc on Visor
+        var reflGeom = new PathGeometry();
+        var rfig = new PathFigure { StartPoint = new Point(visorCenter.X - (5.2 * scale), visorCenter.Y - (3.5 * scale)) };
+        rfig.Segments.Add(new QuadraticBezierSegment(new Point(visorCenter.X - (1.0 * scale), visorCenter.Y - (5.2 * scale)), new Point(visorCenter.X + (3.0 * scale), visorCenter.Y - (4.2 * scale)), true));
+        reflGeom.Figures.Add(rfig);
+        dc.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1.3 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, reflGeom);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), null, new Point(visorCenter.X - (3.8 * scale), visorCenter.Y - (2.2 * scale)), 1.1 * scale, 1.1 * scale);
+
+        dc.Pop(); // Pop astronaut transform
+
+        // 7. Floating Boba / Milk Tea Drink 🧋 (in Zero-G Rest)
+        if (isDrinkingBoba)
+        {
+            Point bobaPos = new Point(astro.X + (17 * scale), astro.Y - (3 * scale) - (floatBob * 0.7));
+
+            // Boba Cup (Clear cup with iced milk tea gradient)
+            var teaBrush = new LinearGradientBrush(Color.FromArgb(235, 255, 220, 185), Color.FromArgb(235, 220, 170, 130), new Point(0, 0), new Point(0, 1));
+            dc.DrawRoundedRectangle(teaBrush, new Pen(new SolidColorBrush(Colors.White), 1.1 * scale), new Rect(bobaPos.X, bobaPos.Y, 10 * scale, 14 * scale), 2.5 * scale, 2.5 * scale);
+
+            // Chewy dark tapioca pearls (boba)
+            var pearlBrush = new SolidColorBrush(Color.FromRgb(45, 30, 25));
+            dc.DrawEllipse(pearlBrush, null, new Point(bobaPos.X + (3.0 * scale), bobaPos.Y + (11.0 * scale)), 1.4 * scale, 1.4 * scale);
+            dc.DrawEllipse(pearlBrush, null, new Point(bobaPos.X + (7.0 * scale), bobaPos.Y + (11.5 * scale)), 1.4 * scale, 1.4 * scale);
+            dc.DrawEllipse(pearlBrush, null, new Point(bobaPos.X + (5.0 * scale), bobaPos.Y + (8.5 * scale)), 1.3 * scale, 1.3 * scale);
+            dc.DrawEllipse(pearlBrush, null, new Point(bobaPos.X + (2.8 * scale), bobaPos.Y + (6.5 * scale)), 1.1 * scale, 1.1 * scale);
+
+            // Domed Lid
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), new Pen(new SolidColorBrush(Color.FromRgb(200, 225, 250)), 0.8 * scale), new Point(bobaPos.X + (5.0 * scale), bobaPos.Y), 5.0 * scale, 2.2 * scale);
+
+            // Striped Sipping Straw
+            Point strawBottom = new Point(bobaPos.X + (5.0 * scale), bobaPos.Y + (4.0 * scale));
+            Point strawTop = new Point(bobaPos.X + (2.5 * scale), bobaPos.Y - (7.0 * scale));
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 105, 150)), 1.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, strawBottom, strawTop);
+            dc.DrawLine(new Pen(Brushes.White, 0.9 * scale), new Point(strawBottom.X - (0.8 * scale), strawBottom.Y - (2.5 * scale)), new Point(strawBottom.X + (0.4 * scale), strawBottom.Y - (4.5 * scale)));
+
+            // Weightless Spherical Tea Droplets floating in Zero-G
+            Point drop1 = new Point(bobaPos.X - (3.5 * scale), bobaPos.Y - (6.0 * scale) + (Math.Sin(_frameTick * 0.2) * 1.8 * scale));
+            Point drop2 = new Point(bobaPos.X + (12.0 * scale), bobaPos.Y - (4.5 * scale) + (Math.Cos(_frameTick * 0.18) * 1.8 * scale));
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(210, 245, 195, 155)), new Pen(new SolidColorBrush(Colors.White), 0.6 * scale), drop1, 1.6 * scale, 1.6 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(210, 245, 195, 155)), new Pen(new SolidColorBrush(Colors.White), 0.6 * scale), drop2, 1.2 * scale, 1.2 * scale);
+
+            // Refreshing Zero-G Sparkles
+            DrawSparkle(dc, bobaPos.X + (13 * scale), bobaPos.Y + (4 * scale), 2.2 * scale, new SolidColorBrush(Color.FromRgb(255, 235, 140)));
+            DrawSparkle(dc, astro.X - (16 * scale), astro.Y - (17 * scale), 2.8 * scale, new SolidColorBrush(Color.FromRgb(140, 230, 255)));
+        }
     }
 
     #endregion
@@ -6332,6 +6798,16 @@ public partial class VisualCompanionControl : UserControl
     {
         double scale = isMini ? 0.72 : 1.0;
         Point head = new Point(x, trackY - (34 * scale));
+        Point hip = new Point(x, trackY - (17 * scale));
+
+        // Runner Legs standing in victory
+        var legPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 180)), 3.2 * scale);
+        dc.DrawLine(legPen, hip, new Point(hip.X - (5 * scale), trackY));
+        dc.DrawLine(legPen, hip, new Point(hip.X + (5 * scale), trackY));
+
+        // Cute Cyan Jersey
+        var jerseyPen = new Pen(new SolidColorBrush(Color.FromRgb(50, 160, 245)), 7 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(jerseyPen, hip, new Point(head.X, head.Y + (6 * scale)));
 
         // Arms raised in victory \o/
         var armPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 180)), 3 * scale);
@@ -6342,8 +6818,27 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, head, 6.5 * scale, 6.5 * scale);
         dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X, head.Y + (2 * scale)), 3 * scale, 1.5 * scale);
 
+        // Cute smiling eyes (^_^)
+        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(40, 30, 25)), 1.3 * scale);
+        dc.DrawLine(eyePen, new Point(head.X - (4 * scale), head.Y - (0.5 * scale)), new Point(head.X - (1.5 * scale), head.Y - (0.5 * scale)));
+        dc.DrawLine(eyePen, new Point(head.X + (1.5 * scale), head.Y - (0.5 * scale)), new Point(head.X + (4 * scale), head.Y - (0.5 * scale)));
+
+        // Red Fluttering Headband
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 65, 65)), 2.5 * scale), new Point(head.X - (5 * scale), head.Y - (2 * scale)), new Point(head.X + (6 * scale), head.Y - (2 * scale)));
+
         // Golden Star Trophy 🏆
         DrawSparkle(dc, head.X, head.Y - (18 * scale), 7 * scale, new SolidColorBrush(Color.FromRgb(255, 220, 60)));
+
+        // Celebrating Shiba Inu Companion 🐕
+        if (!isMini)
+        {
+            Point shiba = new Point(x - (22 * scale), trackY - (14 * scale));
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 160, 80)), null, shiba, 8 * scale, 6 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 160, 80)), null, new Point(shiba.X + (7 * scale), shiba.Y - (5 * scale)), 5 * scale, 5 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Colors.Black), null, new Point(shiba.X + (9 * scale), shiba.Y - (6 * scale)), 1 * scale, 1 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 120, 160)), null, new Point(shiba.X + (11 * scale), shiba.Y - (3 * scale)), 2 * scale, 1.5 * scale);
+            DrawSparkle(dc, shiba.X - (6 * scale), shiba.Y - (8 * scale), 4 * scale, new SolidColorBrush(Color.FromRgb(255, 215, 60)));
+        }
 
         string text = isMini ? "🏆 FINISH! 🏆" : "🏆 CHAMPION! FINISH LINE CROSSED! 🥇✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 220, 60)), FontWeights.Bold);
@@ -6356,12 +6851,144 @@ public partial class VisualCompanionControl : UserControl
     {
         double scale = isMini ? 0.72 : 1.0;
 
-        // Grassy bench
-        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(150, 90, 50)), null, new Rect(x - (20 * scale), trackY - (10 * scale), 40 * scale, 5 * scale));
+        // Grassy park bench
+        // Bench legs
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(90, 55, 35)), null, new Rect(x - (16 * scale), trackY - (6 * scale), 3 * scale, 6 * scale));
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(90, 55, 35)), null, new Rect(x + (13 * scale), trackY - (6 * scale), 3 * scale, 6 * scale));
+        // Bench seat plank
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(165, 100, 55)), new Pen(new SolidColorBrush(Color.FromRgb(120, 70, 35)), 1), new Rect(x - (22 * scale), trackY - (11 * scale), 44 * scale, 5 * scale), 1.5, 1.5);
 
-        // Runner resting sipping juice box 🧃
-        Point head = new Point(x, trackY - (24 * scale));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, head, 6 * scale, 6 * scale);
+        // Seated Runner resting sipping juice box 🧃 (with gentle breathing bob)
+        double rx = isMini ? x : x - (4 * scale);
+        double breath = Math.Sin(_frameTick * 0.12) * (0.8 * scale);
+        Point hip = new Point(rx, trackY - (10 * scale));
+        Point head = new Point(rx, trackY - (25 * scale) + breath);
+
+        // Runner seated legs & sneakers
+        var legPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 180)), 3.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        Point knee = new Point(rx + (5 * scale), trackY - (10 * scale));
+        Point foot = new Point(rx + (5 * scale), trackY);
+        dc.DrawLine(legPen, hip, knee);
+        dc.DrawLine(legPen, knee, foot);
+        // Red running shoe resting on track
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 75, 75)), null, new Rect(foot.X - (1 * scale), foot.Y - (3 * scale), 6 * scale, 3 * scale), 1.2 * scale, 1.2 * scale);
+
+        // Cute Cyan Jersey Body
+        var jerseyPen = new Pen(new SolidColorBrush(Color.FromRgb(50, 160, 245)), 7 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(jerseyPen, hip, new Point(head.X, head.Y + (6 * scale)));
+
+        // Arm holding juice box
+        var armPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 180)), 2.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        Point shoulder = new Point(head.X, head.Y + (7 * scale));
+        Point jb = new Point(rx + (5.5 * scale), trackY - (19 * scale) + (breath * 0.6));
+        dc.DrawLine(armPen, shoulder, new Point(jb.X + (1 * scale), jb.Y + (4 * scale)));
+        // Hand
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, new Point(jb.X + (1 * scale), jb.Y + (4 * scale)), 1.8 * scale, 1.8 * scale);
+
+        // Juice Box 🧃 (Green apple/orange box with cute fruit decal & bent straw)
+        double jbW = 5.5 * scale;
+        double jbH = 7.5 * scale;
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(125, 210, 85)), new Pen(new SolidColorBrush(Color.FromRgb(85, 160, 55)), 0.8 * scale), new Rect(jb.X, jb.Y, jbW, jbH), 1.2 * scale, 1.2 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 150, 50)), null, new Point(jb.X + (jbW * 0.5), jb.Y + (jbH * 0.55)), 1.5 * scale, 1.5 * scale);
+        // Straw reaching runner's mouth
+        var strawPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 95, 130)), 1.4 * scale);
+        dc.DrawLine(strawPen, new Point(jb.X + (jbW * 0.6), jb.Y), new Point(jb.X + (jbW * 0.3), jb.Y - (3.5 * scale)));
+        dc.DrawLine(strawPen, new Point(jb.X + (jbW * 0.3), jb.Y - (3.5 * scale)), new Point(head.X + (1.5 * scale), head.Y + (2.5 * scale)));
+
+        // Animated rising juice sipping droplet in straw
+        double sipT = ((_frameTick * 0.08) % 1.0);
+        Point strawSip = new Point(
+            (jb.X + (jbW * 0.3)) + (((head.X + (1.5 * scale)) - (jb.X + (jbW * 0.3))) * sipT),
+            (jb.Y - (3.5 * scale)) + (((head.Y + (2.5 * scale)) - (jb.Y - (3.5 * scale))) * sipT));
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(200, 255, 175, 70)), null, strawSip, 0.8 * scale, 0.8 * scale);
+
+        // Cute Chibi Head
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, head, 6.5 * scale, 6.5 * scale);
+        // Blushing cheeks
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X - (2.5 * scale), head.Y + (2 * scale)), 2.2 * scale, 1.3 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X + (2.5 * scale), head.Y + (2 * scale)), 2.2 * scale, 1.3 * scale);
+        // Peaceful relaxed eyes ( ᴗ ᴗ )
+        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(40, 30, 25)), 1.3 * scale);
+        dc.DrawLine(eyePen, new Point(head.X - (4 * scale), head.Y - (0.5 * scale)), new Point(head.X - (1.5 * scale), head.Y - (0.5 * scale)));
+        dc.DrawLine(eyePen, new Point(head.X + (1.5 * scale), head.Y - (0.5 * scale)), new Point(head.X + (4 * scale), head.Y - (0.5 * scale)));
+        // Sipping mouth
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(215, 95, 110)), null, new Point(head.X + (1.5 * scale), head.Y + (2.5 * scale)), 1 * scale, 1 * scale);
+
+        // Red Headband with fluttering ribbon tails
+        double bandTailWave1 = Math.Sin(_frameTick * 0.22) * (1.8 * scale);
+        double bandTailWave2 = Math.Cos(_frameTick * 0.18) * (1.0 * scale);
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 65, 65)), 2.5 * scale), new Point(head.X - (5.5 * scale), head.Y - (2 * scale)), new Point(head.X + (5.5 * scale), head.Y - (2 * scale)));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 65, 65)), 1.8 * scale), new Point(head.X - (5.5 * scale), head.Y - (2 * scale)), new Point(head.X - (9.5 * scale) + bandTailWave1, head.Y + (3 * scale) + bandTailWave2));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(215, 45, 45)), 1.3 * scale), new Point(head.X - (5.5 * scale), head.Y - (2 * scale)), new Point(head.X - (8.5 * scale) - bandTailWave2, head.Y + (5 * scale) + bandTailWave1));
+
+        // Cute anime sweat drop on racer's temple (cooling down after run) 💧
+        double sweatX = head.X + (5.5 * scale);
+        double sweatY = head.Y - (3.5 * scale);
+        var sweatGeom = new PathGeometry();
+        var sweatFig = new PathFigure { StartPoint = new Point(sweatX, sweatY - (3.2 * scale)), IsClosed = true, IsFilled = true };
+        sweatFig.Segments.Add(new BezierSegment(
+            new Point(sweatX - (1.2 * scale), sweatY - (1.2 * scale)),
+            new Point(sweatX - (2.0 * scale), sweatY + (0.8 * scale)),
+            new Point(sweatX, sweatY + (2.2 * scale)),
+            true));
+        sweatFig.Segments.Add(new BezierSegment(
+            new Point(sweatX + (2.0 * scale), sweatY + (0.8 * scale)),
+            new Point(sweatX + (1.2 * scale), sweatY - (1.2 * scale)),
+            new Point(sweatX, sweatY - (3.2 * scale)),
+            true));
+        sweatGeom.Figures.Add(sweatFig);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(230, 160, 230, 255)), new Pen(new SolidColorBrush(Color.FromRgb(70, 165, 230)), 0.7 * scale), sweatGeom);
+        byte gleamAlpha = (byte)(170 + (Math.Sin(_frameTick * 0.25) * 75));
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(gleamAlpha, 255, 255, 255)), null, new Point(sweatX - (0.5 * scale), sweatY + (0.3 * scale)), 0.65 * scale, 0.65 * scale);
+
+        // Dripping sweat bead on cheek with gentle oscillation
+        double dripOffset = Math.Sin(_frameTick * 0.16) * (0.6 * scale);
+        Point sweatBead = new Point(head.X - (4.2 * scale), head.Y + (0.6 * scale) + dripOffset);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(210, 160, 230, 255)), new Pen(new SolidColorBrush(Color.FromRgb(70, 165, 230)), 0.5 * scale), sweatBead, 1.1 * scale, 1.4 * scale);
+        dc.DrawEllipse(new SolidColorBrush(Colors.White), null, new Point(sweatBead.X - (0.3 * scale), sweatBead.Y - (0.3 * scale)), 0.4 * scale, 0.4 * scale);
+
+        // Occasional falling cooling sweat drop
+        double dropCycle = (_frameTick * 0.7) % 32;
+        if (dropCycle < 22)
+        {
+            double dropY = head.Y + (3 * scale) + (dropCycle * (0.55 * scale));
+            byte dropAlpha = (byte)Math.Clamp(210 - (dropCycle * 9.5), 0, 210);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(dropAlpha, 150, 220, 255)), null, new Point(head.X - (4.2 * scale), dropY), 0.7 * scale, 0.9 * scale);
+        }
+
+        // Sleeping Shiba Inu Companion curled on bench 🐕
+        if (!isMini)
+        {
+            double shibaBreath = Math.Sin((_frameTick * 0.12) + 1.2) * (0.6 * scale);
+            Point shiba = new Point(x + (12 * scale), trackY - (10 * scale) + shibaBreath);
+            // Body
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 160, 80)), null, shiba, 7 * scale, 5 * scale);
+            // Head
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 160, 80)), null, new Point(shiba.X + (6 * scale), shiba.Y - (2 * scale)), 4.5 * scale, 4.5 * scale);
+            // Muzzle
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 245, 230)), null, new Point(shiba.X + (8 * scale), shiba.Y - (1 * scale)), 2.5 * scale, 2 * scale);
+            // Nose & Sleepy Eye
+            dc.DrawEllipse(new SolidColorBrush(Colors.Black), null, new Point(shiba.X + (9.5 * scale), shiba.Y - (1.5 * scale)), 0.8 * scale, 0.8 * scale);
+            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(60, 40, 30)), 1 * scale), new Point(shiba.X + (5.5 * scale), shiba.Y - (3 * scale)), new Point(shiba.X + (7.5 * scale), shiba.Y - (2.5 * scale)));
+            // Curled tail with gentle twitch
+            double tailTwitch = Math.Sin(_frameTick * 0.2) * (0.9 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 160, 80)), null, new Point(shiba.X - (6 * scale), shiba.Y - (2 * scale) + tailTwitch), 2.5 * scale, 2.5 * scale);
+            // Water bowl beside bench
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(90, 190, 240)), null, new Rect(x + (21 * scale), trackY - (5 * scale), 7 * scale, 5 * scale), 1.5 * scale, 1.5 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(180, 235, 255)), null, new Point(x + (24.5 * scale), trackY - (3.5 * scale)), 2.2 * scale, 1 * scale);
+
+            // Sleeping "z Z" drifting upwards from Shiba
+            double zShift = (_frameTick * 0.3) % 16;
+            string zStr = (_frameTick % 24 < 12) ? "z" : "Z";
+            var zFt = CreateText(zStr, 9, new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(220 - (zShift * 11), 0, 220), 255, 220, 110)), FontWeights.Bold);
+            dc.DrawText(zFt, new Point(shiba.X + (7 * scale) + (Math.Sin(_frameTick * 0.15) * 2), shiba.Y - (10 * scale) - zShift));
+        }
+
+        // Refreshing hydration sparkles ✨
+        double sp1 = Math.Sin(_frameTick * 0.2) * 0.6 + 0.6;
+        double sp2 = Math.Cos(_frameTick * 0.22) * 0.6 + 0.6;
+        DrawSparkle(dc, rx - (13 * scale), trackY - (27 * scale) + (Math.Sin(_frameTick * 0.1) * 2), (2.8 + sp1) * scale, new SolidColorBrush(Color.FromRgb(140, 230, 255)));
+        DrawSparkle(dc, rx + (16 * scale), trackY - (25 * scale) + (Math.Cos(_frameTick * 0.1) * 2), (2.4 + sp2) * scale, new SolidColorBrush(Color.FromRgb(255, 235, 120)));
 
         string text = isMini ? "💧 Hydrate" : "💧 Hydrate & Cool Down! 🧃✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(110, 215, 255)), FontWeights.Bold);
