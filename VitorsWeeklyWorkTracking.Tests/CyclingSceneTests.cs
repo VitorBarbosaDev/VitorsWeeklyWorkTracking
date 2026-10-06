@@ -70,4 +70,20 @@ public class CyclingSceneTests
         Assert.Equal("🏠 ARRIVED HOME!", rendered.BadgeText);
         Assert.Contains("HOME", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
     }
+    [Fact]
+    public void AsciiArtEngine_RendersCycling_InitialIdle()
+    {
+        var rendered = AsciiArtEngine.Render(
+            sceneId: "cycling",
+            frameTick: 0,
+            progressFraction: 0.0,
+            isTracking: false,
+            isGoalReached: false,
+            isRestPhase: false,
+            contextDetails: "Ready");
+
+        Assert.NotNull(rendered);
+        Assert.Equal("🚴 READY TO RIDE", rendered.BadgeText);
+        Assert.Contains("starting point", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
+    }
 }
