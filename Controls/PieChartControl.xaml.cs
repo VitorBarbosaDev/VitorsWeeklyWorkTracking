@@ -218,7 +218,7 @@ public partial class PieChartControl : UserControl
                 var innerGeom = new EllipseGeometry(new Point(centerX, centerY), innerRadius, innerRadius);
                 var donutGeom = new CombinedGeometry(GeometryCombineMode.Exclude, outerGeom, innerGeom);
 
-                var donutPath = new Path
+                var donutPath = new System.Windows.Shapes.Path
                 {
                     Data = donutGeom,
                     Fill = singleSlice.Color,
@@ -280,7 +280,7 @@ public partial class PieChartControl : UserControl
         }
     }
 
-    private static Path CreateSlicePath(double cx, double cy, double rOut, double rIn, double startAngleDeg, double endAngleDeg, PieSliceItem slice, bool isDonut)
+    private static System.Windows.Shapes.Path CreateSlicePath(double cx, double cy, double rOut, double rIn, double startAngleDeg, double endAngleDeg, PieSliceItem slice, bool isDonut)
     {
         double startRad = startAngleDeg * Math.PI / 180.0;
         double endRad = endAngleDeg * Math.PI / 180.0;
@@ -314,7 +314,7 @@ public partial class PieChartControl : UserControl
         var geometry = new PathGeometry();
         geometry.Figures.Add(figure);
 
-        var path = new Path
+        var path = new System.Windows.Shapes.Path
         {
             Fill = slice.Color,
             StrokeThickness = 2.0,

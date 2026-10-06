@@ -103,6 +103,37 @@ public class CalendarPlanStorage
         return false;
     }
 
+    public List<PlannedWorkItem> CopyPlanToSubsequentDays(PlannedWorkItem sourcePlan, int numberOfDays)
+    {
+        if (sourcePlan == null || numberOfDays <= 0)
+        {
+            return new List<PlannedWorkItem>();
+        }
+
+        var plans = Load();
+        var createdPlans = new List<PlannedWorkItem>();
+
+        for (int i = 1; i <= numberOfDays; i++)
+        {
+            var targetDate = sourcePlan.Date.Date.AddDays(i);
+            var copiedItem = new PlannedWorkItem
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Date = targetDate,
+                ProjectName = sourcePlan.ProjectName,
+                Activity = sourcePlan.Activity,
+                PlannedHours = sourcePlan.PlannedHours,
+                Note = sourcePlan.Note,
+                CreatedAt = DateTime.Now
+            };
+            plans.Add(copiedItem);
+            createdPlans.Add(copiedItem);
+        }
+
+        Save(plans);
+        return createdPlans;
+    }
+
     public List<PlannedWorkItem> GetPlansForDate(DateTime date)
     {
         return Load()

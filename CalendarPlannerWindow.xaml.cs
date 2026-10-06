@@ -327,17 +327,39 @@ public partial class CalendarPlannerWindow : Window
             stack.Children.Add(noteText);
         }
 
-        // Action buttons: Edit & Delete
-        var actionsPanel = new StackPanel
+        // Action buttons row: Copy on left hand side, Edit & Delete on right hand side
+        var actionsGrid = new Grid
+        {
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        actionsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        actionsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        actionsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var copyBtn = new Button
+        {
+            Content = "📋",
+            ToolTip = "Copy this task to other days...",
+            Style = (Style)FindResource("GhostButton"),
+            FontSize = 9,
+            Padding = new Thickness(4, 1, 4, 1),
+            Height = 18,
+            Tag = plan
+        };
+        copyBtn.Click += (s, e) => OpenCopyToOtherDaysDialog(plan);
+        Grid.SetColumn(copyBtn, 0);
+        actionsGrid.Children.Add(copyBtn);
+
+        var rightActionsPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 4, 0, 0)
+            HorizontalAlignment = HorizontalAlignment.Right
         };
 
         var editBtn = new Button
         {
             Content = "✏",
+            ToolTip = "Edit task",
             Style = (Style)FindResource("GhostButton"),
             FontSize = 9,
             Padding = new Thickness(4, 1, 4, 1),
@@ -346,11 +368,12 @@ public partial class CalendarPlannerWindow : Window
             Tag = plan
         };
         editBtn.Click += (s, e) => StartEditPlan(plan);
-        actionsPanel.Children.Add(editBtn);
+        rightActionsPanel.Children.Add(editBtn);
 
         var delBtn = new Button
         {
             Content = "✕",
+            ToolTip = "Delete task",
             Style = (Style)FindResource("GhostDangerButton"),
             FontSize = 9,
             Padding = new Thickness(4, 1, 4, 1),
@@ -358,9 +381,12 @@ public partial class CalendarPlannerWindow : Window
             Tag = plan
         };
         delBtn.Click += (s, e) => DeletePlan(plan);
-        actionsPanel.Children.Add(delBtn);
+        rightActionsPanel.Children.Add(delBtn);
 
-        stack.Children.Add(actionsPanel);
+        Grid.SetColumn(rightActionsPanel, 2);
+        actionsGrid.Children.Add(rightActionsPanel);
+
+        stack.Children.Add(actionsGrid);
 
         card.Child = stack;
 
@@ -615,6 +641,38 @@ public partial class CalendarPlannerWindow : Window
         else if (sender is Button btn && btn.DataContext is PlannedWorkItem contextPlan)
         {
             StartEditPlan(contextPlan);
+        }
+    }
+
+    private void CopyPlanItemButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: PlannedWorkItem plan })
+        {
+            OpenCopyToOtherDaysDialog(plan);
+        }
+        else if (sender is Button btn && btn.DataContext is PlannedWorkItem contextPlan)
+        {
+            OpenCopyToOtherDaysDialog(contextPlan);
+        }
+    }
+
+    private void OpenCopyToOtherDaysDialog(PlannedWorkItem plan)
+    {
+        if (plan == null) return;
+
+        var dialog = new CopyToOtherDaysDialog(plan)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            int days = dialog.SelectedDays;
+            if (days > 0)
+            {
+                CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(plan, days);
+                LoadWeekData();
+            }
         }
     }
 

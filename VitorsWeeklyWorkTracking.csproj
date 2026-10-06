@@ -13,4 +13,9 @@
         <Resource Include="VitorWeeklyWorkTracking.ico" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Remove="VitorsWeeklyWorkTracking.Tests\**" />
+        <None Remove="VitorsWeeklyWorkTracking.Tests\**" />
+    </ItemGroup>
+
 </Project>
