@@ -165,13 +165,91 @@ public partial class VisualCompanionControl : UserControl
 
     #region Helper Drawing Methods & Celebrations
 
+    private static readonly FontFamily s_fontFamily = new("Segoe UI, sans-serif");
+    private static readonly Typeface s_normalTypeface = new(s_fontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+    private static readonly Typeface s_boldTypeface = new(s_fontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+    private static readonly Typeface s_semiBoldTypeface = new(s_fontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+
+    private static Typeface GetTypeface(FontWeight? weight)
+    {
+        if (weight == null || weight == FontWeights.Normal) return s_normalTypeface;
+        if (weight == FontWeights.Bold) return s_boldTypeface;
+        if (weight == FontWeights.SemiBold) return s_semiBoldTypeface;
+        return new Typeface(s_fontFamily, FontStyles.Normal, weight.Value, FontStretches.Normal);
+    }
+
+    private readonly record struct TextCacheKey(string Text, int SizeScaled, FontWeight Weight, uint ColorArgb);
+    private static readonly Dictionary<TextCacheKey, FormattedText> s_textCache = new(512);
+    private static readonly Dictionary<uint, SolidColorBrush> s_solidBrushCache = new(256);
+    private static readonly Dictionary<(uint Color, int WidthScaled), Pen> s_penCache = new(256);
+
+    private static SolidColorBrush GetSolidBrush(Color color)
+    {
+        uint key = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+        if (s_solidBrushCache.TryGetValue(key, out var brush))
+        {
+            return brush;
+        }
+        brush = new SolidColorBrush(color);
+        brush.Freeze();
+        if (s_solidBrushCache.Count > 1024) s_solidBrushCache.Clear();
+        s_solidBrushCache[key] = brush;
+        return brush;
+    }
+
+    private static Pen GetSolidPen(Color color, double thickness)
+    {
+        uint colKey = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+        int thickKey = (int)Math.Round(thickness * 100.0);
+        var key = (colKey, thickKey);
+        if (s_penCache.TryGetValue(key, out var pen))
+        {
+            return pen;
+        }
+        pen = new Pen(GetSolidBrush(color), thickness);
+        pen.Freeze();
+        if (s_penCache.Count > 1024) s_penCache.Clear();
+        s_penCache[key] = pen;
+        return pen;
+    }
+
     private static FormattedText CreateText(string text, double size, Brush brush, FontWeight? weight = null)
     {
+        var fw = weight ?? FontWeights.Normal;
+        if (brush is SolidColorBrush scb)
+        {
+            Color c = scb.Color;
+            uint colorArgb = ((uint)c.A << 24) | ((uint)c.R << 16) | ((uint)c.G << 8) | c.B;
+            var key = new TextCacheKey(text, (int)Math.Round(size * 100.0), fw, colorArgb);
+            if (s_textCache.TryGetValue(key, out var cachedFt))
+            {
+                return cachedFt;
+            }
+
+            var frozenBrush = scb.IsFrozen ? scb : GetSolidBrush(c);
+
+            var ft = new FormattedText(
+                text,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                GetTypeface(weight),
+                size,
+                frozenBrush,
+                1.0);
+
+            if (s_textCache.Count > 1024)
+            {
+                s_textCache.Clear();
+            }
+            s_textCache[key] = ft;
+            return ft;
+        }
+
         return new FormattedText(
             text,
             CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
-            new Typeface(new FontFamily("Segoe UI, sans-serif"), FontStyles.Normal, weight ?? FontWeights.Normal, FontStretches.Normal),
+            GetTypeface(weight),
             size,
             brush,
             1.0);
@@ -315,6 +393,7 @@ public partial class VisualCompanionControl : UserControl
 
         var rand = new Random(555 + (_frameTick / 2));
         int bokehCount = IsMiniMode ? 6 : 12;
+        var whiteGlow = GetSolidBrush(Color.FromArgb((byte)(190 * cheerFade), 255, 255, 255));
         for (int i = 0; i < bokehCount; i++)
         {
             double bx = (i / (double)bokehCount) * w + (Math.Sin((_frameTick * 0.08) + i) * 15);
@@ -324,7 +403,7 @@ public partial class VisualCompanionControl : UserControl
 
             var bokehBrush = new RadialGradientBrush(Color.FromArgb((byte)(160 * cheerFade), col.R, col.G, col.B), Color.FromArgb(0, col.R, col.G, col.B));
             dc.DrawEllipse(bokehBrush, null, new Point(bx, by), br, br);
-            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(190 * cheerFade), 255, 255, 255)), null, new Point(bx, by), br * 0.25, br * 0.25);
+            dc.DrawEllipse(whiteGlow, null, new Point(bx, by), br * 0.25, br * 0.25);
         }
 
         // 2. Animated Jumping Equalizer Wavebars along window
@@ -336,30 +415,31 @@ public partial class VisualCompanionControl : UserControl
             double eqY = h * 0.62;
             double barWidth = (eqW / eqBars) * 0.65;
 
+            var eqGrad = new LinearGradientBrush(Color.FromArgb((byte)(220 * cheerFade), 0, 240, 255), Color.FromArgb((byte)(220 * cheerFade), 255, 0, 135), new Point(0, 1), new Point(0, 0));
             for (int b = 0; b < eqBars; b++)
             {
                 double barH = (Math.Sin((_frameTick * 0.4) + (b * 0.7)) * 0.5 + 0.5) * (18 * cheerFade);
                 double barX = eqStartX + (b * (eqW / eqBars));
-                var eqGrad = new LinearGradientBrush(Color.FromArgb((byte)(220 * cheerFade), 0, 240, 255), Color.FromArgb((byte)(220 * cheerFade), 255, 0, 135), new Point(0, 1), new Point(0, 0));
                 dc.DrawRoundedRectangle(eqGrad, null, new Rect(barX, eqY - barH, barWidth, barH + 2), 1.5, 1.5);
             }
         }
 
         // 3. Floating Neon Music Notes (🎧 ♫ 🎵 ♩)
         var notes = new[] { "🎧", "♫", "🎵", "♩", "✨" };
+        var cyanNoteBrush = GetSolidBrush(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255));
         for (int n = 0; n < (IsMiniMode ? 3 : 5); n++)
         {
             double nx = (w * 0.60) + (Math.Sin((_frameTick * 0.12) + n) * (w * 0.18));
             double ny = (h * 0.65) - (cheerProgress * (h * 0.60)) + (n * (IsMiniMode ? 6 : 10));
-            var ft = CreateText(notes[n % notes.Length], IsMiniMode ? 10 : 13, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255)), FontWeights.Bold);
+            var ft = CreateText(notes[n % notes.Length], IsMiniMode ? 10 : 13, cyanNoteBrush, FontWeights.Bold);
             dc.DrawText(ft, new Point(nx, ny));
         }
 
         // 4. Cyberpunk Neon Floating Badge
         string msg = IsMiniMode ? "🎧 LO-FI FLOW! ⚡" : "⚡ 🎧 LO-FI GROOVE! TOKYO BEATS 🚉 ✨";
         var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 25, 20, 50), Color.FromArgb((byte)(240 * cheerFade), 45, 15, 65), new Point(0, 0), new Point(1, 1));
-        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255)), 1.5);
-        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
+        var border = GetSolidPen(Color.FromArgb((byte)(240 * cheerFade), 0, 240, 255), 1.5);
+        var textBrush = GetSolidBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 255, 255));
         DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
     }
 
@@ -459,7 +539,7 @@ public partial class VisualCompanionControl : UserControl
         {
             double waveR = (r * (IsMiniMode ? 12 : 24)) + (cheerProgress * (IsMiniMode ? 28 : 55));
             double waveAlpha = Math.Clamp(1.0 - (cheerProgress * 0.9), 0.0, 1.0) * cheerFade;
-            var wavePen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(150 * waveAlpha), 255, 210, 90)), 1.4);
+            var wavePen = GetSolidPen(Color.FromArgb((byte)(150 * waveAlpha), 255, 210, 90), 1.4);
             dc.DrawEllipse(null, wavePen, new Point(waveX, waveY), waveR, waveR * 0.6);
         }
 
@@ -471,15 +551,15 @@ public partial class VisualCompanionControl : UserControl
             double jx = (w * 0.15) + (j * (w * 0.70 / (IsMiniMode ? 4 : 7))) + (Math.Sin((_frameTick * 0.14) + j) * 8);
             double jy = (h * 0.70) - (cheerProgress * (h * 0.60)) + (Math.Cos((_frameTick * 0.16) + j) * 6);
             var col = noteColors[j % noteColors.Length];
-            var ft = CreateText(jazzIcons[j % jazzIcons.Length], IsMiniMode ? 10 : 13, new SolidColorBrush(Color.FromArgb((byte)(240 * cheerFade), col.R, col.G, col.B)), FontWeights.Bold);
+            var ft = CreateText(jazzIcons[j % jazzIcons.Length], IsMiniMode ? 10 : 13, GetSolidBrush(Color.FromArgb((byte)(240 * cheerFade), col.R, col.G, col.B)), FontWeights.Bold);
             dc.DrawText(ft, new Point(jx, jy));
         }
 
         // 3. Floating Banner
         string msg = IsMiniMode ? "🎷 JAZZY VICTORY! ☕🏆" : "✨ 🎷 SMOOTH JAZZ CELEBRATION! 100% FOCUS! ☕ 🏆 ✨";
         var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 50, 25, 65), Color.FromArgb((byte)(240 * cheerFade), 25, 12, 35), new Point(0, 0), new Point(1, 1));
-        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(225 * cheerFade), 255, 215, 75)), 1.5);
-        var textBrush = new SolidColorBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 240, 205));
+        var border = GetSolidPen(Color.FromArgb((byte)(225 * cheerFade), 255, 215, 75), 1.5);
+        var textBrush = GetSolidBrush(Color.FromArgb((byte)(255 * cheerFade), 255, 240, 205));
         DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
     }
 
@@ -738,42 +818,47 @@ public partial class VisualCompanionControl : UserControl
 
     private static void DrawSparkle(DrawingContext dc, double x, double y, double size, Brush brush)
     {
-        var geom = new PathGeometry();
-        var fig = new PathFigure { StartPoint = new Point(x, y - size) };
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x + (size * 0.2), y - (size * 0.2)), new Point(x + size, y), true));
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x + (size * 0.2), y + (size * 0.2)), new Point(x, y + size), true));
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x - (size * 0.2), y + (size * 0.2)), new Point(x - size, y), true));
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x - (size * 0.2), y - (size * 0.2)), new Point(x, y - size), true));
-        geom.Figures.Add(fig);
+        var geom = new StreamGeometry();
+        using (var ctx = geom.Open())
+        {
+            ctx.BeginFigure(new Point(x, y - size), true, true);
+            ctx.QuadraticBezierTo(new Point(x + (size * 0.2), y - (size * 0.2)), new Point(x + size, y), true, false);
+            ctx.QuadraticBezierTo(new Point(x + (size * 0.2), y + (size * 0.2)), new Point(x, y + size), true, false);
+            ctx.QuadraticBezierTo(new Point(x - (size * 0.2), y + (size * 0.2)), new Point(x - size, y), true, false);
+            ctx.QuadraticBezierTo(new Point(x - (size * 0.2), y - (size * 0.2)), new Point(x, y - size), true, false);
+        }
+        geom.Freeze();
         dc.DrawGeometry(brush, null, geom);
     }
 
     private static void DrawHeart(DrawingContext dc, double x, double y, double size, Brush brush)
     {
-        var geom = new PathGeometry();
-        var fig = new PathFigure { StartPoint = new Point(x, y + (size * 0.35)) };
-        fig.Segments.Add(new BezierSegment(new Point(x - (size * 0.7), y - (size * 0.4)), new Point(x - (size * 0.4), y - size), new Point(x, y - (size * 0.4)), true));
-        fig.Segments.Add(new BezierSegment(new Point(x + (size * 0.4), y - size), new Point(x + (size * 0.7), y - (size * 0.4)), new Point(x, y + (size * 0.35)), true));
-        geom.Figures.Add(fig);
+        var geom = new StreamGeometry();
+        using (var ctx = geom.Open())
+        {
+            ctx.BeginFigure(new Point(x, y + (size * 0.35)), true, true);
+            ctx.BezierTo(new Point(x - (size * 0.7), y - (size * 0.4)), new Point(x - (size * 0.4), y - size), new Point(x, y - (size * 0.4)), true, false);
+            ctx.BezierTo(new Point(x + (size * 0.4), y - size), new Point(x + (size * 0.7), y - (size * 0.4)), new Point(x, y + (size * 0.35)), true, false);
+        }
+        geom.Freeze();
         dc.DrawGeometry(brush, null, geom);
     }
 
     private static void DrawStar5(DrawingContext dc, double cx, double cy, double rOuter, double rInner, Brush brush, Pen? pen = null)
     {
-        var geom = new PathGeometry();
-        var fig = new PathFigure();
-        for (int i = 0; i < 10; i++)
+        var geom = new StreamGeometry();
+        using (var ctx = geom.Open())
         {
-            double angle = (i * Math.PI / 5.0) - (Math.PI * 0.5);
-            double r = (i % 2 == 0) ? rOuter : rInner;
-            var pt = new Point(cx + (Math.Cos(angle) * r), cy + (Math.Sin(angle) * r));
-            if (i == 0)
-                fig.StartPoint = pt;
-            else
-                fig.Segments.Add(new LineSegment(pt, true));
+            double angle0 = -(Math.PI * 0.5);
+            ctx.BeginFigure(new Point(cx + (Math.Cos(angle0) * rOuter), cy + (Math.Sin(angle0) * rOuter)), true, true);
+            for (int i = 1; i < 10; i++)
+            {
+                double angle = (i * Math.PI / 5.0) - (Math.PI * 0.5);
+                double r = (i % 2 == 0) ? rOuter : rInner;
+                ctx.LineTo(new Point(cx + (Math.Cos(angle) * r), cy + (Math.Sin(angle) * r)), true, false);
+            }
         }
-        fig.IsClosed = true;
-        geom.Figures.Add(fig);
+        geom.Freeze();
         dc.DrawGeometry(brush, pen, geom);
     }
 
@@ -789,11 +874,14 @@ public partial class VisualCompanionControl : UserControl
     private static void DrawLeaf(DrawingContext dc, double x, double y, double size, double angle, Brush brush)
     {
         dc.PushTransform(new RotateTransform(angle * 180.0 / Math.PI, x, y));
-        var geom = new PathGeometry();
-        var fig = new PathFigure { StartPoint = new Point(x, y - size) };
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x + (size * 0.7), y), new Point(x, y + size), true));
-        fig.Segments.Add(new QuadraticBezierSegment(new Point(x - (size * 0.7), y), new Point(x, y - size), true));
-        geom.Figures.Add(fig);
+        var geom = new StreamGeometry();
+        using (var ctx = geom.Open())
+        {
+            ctx.BeginFigure(new Point(x, y - size), true, true);
+            ctx.QuadraticBezierTo(new Point(x + (size * 0.7), y), new Point(x, y + size), true, false);
+            ctx.QuadraticBezierTo(new Point(x - (size * 0.7), y), new Point(x, y - size), true, false);
+        }
+        geom.Freeze();
         dc.DrawGeometry(brush, null, geom);
         dc.Pop();
     }
@@ -3938,7 +4026,7 @@ public partial class VisualCompanionControl : UserControl
         }
     }
 
-        private void DrawMugSteamWisps(DrawingContext dc, double centerX, double mugTopY, double mugW, double mugH, bool isMini)
+    private void DrawMugSteamWisps(DrawingContext dc, double centerX, double mugTopY, double mugW, double mugH, bool isMini)
     {
         if (!(IsTracking || IsGoalReached || IsRestPhase))
         {
@@ -3959,31 +4047,34 @@ public partial class VisualCompanionControl : UserControl
             double alphaFrac = Math.Clamp(1.0 - (steamOffset / maxRise), 0.05, 0.90);
 
             byte alpha = (byte)(155 * alphaFrac);
-            var steamBrush = new SolidColorBrush(Color.FromArgb(alpha, 255, 246, 235));
+            var steamBrush = GetSolidBrush(Color.FromArgb(alpha, 255, 246, 235));
             double wispX = centerX + wave + ((s - (wispCount * 0.5)) * (8.5 * scale));
             double wispRadiusX = (4.4 + (steamOffset * 0.08)) * scale;
             double wispRadiusY = (2.8 + (steamOffset * 0.05)) * scale;
 
             dc.DrawEllipse(steamBrush, null, new Point(wispX, steamY), wispRadiusX, wispRadiusY);
-            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(110 * alphaFrac), 255, 252, 246)), null, new Point(wispX + (wispRadiusX * 0.35), steamY - (wispRadiusY * 0.4)), wispRadiusX * 0.55, wispRadiusY * 0.45);
+            dc.DrawEllipse(GetSolidBrush(Color.FromArgb((byte)(110 * alphaFrac), 255, 252, 246)), null, new Point(wispX + (wispRadiusX * 0.35), steamY - (wispRadiusY * 0.4)), wispRadiusX * 0.55, wispRadiusY * 0.45);
 
             if (!isMini)
             {
-                var curlPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(70 * alphaFrac), 255, 245, 235)), 1.1) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-                var steamGeom = new PathGeometry();
-                var sf = new PathFigure { StartPoint = new Point(wispX - (3 * scale), steamY + (2 * scale)) };
-                sf.Segments.Add(new BezierSegment(
-                    new Point(wispX - (8 * scale), steamY - (4 * scale)),
-                    new Point(wispX + (7 * scale), steamY - (10 * scale)),
-                    new Point(wispX + (2 * scale), steamY - (15 * scale)),
-                    true));
-                steamGeom.Figures.Add(sf);
+                var curlPen = GetSolidPen(Color.FromArgb((byte)(70 * alphaFrac), 255, 245, 235), 1.1);
+                var steamGeom = new StreamGeometry();
+                using (var sctx = steamGeom.Open())
+                {
+                    sctx.BeginFigure(new Point(wispX - (3 * scale), steamY + (2 * scale)), false, false);
+                    sctx.BezierTo(
+                        new Point(wispX - (8 * scale), steamY - (4 * scale)),
+                        new Point(wispX + (7 * scale), steamY - (10 * scale)),
+                        new Point(wispX + (2 * scale), steamY - (15 * scale)),
+                        true, false);
+                }
+                steamGeom.Freeze();
                 dc.DrawGeometry(null, curlPen, steamGeom);
             }
 
             if (isGoal && alphaFrac > 0.42 && s % 2 == 0)
             {
-                DrawHeart(dc, wispX + (Math.Sin((_frameTick * 0.08) + s) * 3), steamY - (7 * scale), (isMini ? 3.2 : 5.2) * alphaFrac, new SolidColorBrush(Color.FromArgb((byte)(115 * alphaFrac), 255, 214, 226)));
+                DrawHeart(dc, wispX + (Math.Sin((_frameTick * 0.08) + s) * 3), steamY - (7 * scale), (isMini ? 3.2 : 5.2) * alphaFrac, GetSolidBrush(Color.FromArgb((byte)(115 * alphaFrac), 255, 214, 226)));
             }
         }
     }
@@ -4410,6 +4501,72 @@ public partial class VisualCompanionControl : UserControl
 
     #region 🎷 Scene: Coffee Jazz Window (Playlist Cover)
 
+    private static readonly SolidColorBrush[] s_coffeeFoliageBrushes =
+    {
+        (SolidColorBrush)new SolidColorBrush(Color.FromRgb(196, 122, 58)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromRgb(214, 156, 66)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromRgb(150, 108, 58)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromRgb(120, 96, 56)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromRgb(168, 130, 70)).GetAsFrozen()
+    };
+    private static readonly SolidColorBrush s_coffeeHutBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(160, 70, 48, 34)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeHutWinBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(140, 255, 214, 120)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeHorizonLineBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(60, 50, 42)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeWoodBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(120, 78, 48),
+        Color.FromRgb(70, 44, 26),
+        new Point(0, 0),
+        new Point(1, 1)).GetAsFrozen();
+    private static readonly Pen s_coffeeWoodGrainPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(70, 255, 210, 170)), 0.8).GetAsFrozen();
+    private static readonly Pen s_coffeeWoodDividerPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(55, 45, 24, 12)), 1.0).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeTableBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(150, 100, 62),
+        Color.FromRgb(96, 60, 36),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_coffeeTableLinePen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(150, 235, 190, 140)), 1.4).GetAsFrozen();
+    private static readonly Pen s_coffeeTableGrainPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(40, 60, 35, 20)), 1.0).GetAsFrozen();
+    private static readonly Pen s_coffeeRipplePen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(58, 255, 229, 198)), 0.8).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeHullBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(150, 72, 48, 42)).GetAsFrozen();
+    private static readonly Pen s_coffeeMastPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(145, 232, 220, 190)), 0.9).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSailBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(125, 250, 236, 202)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeBoatShadowBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(40, 255, 240, 220)).GetAsFrozen();
+    private static readonly Pen s_coffeeBirdPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(180, 96, 82, 88)), 1.1) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }.GetAsFrozen();
+    private static readonly SolidColorBrush[] s_coffeeFallingLeafBrushes =
+    {
+        (SolidColorBrush)new SolidColorBrush(Color.FromArgb(175, 214, 144, 76)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromArgb(175, 188, 108, 56)).GetAsFrozen(),
+        (SolidColorBrush)new SolidColorBrush(Color.FromArgb(175, 228, 186, 92)).GetAsFrozen()
+    };
+    private static readonly Pen s_coffeeLeafStemPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(135, 120, 72, 42)), 0.8).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeGloss1 = (LinearGradientBrush)new LinearGradientBrush(Color.FromArgb(55, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeGloss2 = (LinearGradientBrush)new LinearGradientBrush(Color.FromArgb(35, 255, 240, 225), Color.FromArgb(0, 255, 240, 225), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeBrassBrush = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(225, 180, 80), Color.FromRgb(145, 100, 32), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeLampContactShadow = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(90, 25, 15, 8)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeLampChainBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(245, 205, 95)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeLampShadeBrush = (LinearGradientBrush)new LinearGradientBrush(Color.FromArgb(240, 255, 225, 140), Color.FromArgb(215, 230, 145, 55), new Point(0, 0), new Point(0, 1)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSaucerShadow = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(110, 20, 10, 5)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeCeramicBrush = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(238, 226, 208), Color.FromRgb(205, 188, 165), new Point(0, 0), new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_coffeeCeramicPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(160, 140, 115)), 1.0).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSaucerDepression = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(45, 95, 72, 52)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeCupBrush = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(232, 218, 198), Color.FromRgb(196, 178, 152), new Point(0, 0), new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_coffeeCupPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(150, 130, 105)), 1.2).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeCupSpeck = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(55, 145, 126, 100)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeFoamBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(214, 170, 120)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeFoamHighlight = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(55, 255, 244, 226)).GetAsFrozen();
+    private static readonly Pen s_coffeeSpoonPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(210, 205, 198)), 1.5) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }.GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSpoonBowl = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(225, 220, 212)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeCatFurGrad = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(248, 168, 92), Color.FromRgb(218, 128, 58), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeCatScarfBrush = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(205, 120, 85), Color.FromRgb(165, 85, 55), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly Pen s_coffeeCatFringePen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(255, 235, 215)), 1.1).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeCatEarInner = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 180, 190)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeCatNose = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 150, 165)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeCatBlush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(160, 255, 130, 150)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeCatPawPad = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 175, 185)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_coffeeSaxGrad = (LinearGradientBrush)new LinearGradientBrush(Color.FromRgb(255, 228, 95), Color.FromRgb(210, 155, 28), new Point(0, 0), new Point(1, 1)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSaxDark = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(95, 60, 15)).GetAsFrozen();
+    private static readonly SolidColorBrush s_coffeeSaxStandBase = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(45, 45, 50)).GetAsFrozen();
+
     /// <summary>
     /// A "playlist cover" scene (like a chill lo-fi/jazz YouTube stream thumbnail) that fills the
     /// whole companion canvas: an autumn lakeside window view above a latte on a warm wooden
@@ -4465,21 +4622,17 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(sunGlow, null, sunPoint, card.Width * 0.55, viewH * 0.4);
         if (!isMini)
         {
-            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(80, 255, 225, 170)), null, sunPoint, 28, 18);
+            dc.DrawEllipse(GetSolidBrush(Color.FromArgb(80, 255, 225, 170)), null, sunPoint, 28, 18);
         }
 
         double horizonY = card.Y + (viewH * 0.70);
         var treeRand = new Random(11);
-        Color[] foliage =
-        {
-            Color.FromRgb(196, 122, 58), Color.FromRgb(214, 156, 66), Color.FromRgb(150, 108, 58),
-            Color.FromRgb(120, 96, 56), Color.FromRgb(168, 130, 70)
-        };
+        var foliage = s_coffeeFoliageBrushes;
 
         for (double tx = card.X - 6; tx < card.X + card.Width + 6; tx += (isMini ? 10 : 7))
         {
             double th = 8 + (treeRand.NextDouble() * (isMini ? 8 : 16));
-            var tBrush = new SolidColorBrush(foliage[treeRand.Next(foliage.Length)]);
+            var tBrush = foliage[treeRand.Next(foliage.Length)];
             dc.DrawEllipse(tBrush, null, new Point(tx, horizonY - (th * 0.4)), isMini ? 6 : 9, th);
         }
 
@@ -4487,11 +4640,11 @@ public partial class VisualCompanionControl : UserControl
         {
             double hutX = card.X + (card.Width * 0.08) + (i * (card.Width * 0.13));
             double hutY = horizonY - 4 - ((i % 2) * 2);
-            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(160, 70, 48, 34)), null, new Rect(hutX, hutY, isMini ? 4 : 6, isMini ? 3 : 4));
-            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(140, 255, 214, 120)), null, new Rect(hutX + 1, hutY + 0.8, isMini ? 2 : 3, 1.2));
+            dc.DrawRectangle(s_coffeeHutBrush, null, new Rect(hutX, hutY, isMini ? 4 : 6, isMini ? 3 : 4));
+            dc.DrawRectangle(s_coffeeHutWinBrush, null, new Rect(hutX + 1, hutY + 0.8, isMini ? 2 : 3, 1.2));
         }
 
-        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(60, 50, 42)), null, new Rect(card.X, horizonY - 1, card.Width, 2));
+        dc.DrawRectangle(s_coffeeHorizonLineBrush, null, new Rect(card.X, horizonY - 1, card.Width, 2));
 
         var waterBrush = new LinearGradientBrush(LerpColor(skyBottom, Color.FromRgb(150, 120, 95), 0.3), Color.FromRgb(70, 55, 48), new Point(0, 0), new Point(0, 1));
         dc.DrawRectangle(waterBrush, null, new Rect(card.X, horizonY, card.Width, viewH - (horizonY - card.Y)));
@@ -4512,7 +4665,7 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawCoffeeJazzWindowFrame(DrawingContext dc, Rect card, double viewH, bool isMini)
     {
-        var woodBrush = new LinearGradientBrush(Color.FromRgb(120, 78, 48), Color.FromRgb(70, 44, 26), new Point(0, 0), new Point(1, 1));
+        var woodBrush = s_coffeeWoodBrush;
         double frameT = isMini ? 5 : 10;
 
         dc.DrawRectangle(woodBrush, null, new Rect(card.X, card.Y, card.Width, frameT));
@@ -4521,9 +4674,8 @@ public partial class VisualCompanionControl : UserControl
 
         if (!isMini)
         {
-            var grainPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 255, 210, 170)), 0.8);
-            dc.DrawLine(grainPen, new Point(card.X, card.Y + (frameT * 0.5)), new Point(card.X + card.Width, card.Y + (frameT * 0.5)));
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(55, 45, 24, 12)), 1.0), new Point(card.X + (card.Width * 0.78) + frameT * 0.8, card.Y), new Point(card.X + (card.Width * 0.78) + frameT * 0.8, viewH));
+            dc.DrawLine(s_coffeeWoodGrainPen, new Point(card.X, card.Y + (frameT * 0.5)), new Point(card.X + card.Width, card.Y + (frameT * 0.5)));
+            dc.DrawLine(s_coffeeWoodDividerPen, new Point(card.X + (card.Width * 0.78) + frameT * 0.8, card.Y), new Point(card.X + (card.Width * 0.78) + frameT * 0.8, viewH));
         }
     }
 
@@ -4532,16 +4684,15 @@ public partial class VisualCompanionControl : UserControl
         GetCoffeeJazzCupLayout(card, viewH, isMini, out double tableY, out double tableH, out double cupX, out double cupY, out double cupW, out double cupH);
         var tableRect = new Rect(card.X, tableY, card.Width, tableH);
 
-        var tableBrush = new LinearGradientBrush(Color.FromRgb(150, 100, 62), Color.FromRgb(96, 60, 36), new Point(0, 0), new Point(0, 1));
-        dc.DrawRectangle(tableBrush, null, tableRect);
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(150, 235, 190, 140)), 1.4), new Point(card.X, tableY), new Point(card.X + card.Width, tableY));
+        dc.DrawRectangle(s_coffeeTableBrush, null, tableRect);
+        dc.DrawLine(s_coffeeTableLinePen, new Point(card.X, tableY), new Point(card.X + card.Width, tableY));
 
         var grainRand = new Random(3);
+        var gPen = s_coffeeTableGrainPen;
         for (int i = 0; i < (isMini ? 3 : 7); i++)
         {
             double gy = tableY + 4 + (grainRand.NextDouble() * Math.Max(2, tableH - 8));
-            var gBrush = new SolidColorBrush(Color.FromArgb(40, 60, 35, 20));
-            dc.DrawLine(new Pen(gBrush, 1.0), new Point(card.X, gy), new Point(card.X + card.Width, gy + (grainRand.NextDouble() * 3 - 1.5)));
+            dc.DrawLine(gPen, new Point(card.X, gy), new Point(card.X + card.Width, gy + (grainRand.NextDouble() * 3 - 1.5)));
         }
 
         // Scaled-up Cozy Bistro Table Lamp on the left-hand side
@@ -4563,49 +4714,51 @@ public partial class VisualCompanionControl : UserControl
         double saucerX = x + ((cupW - saucerW) * 0.5);
         double saucerY = y + cupH - (saucerH * 0.55);
 
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(110, 20, 10, 5)), null, new Point(saucerX + (saucerW * 0.5), saucerY + saucerH - 1), saucerW * 0.52, saucerH * 0.5);
+        dc.DrawEllipse(s_coffeeSaucerShadow, null, new Point(saucerX + (saucerW * 0.5), saucerY + saucerH - 1), saucerW * 0.52, saucerH * 0.5);
 
-        var ceramicBrush = new LinearGradientBrush(Color.FromRgb(238, 226, 208), Color.FromRgb(205, 188, 165), new Point(0, 0), new Point(0, 1));
-        dc.DrawRoundedRectangle(ceramicBrush, new Pen(new SolidColorBrush(Color.FromRgb(160, 140, 115)), 1), new Rect(saucerX, saucerY, saucerW, saucerH), saucerH * 0.5, saucerH * 0.5);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(45, 95, 72, 52)), null, new Point(saucerX + (saucerW * 0.5), saucerY + (saucerH * 0.45)), saucerW * 0.32, saucerH * 0.22);
+        dc.DrawRoundedRectangle(s_coffeeCeramicBrush, s_coffeeCeramicPen, new Rect(saucerX, saucerY, saucerW, saucerH), saucerH * 0.5, saucerH * 0.5);
+        dc.DrawEllipse(s_coffeeSaucerDepression, null, new Point(saucerX + (saucerW * 0.5), saucerY + (saucerH * 0.45)), saucerW * 0.32, saucerH * 0.22);
 
-        var cupBrush = new LinearGradientBrush(Color.FromRgb(232, 218, 198), Color.FromRgb(196, 178, 152), new Point(0, 0), new Point(0, 1));
-        var cupPen = new Pen(new SolidColorBrush(Color.FromRgb(150, 130, 105)), 1.2);
-        dc.DrawRoundedRectangle(cupBrush, cupPen, new Rect(x, y, cupW, cupH), cupH * 0.28, cupH * 0.28);
+        dc.DrawRoundedRectangle(s_coffeeCupBrush, s_coffeeCupPen, new Rect(x, y, cupW, cupH), cupH * 0.28, cupH * 0.28);
 
         if (!isMini)
         {
+            var speckBrush = s_coffeeCupSpeck;
             for (int i = 0; i < 7; i++)
             {
                 double speckX = x + (cupW * 0.14) + ((i * 13.0) % (cupW * 0.62));
                 double speckY = y + (cupH * 0.18) + ((i * 9.0) % (cupH * 0.42));
-                dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(55, 145, 126, 100)), null, new Point(speckX, speckY), 0.9, 0.9);
+                dc.DrawEllipse(speckBrush, null, new Point(speckX, speckY), 0.9, 0.9);
             }
         }
 
-        var handleGeom = new PathGeometry();
-        var hf = new PathFigure { StartPoint = new Point(x + cupW, y + (cupH * 0.28)) };
-        hf.Segments.Add(new BezierSegment(
-            new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.1)),
-            new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.85)),
-            new Point(x + cupW, y + (cupH * 0.66)),
-            true));
-        handleGeom.Figures.Add(hf);
-        dc.DrawGeometry(null, new Pen(cupBrush, cupH * 0.16) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, handleGeom);
+        var handlePen = new Pen(s_coffeeCupBrush, cupH * 0.16) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var handleGeom = new StreamGeometry();
+        using (var hctx = handleGeom.Open())
+        {
+            hctx.BeginFigure(new Point(x + cupW, y + (cupH * 0.28)), false, false);
+            hctx.BezierTo(
+                new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.1)),
+                new Point(x + cupW + (cupW * 0.32), y + (cupH * 0.85)),
+                new Point(x + cupW, y + (cupH * 0.66)),
+                true, false);
+        }
+        handleGeom.Freeze();
+        dc.DrawGeometry(null, handlePen, handleGeom);
 
         double foamW = cupW * 0.82;
         double foamH = cupH * 0.42;
         double foamX = x + ((cupW - foamW) * 0.5);
         double foamY = y + (cupH * 0.06);
         Point foamCenter = new Point(foamX + (foamW * 0.5), foamY + (foamH * 0.5));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(214, 170, 120)), null, foamCenter, foamW * 0.5, foamH * 0.5);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(55, 255, 244, 226)), null, new Point(foamCenter.X - (foamW * 0.15), foamCenter.Y - (foamH * 0.15)), foamW * 0.20, foamH * 0.14);
+        dc.DrawEllipse(s_coffeeFoamBrush, null, foamCenter, foamW * 0.5, foamH * 0.5);
+        dc.DrawEllipse(s_coffeeFoamHighlight, null, new Point(foamCenter.X - (foamW * 0.15), foamCenter.Y - (foamH * 0.15)), foamW * 0.20, foamH * 0.14);
 
         if (IsRestPhase)
         {
             // Cute sleeping cat latte foam art
-            var cocoaPen = new Pen(new SolidColorBrush(Color.FromRgb(145, 95, 55)), isMini ? 1.0 : 1.4) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-            var foamCream = new SolidColorBrush(Color.FromRgb(248, 238, 222));
+            var cocoaPen = GetSolidPen(Color.FromRgb(145, 95, 55), isMini ? 1.0 : 1.4);
+            var foamCream = GetSolidBrush(Color.FromRgb(248, 238, 222));
             dc.DrawEllipse(foamCream, null, foamCenter, foamW * 0.32, foamH * 0.32);
             // Foam ears
             dc.DrawLine(cocoaPen, new Point(foamCenter.X - (foamW * 0.22), foamCenter.Y - (foamH * 0.12)), new Point(foamCenter.X - (foamW * 0.15), foamCenter.Y - (foamH * 0.30)));
@@ -4616,31 +4769,34 @@ public partial class VisualCompanionControl : UserControl
             dc.DrawLine(cocoaPen, new Point(foamCenter.X - (foamW * 0.16), foamCenter.Y), new Point(foamCenter.X - (foamW * 0.06), foamCenter.Y));
             dc.DrawLine(cocoaPen, new Point(foamCenter.X + (foamW * 0.06), foamCenter.Y), new Point(foamCenter.X + (foamW * 0.16), foamCenter.Y));
             // Nose and whiskers
-            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(145, 95, 55)), null, new Point(foamCenter.X, foamCenter.Y + (foamH * 0.10)), 0.9, 0.7);
+            dc.DrawEllipse(GetSolidBrush(Color.FromRgb(145, 95, 55)), null, new Point(foamCenter.X, foamCenter.Y + (foamH * 0.10)), 0.9, 0.7);
             dc.DrawLine(cocoaPen, new Point(foamCenter.X - (foamW * 0.22), foamCenter.Y + (foamH * 0.08)), new Point(foamCenter.X - (foamW * 0.12), foamCenter.Y + (foamH * 0.08)));
             dc.DrawLine(cocoaPen, new Point(foamCenter.X + (foamW * 0.12), foamCenter.Y + (foamH * 0.08)), new Point(foamCenter.X + (foamW * 0.22), foamCenter.Y + (foamH * 0.08)));
         }
         else if (isGoal)
         {
             // Golden celebration star latte foam art
-            var starGold = new SolidColorBrush(Color.FromRgb(255, 225, 90));
+            var starGold = GetSolidBrush(Color.FromRgb(255, 225, 90));
             DrawStar5(dc, foamCenter.X, foamCenter.Y, foamW * 0.26/2, foamW * 0.12/2, starGold);
-            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 255, 250, 220)), null, new Point(foamCenter.X - 1, foamCenter.Y - 1), foamW * 0.08, foamH * 0.08);
-            DrawSparkle(dc, x + (cupW * 0.82), y + (cupH * 0.18), isMini ? 2.0 : 3.0, new SolidColorBrush(Color.FromRgb(255, 228, 145)));
+            dc.DrawEllipse(GetSolidBrush(Color.FromArgb(160, 255, 250, 220)), null, new Point(foamCenter.X - 1, foamCenter.Y - 1), foamW * 0.08, foamH * 0.08);
+            DrawSparkle(dc, x + (cupW * 0.82), y + (cupH * 0.18), isMini ? 2.0 : 3.0, GetSolidBrush(Color.FromRgb(255, 228, 145)));
         }
         else
         {
-            var foamPen = new Pen(new SolidColorBrush(Color.FromRgb(248, 236, 216)), isMini ? 1.4 : 2.0) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            var foamPen = GetSolidPen(Color.FromRgb(248, 236, 216), isMini ? 1.4 : 2.0);
             double rx = foamCenter.X;
             double ry = foamCenter.Y + (foamH * 0.08);
             for (int i = 0; i < 4; i++)
             {
                 double s = 1.0 - (i * 0.2);
                 dc.DrawLine(foamPen, new Point(rx, ry - (foamH * 0.42 * s)), new Point(rx, ry + (foamH * 0.05)));
-                var arcGeom = new PathGeometry();
-                var af = new PathFigure { StartPoint = new Point(rx - (foamW * 0.28 * s), ry - (foamH * 0.05 * s)) };
-                af.Segments.Add(new QuadraticBezierSegment(new Point(rx, ry - (foamH * 0.34 * s)), new Point(rx + (foamW * 0.28 * s), ry - (foamH * 0.05 * s)), true));
-                arcGeom.Figures.Add(af);
+                var arcGeom = new StreamGeometry();
+                using (var actx = arcGeom.Open())
+                {
+                    actx.BeginFigure(new Point(rx - (foamW * 0.28 * s), ry - (foamH * 0.05 * s)), false, false);
+                    actx.QuadraticBezierTo(new Point(rx, ry - (foamH * 0.34 * s)), new Point(rx + (foamW * 0.28 * s), ry - (foamH * 0.05 * s)), true, false);
+                }
+                arcGeom.Freeze();
                 dc.DrawGeometry(null, foamPen, arcGeom);
             }
         }
@@ -4648,9 +4804,8 @@ public partial class VisualCompanionControl : UserControl
         if (!isMini)
         {
             double spoonY = saucerY + (saucerH * 0.15);
-            var spoonPen = new Pen(new SolidColorBrush(Color.FromRgb(210, 205, 198)), 1.5) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-            dc.DrawLine(spoonPen, new Point(saucerX + (saucerW * 0.68), spoonY), new Point(saucerX + saucerW - 6, spoonY + 5));
-            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(225, 220, 212)), null, new Point(saucerX + (saucerW * 0.66), spoonY), 3.3, 1.8);
+            dc.DrawLine(s_coffeeSpoonPen, new Point(saucerX + (saucerW * 0.68), spoonY), new Point(saucerX + saucerW - 6, spoonY + 5));
+            dc.DrawEllipse(s_coffeeSpoonBowl, null, new Point(saucerX + (saucerW * 0.66), spoonY), 3.3, 1.8);
         }
     }
 
@@ -4668,12 +4823,12 @@ public partial class VisualCompanionControl : UserControl
             double sx = card.X + seedX + (Math.Sin((_frameTick * 0.04) + i) * (isGoal ? 11 : 8));
             double sy = card.Y + card.Height - travel;
             double alpha = Math.Clamp(Math.Sin((travel / (card.Height + 20)) * Math.PI), 0.05, 1.0);
-            var dustBrush = new SolidColorBrush(Color.FromArgb((byte)(185 * alpha), baseColor.R, baseColor.G, baseColor.B));
+            var dustBrush = GetSolidBrush(Color.FromArgb((byte)(185 * alpha), baseColor.R, baseColor.G, baseColor.B));
             dc.DrawEllipse(dustBrush, null, new Point(sx, sy), 1.4 + (isGoal && i % 4 == 0 ? 0.7 : 0), 1.4 + (isGoal && i % 4 == 0 ? 0.7 : 0));
 
             if (!isMini && i % 5 == 0)
             {
-                DrawSparkle(dc, sx, sy, isGoal ? 3.4 : 2.2, new SolidColorBrush(Color.FromArgb((byte)(145 * alpha), baseColor.R, baseColor.G, baseColor.B)));
+                DrawSparkle(dc, sx, sy, isGoal ? 3.4 : 2.2, GetSolidBrush(Color.FromArgb((byte)(145 * alpha), baseColor.R, baseColor.G, baseColor.B)));
             }
         }
     }
@@ -4703,14 +4858,14 @@ public partial class VisualCompanionControl : UserControl
             double sy = horizonY + 3 + (i * (isMini ? 4 : 6));
             if (sy > card.Y + viewH) break;
             double shimmer = Math.Sin((_frameTick * 0.05) + i) * 0.5 + 0.5;
-            var shimmerBrush = new SolidColorBrush(Color.FromArgb((byte)(65 * shimmer), 255, 235, 210));
-            dc.DrawLine(new Pen(shimmerBrush, 1.2), new Point(card.X + (card.Width * 0.1), sy), new Point(card.X + (card.Width * (0.55 + (0.08 * Math.Sin(i)))), sy));
+            var shimmerPen = GetSolidPen(Color.FromArgb((byte)(65 * shimmer), 255, 235, 210), 1.2);
+            dc.DrawLine(shimmerPen, new Point(card.X + (card.Width * 0.1), sy), new Point(card.X + (card.Width * (0.55 + (0.08 * Math.Sin(i)))), sy));
 
             if (!isMini)
             {
                 double rippleX = card.X + (card.Width * (0.18 + ((i * 0.11) % 0.55))) + (Math.Sin((_frameTick * 0.03) + i) * 8);
                 double rippleW = 16 + (i * 4);
-                dc.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromArgb(58, 255, 229, 198)), 0.8), new Point(rippleX, sy + 4), rippleW * 0.5, 2.5);
+                dc.DrawEllipse(null, s_coffeeRipplePen, new Point(rippleX, sy + 4), rippleW * 0.5, 2.5);
             }
         }
     }
@@ -4726,35 +4881,33 @@ public partial class VisualCompanionControl : UserControl
 
         double boatY = horizonY + (card.Height * 0.065);
         double scale = isMini ? 0.65 : 1.0;
-        var hullBrush = new SolidColorBrush(Color.FromArgb(150, 72, 48, 42));
-        var hullGeom = new PathGeometry();
-        var hf = new PathFigure { StartPoint = new Point(boatX, boatY) };
-        hf.Segments.Add(new LineSegment(new Point(boatX + (16 * scale), boatY), true));
-        hf.Segments.Add(new LineSegment(new Point(boatX + (13 * scale), boatY + (4 * scale)), true));
-        hf.Segments.Add(new LineSegment(new Point(boatX + (3 * scale), boatY + (4 * scale)), true));
-        hf.IsClosed = true;
-        hullGeom.Figures.Add(hf);
-        dc.DrawGeometry(hullBrush, null, hullGeom);
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(145, 232, 220, 190)), 0.9), new Point(boatX + (8 * scale), boatY), new Point(boatX + (8 * scale), boatY - (10 * scale)));
-        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(125, 250, 236, 202)), null, new PathGeometry(new[]
+        var hullGeom = new StreamGeometry();
+        using (var bctx = hullGeom.Open())
         {
-            new PathFigure
-            {
-                StartPoint = new Point(boatX + (8 * scale), boatY - (10 * scale)),
-                Segments = new PathSegmentCollection
-                {
-                    new LineSegment(new Point(boatX + (15 * scale), boatY - (5 * scale)), true),
-                    new LineSegment(new Point(boatX + (8 * scale), boatY - (3 * scale)), true)
-                },
-                IsClosed = true
-            }
-        }));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(40, 255, 240, 220)), null, new Point(boatX + (8 * scale), boatY + 4), 15 * scale, 2.4 * scale);
+            bctx.BeginFigure(new Point(boatX, boatY), true, true);
+            bctx.LineTo(new Point(boatX + (16 * scale), boatY), true, false);
+            bctx.LineTo(new Point(boatX + (13 * scale), boatY + (4 * scale)), true, false);
+            bctx.LineTo(new Point(boatX + (3 * scale), boatY + (4 * scale)), true, false);
+        }
+        hullGeom.Freeze();
+        dc.DrawGeometry(s_coffeeHullBrush, null, hullGeom);
+        dc.DrawLine(s_coffeeMastPen, new Point(boatX + (8 * scale), boatY), new Point(boatX + (8 * scale), boatY - (10 * scale)));
+
+        var sailGeom = new StreamGeometry();
+        using (var sctx = sailGeom.Open())
+        {
+            sctx.BeginFigure(new Point(boatX + (8 * scale), boatY - (10 * scale)), true, true);
+            sctx.LineTo(new Point(boatX + (15 * scale), boatY - (5 * scale)), true, false);
+            sctx.LineTo(new Point(boatX + (8 * scale), boatY - (3 * scale)), true, false);
+        }
+        sailGeom.Freeze();
+        dc.DrawGeometry(s_coffeeSailBrush, null, sailGeom);
+        dc.DrawEllipse(s_coffeeBoatShadowBrush, null, new Point(boatX + (8 * scale), boatY + 4), 15 * scale, 2.4 * scale);
     }
 
     private void DrawCoffeeJazzBirds(DrawingContext dc, Rect card, double viewH)
     {
-        var birdPen = new Pen(new SolidColorBrush(Color.FromArgb(180, 96, 82, 88)), 1.1) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var birdPen = s_coffeeBirdPen;
         for (int i = 0; i < 3; i++)
         {
             double bx = card.X + (((_frameTick * 0.55) + (i * 90)) % (card.Width + 60)) - 30;
@@ -4768,36 +4921,36 @@ public partial class VisualCompanionControl : UserControl
     private void DrawCoffeeJazzFallingLeaves(DrawingContext dc, Rect card, double viewH, bool miniOnly)
     {
         int count = miniOnly ? 2 : 6;
-        Color[] colors = { Color.FromRgb(214, 144, 76), Color.FromRgb(188, 108, 56), Color.FromRgb(228, 186, 92) };
+        var leafBrushes = s_coffeeFallingLeafBrushes;
+        var stemPen = s_coffeeLeafStemPen;
         for (int i = 0; i < count; i++)
         {
             double lx = card.X + (((_frameTick * (0.40 + (i * 0.04))) + (i * 58)) % (card.Width + 30)) - 15;
             double ly = card.Y + (((_frameTick * (0.55 + (i * 0.05))) + (i * 26)) % Math.Max(24, viewH - 10));
             double tilt = Math.Sin((_frameTick * 0.16) + i) * 4;
-            var leafBrush = new SolidColorBrush(Color.FromArgb(175, colors[i % colors.Length].R, colors[i % colors.Length].G, colors[i % colors.Length].B));
+            var leafBrush = leafBrushes[i % leafBrushes.Length];
             dc.DrawEllipse(leafBrush, null, new Point(lx, ly), miniOnly ? 2.3 : 3.6, miniOnly ? 1.6 : 2.2);
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(135, 120, 72, 42)), 0.8), new Point(lx - tilt * 0.2, ly - 1), new Point(lx + tilt * 0.2, ly + 2));
+            dc.DrawLine(stemPen, new Point(lx - tilt * 0.2, ly - 1), new Point(lx + tilt * 0.2, ly + 2));
         }
     }
 
     private void DrawCoffeeJazzGlassReflections(DrawingContext dc, Rect card, double viewH, bool isMini)
     {
-        var gloss = new LinearGradientBrush(Color.FromArgb(55, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), new Point(0, 0), new Point(1, 1));
-        dc.DrawRoundedRectangle(gloss, null, new Rect(card.X + (card.Width * 0.04), card.Y + 14, card.Width * 0.12, viewH * 0.48), 10, 10);
+        dc.DrawRoundedRectangle(s_coffeeGloss1, null, new Rect(card.X + (card.Width * 0.04), card.Y + 14, card.Width * 0.12, viewH * 0.48), 10, 10);
         if (!isMini)
         {
-            dc.DrawRoundedRectangle(new LinearGradientBrush(Color.FromArgb(35, 255, 240, 225), Color.FromArgb(0, 255, 240, 225), new Point(0, 0), new Point(1, 1)), null, new Rect(card.X + (card.Width * 0.52), card.Y + 26, card.Width * 0.08, viewH * 0.34), 8, 8);
+            dc.DrawRoundedRectangle(s_coffeeGloss2, null, new Rect(card.X + (card.Width * 0.52), card.Y + 26, card.Width * 0.08, viewH * 0.34), 8, 8);
         }
     }
 
     private void DrawCoffeeJazzTableLamp(DrawingContext dc, double x, double y, double scale, bool isMini)
     {
         // Scaled-up cozy brass bistro / cafe table lamp on the left
-        var brassBrush = new LinearGradientBrush(Color.FromRgb(225, 180, 80), Color.FromRgb(145, 100, 32), new Point(0, 0), new Point(1, 1));
-        var brassPen = new Pen(new SolidColorBrush(Color.FromRgb(115, 75, 20)), 0.8 * scale);
+        var brassBrush = s_coffeeBrassBrush;
+        var brassPen = GetSolidPen(Color.FromRgb(115, 75, 20), 0.8 * scale);
 
         // 1. Table contact shadow
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 25, 15, 8)), null, new Point(x, y + (1.2 * scale)), 11 * scale, 3.2 * scale);
+        dc.DrawEllipse(s_coffeeLampContactShadow, null, new Point(x, y + (1.2 * scale)), 11 * scale, 3.2 * scale);
 
         // 2. Brass Lamp Base (weighted stepped pedestal)
         double baseW = 18 * scale;
@@ -4809,16 +4962,17 @@ public partial class VisualCompanionControl : UserControl
         // 3. Brass Stem Column
         double stemH = 26 * scale;
         double stemTopY = y - baseH - (2.0 * scale) - stemH;
-        dc.DrawLine(new Pen(brassBrush, 2.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(x, y - baseH - (2.0 * scale)), new Point(x, stemTopY));
+        var stemPen = new Pen(brassBrush, 2.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(stemPen, new Point(x, y - baseH - (2.0 * scale)), new Point(x, stemTopY));
         // Stem center decorative joint ring
         dc.DrawEllipse(brassBrush, brassPen, new Point(x, y - baseH - (2.0 * scale) - (stemH * 0.48)), 2.6 * scale, 1.6 * scale);
 
         // Pull chain switch cord dangling to the side
-        var chainPen = new Pen(new SolidColorBrush(Color.FromRgb(215, 175, 80)), 0.7 * scale);
+        var chainPen = GetSolidPen(Color.FromRgb(215, 175, 80), 0.7 * scale);
         Point chainStart = new Point(x + (3.2 * scale), stemTopY + (2.5 * scale));
         Point chainEnd = new Point(x + (4.5 * scale), stemTopY + (11.0 * scale));
         dc.DrawLine(chainPen, chainStart, chainEnd);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(245, 205, 95)), null, chainEnd, 1.2 * scale, 1.2 * scale);
+        dc.DrawEllipse(s_coffeeLampChainBrush, null, chainEnd, 1.2 * scale, 1.2 * scale);
 
         // 4. Lamp Shade (Warm amber frosted glass / pleated shade)
         double shadeTopW = 12 * scale;
@@ -4826,18 +4980,20 @@ public partial class VisualCompanionControl : UserControl
         double shadeH = 17 * scale;
         double shadeY = stemTopY - shadeH;
 
-        var shadeBrush = new LinearGradientBrush(Color.FromArgb(240, 255, 225, 140), Color.FromArgb(215, 230, 145, 55), new Point(0, 0), new Point(0, 1));
-        var shadeGeom = new PathGeometry();
-        var sf = new PathFigure { StartPoint = new Point(x - (shadeTopW * 0.5), shadeY) };
-        sf.Segments.Add(new LineSegment(new Point(x + (shadeTopW * 0.5), shadeY), true));
-        sf.Segments.Add(new LineSegment(new Point(x + (shadeBotW * 0.5), shadeY + shadeH), true));
-        sf.Segments.Add(new LineSegment(new Point(x - (shadeBotW * 0.5), shadeY + shadeH), true));
-        sf.IsClosed = true;
-        shadeGeom.Figures.Add(sf);
-        dc.DrawGeometry(shadeBrush, new Pen(new SolidColorBrush(Color.FromRgb(175, 115, 38)), 0.9 * scale), shadeGeom);
+        var shadeBrush = s_coffeeLampShadeBrush;
+        var shadeGeom = new StreamGeometry();
+        using (var sctx = shadeGeom.Open())
+        {
+            sctx.BeginFigure(new Point(x - (shadeTopW * 0.5), shadeY), true, true);
+            sctx.LineTo(new Point(x + (shadeTopW * 0.5), shadeY), true, false);
+            sctx.LineTo(new Point(x + (shadeBotW * 0.5), shadeY + shadeH), true, false);
+            sctx.LineTo(new Point(x - (shadeBotW * 0.5), shadeY + shadeH), true, false);
+        }
+        shadeGeom.Freeze();
+        dc.DrawGeometry(shadeBrush, GetSolidPen(Color.FromRgb(175, 115, 38), 0.9 * scale), shadeGeom);
 
         // Shade pleats / warm vertical glass rib lines
-        var pleatPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 255, 245, 200)), 0.7 * scale);
+        var pleatPen = GetSolidPen(Color.FromArgb(70, 255, 245, 200), 0.7 * scale);
         for (int p = 1; p <= 3; p++)
         {
             double frac = p / 4.0;
@@ -4853,7 +5009,7 @@ public partial class VisualCompanionControl : UserControl
         // 5. Pulsing warm light bulb inside shade
         double pulse = Math.Sin(_frameTick * 0.14) * 0.5 + 0.5;
         byte bulbAlpha = (byte)(215 + (pulse * 40));
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(bulbAlpha, 255, 248, 205)), null, new Point(x, shadeY + (shadeH * 0.58)), 3.8 * scale, 3.8 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromArgb(bulbAlpha, 255, 248, 205)), null, new Point(x, shadeY + (shadeH * 0.58)), 3.8 * scale, 3.8 * scale);
 
         // 6. Ambient warm golden glow across left window and table
         byte glowAlpha = (byte)(80 + (pulse * 30));
@@ -4871,33 +5027,33 @@ public partial class VisualCompanionControl : UserControl
         double scarfW = 34 * scale;
         double scarfH = 16 * scale;
       
-        var scarfBrush = new LinearGradientBrush(Color.FromRgb(205, 120, 85), Color.FromRgb(165, 85, 55), new Point(0, 0), new Point(1, 1));
-        dc.DrawRoundedRectangle(scarfBrush, new Pen(new SolidColorBrush(Color.FromRgb(135, 65, 40)), 0.8 * scale), new Rect(x - (scarfW * 0.5), y - (scarfH * 0.2), scarfW, scarfH), 4 * scale, 4 * scale);
+        var scarfBrush = s_coffeeCatScarfBrush;
+        dc.DrawRoundedRectangle(scarfBrush, GetSolidPen(Color.FromRgb(135, 65, 40), 0.8 * scale), new Rect(x - (scarfW * 0.5), y - (scarfH * 0.2), scarfW, scarfH), 4 * scale, 4 * scale);
 
         // Scarf knit pattern stripes
-        var patternPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 235, 210)), 0.9 * scale);
+        var patternPen = GetSolidPen(Color.FromArgb(120, 255, 235, 210), 0.9 * scale);
         for (int p = 0; p < 4; p++)
         {
             double px = (x - (scarfW * 0.4)) + (p * (scarfW * 0.25));
             dc.DrawLine(patternPen, new Point(px, y - (scarfH * 0.2)), new Point(px, y + (scarfH * 0.8)));
         }
         // Fringe tassels on scarf edge
-        var fringePen = new Pen(new SolidColorBrush(Color.FromRgb(255, 235, 215)), 1.1 * scale);
+        var fringePen = s_coffeeCatFringePen;
         for (int f = 0; f < 4; f++)
         {
             double fy = y + (f * (3.0 * scale));
             dc.DrawLine(fringePen, new Point(x + (scarfW * 0.5), fy), new Point(x + (scarfW * 0.5) + (3.0 * scale), fy + (1.0 * scale)));
         }
 
-        //increase the scale for the cat to make it more prominent
+        // Increase scale for cat
         scale = scale * (isMini ? 1.3 : 1.5);
         // 2. Curled Sleeping Tabby Cat (with breathing bob)
         double breath = Math.Sin(_frameTick * 0.12) * (0.8 * scale);
         Point catCenter = new Point(x, y + breath);
 
-        var furGrad = new LinearGradientBrush(Color.FromRgb(248, 168, 92), Color.FromRgb(218, 128, 58), new Point(0, 0), new Point(1, 1));
-        var furPen = new Pen(new SolidColorBrush(Color.FromRgb(185, 95, 38)), 0.8 * scale);
-        var stripePen = new Pen(new SolidColorBrush(Color.FromRgb(180, 88, 35)), 1.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var furGrad = s_coffeeCatFurGrad;
+        var furPen = GetSolidPen(Color.FromRgb(185, 95, 38), 0.8 * scale);
+        var stripePen = new Pen(GetSolidBrush(Color.FromRgb(180, 88, 35)), 1.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
 
         // Curled round body
         dc.DrawEllipse(furGrad, furPen, catCenter, 11 * scale, 7.5 * scale);
@@ -4912,51 +5068,61 @@ public partial class VisualCompanionControl : UserControl
 
         // Cute Cat Ears
         // Left ear
-        var earLeft = new PathGeometry();
-        var elf = new PathFigure { StartPoint = new Point(headCenter.X - (3.5 * scale), headCenter.Y - (3.5 * scale)) };
-        elf.Segments.Add(new LineSegment(new Point(headCenter.X - (4.8 * scale), headCenter.Y - (8.5 * scale)), true));
-        elf.Segments.Add(new LineSegment(new Point(headCenter.X - (1.0 * scale), headCenter.Y - (4.8 * scale)), true));
-        elf.IsClosed = true;
-        earLeft.Figures.Add(elf);
+        var earLeft = new StreamGeometry();
+        using (var ectx = earLeft.Open())
+        {
+            ectx.BeginFigure(new Point(headCenter.X - (3.5 * scale), headCenter.Y - (3.5 * scale)), true, true);
+            ectx.LineTo(new Point(headCenter.X - (4.8 * scale), headCenter.Y - (8.5 * scale)), true, false);
+            ectx.LineTo(new Point(headCenter.X - (1.0 * scale), headCenter.Y - (4.8 * scale)), true, false);
+        }
+        earLeft.Freeze();
         dc.DrawGeometry(furGrad, furPen, earLeft);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 180, 190)), null, new Point(headCenter.X - (3.0 * scale), headCenter.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
+        dc.DrawEllipse(s_coffeeCatEarInner, null, new Point(headCenter.X - (3.0 * scale), headCenter.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
 
         // Right ear
-        var earRight = new PathGeometry();
-        var erf = new PathFigure { StartPoint = new Point(headCenter.X + (0.5 * scale), headCenter.Y - (4.8 * scale)) };
-        erf.Segments.Add(new LineSegment(new Point(headCenter.X + (2.5 * scale), headCenter.Y - (8.5 * scale)), true));
-        erf.Segments.Add(new LineSegment(new Point(headCenter.X + (4.5 * scale), headCenter.Y - (3.5 * scale)), true));
-        erf.IsClosed = true;
-        earRight.Figures.Add(erf);
+        var earRight = new StreamGeometry();
+        using (var ectx = earRight.Open())
+        {
+            ectx.BeginFigure(new Point(headCenter.X + (0.5 * scale), headCenter.Y - (4.8 * scale)), true, true);
+            ectx.LineTo(new Point(headCenter.X + (2.5 * scale), headCenter.Y - (8.5 * scale)), true, false);
+            ectx.LineTo(new Point(headCenter.X + (4.5 * scale), headCenter.Y - (3.5 * scale)), true, false);
+        }
+        earRight.Freeze();
         dc.DrawGeometry(furGrad, furPen, earRight);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 180, 190)), null, new Point(headCenter.X + (2.5 * scale), headCenter.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
+        dc.DrawEllipse(s_coffeeCatEarInner, null, new Point(headCenter.X + (2.5 * scale), headCenter.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
 
         // Peaceful Closed Sleeping Eyes ( ᴗ ᴗ )
-        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(65, 38, 25)), 1.1 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-        var leFig = new PathGeometry();
-        var lef = new PathFigure { StartPoint = new Point(headCenter.X - (4.0 * scale), headCenter.Y - (0.5 * scale)) };
-        lef.Segments.Add(new QuadraticBezierSegment(new Point(headCenter.X - (2.5 * scale), headCenter.Y + (0.8 * scale)), new Point(headCenter.X - (1.0 * scale), headCenter.Y - (0.5 * scale)), true));
-        leFig.Figures.Add(lef);
+        var eyePen = new Pen(GetSolidBrush(Color.FromRgb(65, 38, 25)), 1.1 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var leFig = new StreamGeometry();
+        using (var lctx = leFig.Open())
+        {
+            lctx.BeginFigure(new Point(headCenter.X - (4.0 * scale), headCenter.Y - (0.5 * scale)), false, false);
+            lctx.QuadraticBezierTo(new Point(headCenter.X - (2.5 * scale), headCenter.Y + (0.8 * scale)), new Point(headCenter.X - (1.0 * scale), headCenter.Y - (0.5 * scale)), true, false);
+        }
+        leFig.Freeze();
         dc.DrawGeometry(null, eyePen, leFig);
 
-        var reFig = new PathGeometry();
-        var refF = new PathFigure { StartPoint = new Point(headCenter.X + (1.0 * scale), headCenter.Y - (0.5 * scale)) };
-        refF.Segments.Add(new QuadraticBezierSegment(new Point(headCenter.X + (2.5 * scale), headCenter.Y + (0.8 * scale)), new Point(headCenter.X + (4.0 * scale), headCenter.Y - (0.5 * scale)), true));
-        reFig.Figures.Add(refF);
+        var reFig = new StreamGeometry();
+        using (var rctx = reFig.Open())
+        {
+            rctx.BeginFigure(new Point(headCenter.X + (1.0 * scale), headCenter.Y - (0.5 * scale)), false, false);
+            rctx.QuadraticBezierTo(new Point(headCenter.X + (2.5 * scale), headCenter.Y + (0.8 * scale)), new Point(headCenter.X + (4.0 * scale), headCenter.Y - (0.5 * scale)), true, false);
+        }
+        reFig.Freeze();
         dc.DrawGeometry(null, eyePen, reFig);
 
         // Cute Pink Button Nose & Sleeping Muzzle ω
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 150, 165)), null, new Point(headCenter.X, headCenter.Y + (1.4 * scale)), 0.9 * scale, 0.7 * scale);
-        var mouthPen = new Pen(new SolidColorBrush(Color.FromRgb(160, 75, 45)), 0.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawEllipse(s_coffeeCatNose, null, new Point(headCenter.X, headCenter.Y + (1.4 * scale)), 0.9 * scale, 0.7 * scale);
+        var mouthPen = new Pen(GetSolidBrush(Color.FromRgb(160, 75, 45)), 0.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         dc.DrawLine(mouthPen, new Point(headCenter.X - (1.2 * scale), headCenter.Y + (2.4 * scale)), new Point(headCenter.X, headCenter.Y + (2.0 * scale)));
         dc.DrawLine(mouthPen, new Point(headCenter.X, headCenter.Y + (2.0 * scale)), new Point(headCenter.X + (1.2 * scale), headCenter.Y + (2.4 * scale)));
 
         // Rosy Blushing Cheeks
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 255, 130, 150)), null, new Point(headCenter.X - (3.5 * scale), headCenter.Y + (1.8 * scale)), 1.6 * scale, 1.0 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 255, 130, 150)), null, new Point(headCenter.X + (3.5 * scale), headCenter.Y + (1.8 * scale)), 1.6 * scale, 1.0 * scale);
+        dc.DrawEllipse(s_coffeeCatBlush, null, new Point(headCenter.X - (3.5 * scale), headCenter.Y + (1.8 * scale)), 1.6 * scale, 1.0 * scale);
+        dc.DrawEllipse(s_coffeeCatBlush, null, new Point(headCenter.X + (3.5 * scale), headCenter.Y + (1.8 * scale)), 1.6 * scale, 1.0 * scale);
 
         // Whiskers
-        var whiskerPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 255, 255, 255)), 0.6 * scale);
+        var whiskerPen = GetSolidPen(Color.FromArgb(140, 255, 255, 255), 0.6 * scale);
         dc.DrawLine(whiskerPen, new Point(headCenter.X - (4.2 * scale), headCenter.Y + (1.2 * scale)), new Point(headCenter.X - (7.5 * scale), headCenter.Y + (0.6 * scale)));
         dc.DrawLine(whiskerPen, new Point(headCenter.X - (4.2 * scale), headCenter.Y + (2.0 * scale)), new Point(headCenter.X - (7.2 * scale), headCenter.Y + (2.8 * scale)));
         dc.DrawLine(whiskerPen, new Point(headCenter.X + (4.2 * scale), headCenter.Y + (1.2 * scale)), new Point(headCenter.X + (7.5 * scale), headCenter.Y + (0.6 * scale)));
@@ -4965,30 +5131,33 @@ public partial class VisualCompanionControl : UserControl
         // Front Paw tucked under chin with tiny pink paw pads
         Point pawPos = new Point(headCenter.X + (2.0 * scale), headCenter.Y + (4.2 * scale));
         dc.DrawEllipse(furGrad, furPen, pawPos, 2.2 * scale, 1.6 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 175, 185)), null, pawPos, 1.0 * scale, 0.7 * scale);
+        dc.DrawEllipse(s_coffeeCatPawPad, null, pawPos, 1.0 * scale, 0.7 * scale);
 
         // Softly twitching tail curling along body edge
         double tailWag = Math.Sin(_frameTick * 0.15) * (2.2 * scale);
         var tailPen = new Pen(furGrad, 2.8 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-        var tailGeom = new PathGeometry();
-        var tf = new PathFigure { StartPoint = new Point(catCenter.X + (9.5 * scale), catCenter.Y + (2.0 * scale)) };
-        tf.Segments.Add(new BezierSegment(
-            new Point(catCenter.X + (14.0 * scale), catCenter.Y + (4.0 * scale)),
-            new Point(catCenter.X + (15.5 * scale) + tailWag, catCenter.Y - (4.0 * scale)),
-            new Point(catCenter.X + (12.0 * scale) + (tailWag * 0.8), catCenter.Y - (7.0 * scale)),
-            true));
-        tailGeom.Figures.Add(tf);
+        var tailGeom = new StreamGeometry();
+        using (var tctx = tailGeom.Open())
+        {
+            tctx.BeginFigure(new Point(catCenter.X + (9.5 * scale), catCenter.Y + (2.0 * scale)), false, false);
+            tctx.BezierTo(
+                new Point(catCenter.X + (14.0 * scale), catCenter.Y + (4.0 * scale)),
+                new Point(catCenter.X + (15.5 * scale) + tailWag, catCenter.Y - (4.0 * scale)),
+                new Point(catCenter.X + (12.0 * scale) + (tailWag * 0.8), catCenter.Y - (7.0 * scale)),
+                true, false);
+        }
+        tailGeom.Freeze();
         dc.DrawGeometry(null, tailPen, tailGeom);
 
         // Floating Animated Sleep z Z text
-        string[] zzz = { "z", "Z", "z"};
+        string[] zzz = { "z", "Z", "z" };
         for (int z = 0; z < zzz.Length; z++)
         {
-            double zShift = ((_frameTick * 0.04) /2+ (z * 0.28)) % 1.0;
-            double zx = headCenter.X - (4 * scale) - (zShift * (8 * scale)) + (Math.Sin((_frameTick * 0.1)/4 + z) * (3 * scale));
+            double zShift = ((_frameTick * 0.04) / 2 + (z * 0.28)) % 1.0;
+            double zx = headCenter.X - (4 * scale) - (zShift * (8 * scale)) + (Math.Sin((_frameTick * 0.1) / 4 + z) * (3 * scale));
             double zy = (headCenter.Y - (6 * scale)) - (zShift * (20 * scale));
             byte zAlpha = (byte)Math.Clamp(230 * (1.0 - zShift), 0, 230);
-            var zft = CreateText(zzz[z], (isMini ? 8 : 11) * scale * (0.8 + (zShift * 0.4)), new SolidColorBrush(Color.FromArgb(zAlpha, 255, 235, 160)), FontWeights.Bold);
+            var zft = CreateText(zzz[z], (isMini ? 8 : 11) * scale * (0.8 + (zShift * 0.4)), GetSolidBrush(Color.FromArgb(zAlpha, 255, 235, 160)), FontWeights.Bold);
             dc.DrawText(zft, new Point(zx - (zft.Width * 0.5), zy));
         }
 
@@ -4997,7 +5166,7 @@ public partial class VisualCompanionControl : UserControl
         double hx = headCenter.X + (6 * scale) + (Math.Sin(_frameTick * 0.1) * (2 * scale));
         double hy = (headCenter.Y - (8 * scale)) - (heartShift * (18 * scale));
         byte hAlpha = (byte)Math.Clamp(200 * (1.0 - heartShift), 0, 200);
-        DrawHeart(dc, hx, hy, (isMini ? 3.0 : 4.2) * scale, new SolidColorBrush(Color.FromArgb(hAlpha, 255, 140, 170)));
+        DrawHeart(dc, hx, hy, (isMini ? 3.0 : 4.2) * scale, GetSolidBrush(Color.FromArgb(hAlpha, 255, 140, 170)));
     }
 
     private void DrawCoffeeJazzRestScene(DrawingContext dc, Rect card, double viewH, bool isMini)
@@ -5013,14 +5182,14 @@ public partial class VisualCompanionControl : UserControl
 
         // 2. Rest Banner Text in Sky Area (calm and subtle, aligned right with translucent glass pill)
         string text = isMini ? "☕ Jazz Rest 💤" : "☕ Cozy Jazz Rest & Cat Nap 🐾💤";
-        var ft = CreateText(text, isMini ? 10 : 13, new SolidColorBrush(Color.FromArgb(220, 255, 235, 170)), FontWeights.SemiBold);
+        var ft = CreateText(text, isMini ? 10 : 13, GetSolidBrush(Color.FromArgb(220, 255, 235, 170)), FontWeights.SemiBold);
         double bannerW = ft.Width + (isMini ? 12 : 20);
         double bannerH = ft.Height + (isMini ? 5 : 7);
         double bannerX = (card.X + card.Width) - bannerW - (isMini ? 6 : 10);
         double bannerY = card.Y + (isMini ? 5 : 8);
 
         var pillBg = new LinearGradientBrush(Color.FromArgb(75, 45, 25, 40), Color.FromArgb(75, 25, 15, 25), new Point(0, 0), new Point(1, 1));
-        var pillBorder = new Pen(new SolidColorBrush(Color.FromArgb(65, 255, 200, 120)), 0.8);
+        var pillBorder = GetSolidPen(Color.FromArgb(65, 255, 200, 120), 0.8);
         dc.DrawRoundedRectangle(pillBg, pillBorder, new Rect(bannerX, bannerY, bannerW, bannerH), bannerH * 0.5, bannerH * 0.5);
         dc.DrawText(ft, new Point(bannerX + ((bannerW - ft.Width) * 0.5), bannerY + ((bannerH - ft.Height) * 0.5)));
     }
@@ -5028,13 +5197,13 @@ public partial class VisualCompanionControl : UserControl
     private void DrawCoffeeJazzSaxophone(DrawingContext dc, double x, double y, double scale, bool isMini)
     {
         // Polished Brass Saxophone Geometry (Main body tube, neck, flared bell, key cups, star shines)
-        var brassGrad = new LinearGradientBrush(Color.FromRgb(255, 228, 95), Color.FromRgb(210, 155, 28), new Point(0, 0), new Point(1, 1));
-        var brassPen = new Pen(new SolidColorBrush(Color.FromRgb(160, 110, 20)), 0.9 * scale);
-        var darkBrass = new SolidColorBrush(Color.FromRgb(95, 60, 15));
+        var brassGrad = s_coffeeSaxGrad;
+        var brassPen = GetSolidPen(Color.FromRgb(160, 110, 20), 0.9 * scale);
+        var darkBrass = s_coffeeSaxDark;
 
         // Saxophone Stand Base
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 45, 50)), null, new Rect(x - (8 * scale), y + (10 * scale), 16 * scale, 2.5 * scale), 1 * scale, 1 * scale);
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(90, 90, 95)), 1.5 * scale), new Point(x, y + (10 * scale)), new Point(x, y + (2 * scale)));
+        dc.DrawRoundedRectangle(s_coffeeSaxStandBase, null, new Rect(x - (8 * scale), y + (10 * scale), 16 * scale, 2.5 * scale), 1 * scale, 1 * scale);
+        dc.DrawLine(GetSolidPen(Color.FromRgb(90, 90, 95), 1.5 * scale), new Point(x, y + (10 * scale)), new Point(x, y + (2 * scale)));
 
         // Main Body Tube (conical body)
         Point neckBase = new Point(x - (4 * scale), y - (12 * scale));
@@ -5042,66 +5211,78 @@ public partial class VisualCompanionControl : UserControl
         Point bellTop = new Point(x + (8 * scale), y - (4 * scale));
 
         // Bottom U-Bow connecting tube to bell
-        var bowGeom = new PathGeometry();
-        var bf = new PathFigure { StartPoint = new Point(bodyBottom.X - (2.5 * scale), bodyBottom.Y) };
-        bf.Segments.Add(new BezierSegment(
-            new Point(bodyBottom.X - (2.5 * scale), bodyBottom.Y + (6.5 * scale)),
-            new Point(bellTop.X + (1.5 * scale), bodyBottom.Y + (6.5 * scale)),
-            new Point(bellTop.X + (1.5 * scale), bellTop.Y + (5.0 * scale)),
-            true));
-        bf.Segments.Add(new LineSegment(new Point(bellTop.X - (2.5 * scale), bellTop.Y + (5.0 * scale)), true));
-        bf.Segments.Add(new BezierSegment(
-            new Point(bellTop.X - (1.5 * scale), bodyBottom.Y + (3.0 * scale)),
-            new Point(bodyBottom.X + (1.5 * scale), bodyBottom.Y + (3.0 * scale)),
-            new Point(bodyBottom.X + (1.5 * scale), bodyBottom.Y),
-            true));
-        bf.IsClosed = true;
-        bowGeom.Figures.Add(bf);
+        var bowGeom = new StreamGeometry();
+        using (var bctx = bowGeom.Open())
+        {
+            bctx.BeginFigure(new Point(bodyBottom.X - (2.5 * scale), bodyBottom.Y), true, true);
+            bctx.BezierTo(
+                new Point(bodyBottom.X - (2.5 * scale), bodyBottom.Y + (6.5 * scale)),
+                new Point(bellTop.X + (1.5 * scale), bodyBottom.Y + (6.5 * scale)),
+                new Point(bellTop.X + (1.5 * scale), bellTop.Y + (5.0 * scale)),
+                true, false);
+            bctx.LineTo(new Point(bellTop.X - (2.5 * scale), bellTop.Y + (5.0 * scale)), true, false);
+            bctx.BezierTo(
+                new Point(bellTop.X - (1.5 * scale), bodyBottom.Y + (3.0 * scale)),
+                new Point(bodyBottom.X + (1.5 * scale), bodyBottom.Y + (3.0 * scale)),
+                new Point(bodyBottom.X + (1.5 * scale), bodyBottom.Y),
+                true, false);
+        }
+        bowGeom.Freeze();
         dc.DrawGeometry(brassGrad, brassPen, bowGeom);
 
         // Main body tube
-        var tubeGeom = new PathGeometry();
-        var tf = new PathFigure { StartPoint = new Point(neckBase.X - (1.5 * scale), neckBase.Y) };
-        tf.Segments.Add(new LineSegment(new Point(neckBase.X + (1.5 * scale), neckBase.Y), true));
-        tf.Segments.Add(new LineSegment(new Point(bodyBottom.X + (2.2 * scale), bodyBottom.Y), true));
-        tf.Segments.Add(new LineSegment(new Point(bodyBottom.X - (2.2 * scale), bodyBottom.Y), true));
-        tf.IsClosed = true;
-        tubeGeom.Figures.Add(tf);
+        var tubeGeom = new StreamGeometry();
+        using (var tctx = tubeGeom.Open())
+        {
+            tctx.BeginFigure(new Point(neckBase.X - (1.5 * scale), neckBase.Y), true, true);
+            tctx.LineTo(new Point(neckBase.X + (1.5 * scale), neckBase.Y), true, false);
+            tctx.LineTo(new Point(bodyBottom.X + (2.2 * scale), bodyBottom.Y), true, false);
+            tctx.LineTo(new Point(bodyBottom.X - (2.2 * scale), bodyBottom.Y), true, false);
+        }
+        tubeGeom.Freeze();
         dc.DrawGeometry(brassGrad, brassPen, tubeGeom);
 
         // Flared upward Saxophone Bell
-        var bellGeom = new PathGeometry();
-        var bellFig = new PathFigure { StartPoint = new Point(bellTop.X - (4.0 * scale), bellTop.Y) };
-        bellFig.Segments.Add(new LineSegment(new Point(bellTop.X + (4.0 * scale), bellTop.Y), true));
-        bellFig.Segments.Add(new LineSegment(new Point(bellTop.X + (1.5 * scale), bellTop.Y + (6.0 * scale)), true));
-        bellFig.Segments.Add(new LineSegment(new Point(bellTop.X - (2.5 * scale), bellTop.Y + (6.0 * scale)), true));
-        bellFig.IsClosed = true;
-        bellGeom.Figures.Add(bellFig);
+        var bellGeom = new StreamGeometry();
+        using (var blctx = bellGeom.Open())
+        {
+            blctx.BeginFigure(new Point(bellTop.X - (4.0 * scale), bellTop.Y), true, true);
+            blctx.LineTo(new Point(bellTop.X + (4.0 * scale), bellTop.Y), true, false);
+            blctx.LineTo(new Point(bellTop.X + (1.5 * scale), bellTop.Y + (6.0 * scale)), true, false);
+            blctx.LineTo(new Point(bellTop.X - (2.5 * scale), bellTop.Y + (6.0 * scale)), true, false);
+        }
+        bellGeom.Freeze();
         dc.DrawGeometry(brassGrad, brassPen, bellGeom);
         // Bell opening inner shadow ellipse & rim
-        dc.DrawEllipse(darkBrass, new Pen(new SolidColorBrush(Color.FromRgb(255, 240, 160)), 1.2 * scale), bellTop, 4.0 * scale, 2.2 * scale);
+        dc.DrawEllipse(darkBrass, GetSolidPen(Color.FromRgb(255, 240, 160), 1.2 * scale), bellTop, 4.0 * scale, 2.2 * scale);
 
         // Curved Neck & Mouthpiece at top
-        var neckGeom = new PathGeometry();
-        var nf = new PathFigure { StartPoint = neckBase };
-        nf.Segments.Add(new QuadraticBezierSegment(new Point(neckBase.X - (5.0 * scale), neckBase.Y - (4.0 * scale)), new Point(neckBase.X - (8.0 * scale), neckBase.Y - (2.0 * scale)), true));
-        neckGeom.Figures.Add(nf);
-        dc.DrawGeometry(null, new Pen(brassGrad, 2.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Flat }, neckGeom);
+        var neckGeom = new StreamGeometry();
+        using (var nctx = neckGeom.Open())
+        {
+            nctx.BeginFigure(neckBase, false, false);
+            nctx.QuadraticBezierTo(new Point(neckBase.X - (5.0 * scale), neckBase.Y - (4.0 * scale)), new Point(neckBase.X - (8.0 * scale), neckBase.Y - (2.0 * scale)), true, false);
+        }
+        neckGeom.Freeze();
+        var neckPen = new Pen(brassGrad, 2.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Flat };
+        dc.DrawGeometry(null, neckPen, neckGeom);
         // Black mouthpiece
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(30, 30, 35)), 2.0 * scale) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Round }, new Point(neckBase.X - (7.5 * scale), neckBase.Y - (2.2 * scale)), new Point(neckBase.X - (10.5 * scale), neckBase.Y - (1.0 * scale)));
+        var mouthPen = new Pen(GetSolidBrush(Color.FromRgb(30, 30, 35)), 2.0 * scale) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(mouthPen, new Point(neckBase.X - (7.5 * scale), neckBase.Y - (2.2 * scale)), new Point(neckBase.X - (10.5 * scale), neckBase.Y - (1.0 * scale)));
 
         // Key touches and pearl rods
+        var pearlBrush = GetSolidBrush(Color.FromRgb(255, 250, 235));
         for (int k = 0; k < 4; k++)
         {
             double ky = (neckBase.Y + (3.0 * scale)) + (k * (3.4 * scale));
             Point kp = new Point(neckBase.X + (1.2 * scale) + (k * (0.3 * scale)), ky);
-            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 250, 235)), brassPen, kp, 1.2 * scale, 0.9 * scale);
+            dc.DrawEllipse(pearlBrush, brassPen, kp, 1.2 * scale, 0.9 * scale);
         }
 
         // Twinkling Star Gleams on brass metal
         double gleamPulse = Math.Sin(_frameTick * 0.25) * 0.5 + 0.5;
-        DrawSparkle(dc, bellTop.X + (3.5 * scale), bellTop.Y - (1.0 * scale), (2.5 + (gleamPulse * 1.5)) * scale, new SolidColorBrush(Colors.White));
-        DrawSparkle(dc, neckBase.X - (2.0 * scale), neckBase.Y - (1.0 * scale), (2.0 + (gleamPulse * 1.0)) * scale, new SolidColorBrush(Color.FromRgb(255, 245, 180)));
+        DrawSparkle(dc, bellTop.X + (3.5 * scale), bellTop.Y - (1.0 * scale), (2.5 + (gleamPulse * 1.5)) * scale, GetSolidBrush(Colors.White));
+        DrawSparkle(dc, neckBase.X - (2.0 * scale), neckBase.Y - (1.0 * scale), (2.0 + (gleamPulse * 1.0)) * scale, GetSolidBrush(Color.FromRgb(255, 245, 180)));
     }
 
     private void DrawCoffeeJazzCheeringCat(DrawingContext dc, double x, double y, double scale, bool isMini)
@@ -5109,20 +5290,19 @@ public partial class VisualCompanionControl : UserControl
         // 1. Cozy Cushion / Plaid Scarf
         double cushionW = 28 * scale;
         double cushionH = 10 * scale;
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(205, 120, 85)), new Pen(new SolidColorBrush(Color.FromRgb(150, 75, 45)), 0.8 * scale), new Rect(x - (cushionW * 0.5), y + (4 * scale), cushionW, cushionH), 3 * scale, 3 * scale);
+        dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(205, 120, 85)), GetSolidPen(Color.FromRgb(150, 75, 45), 0.8 * scale), new Rect(x - (cushionW * 0.5), y + (4 * scale), cushionW, cushionH), 3 * scale, 3 * scale);
 
         // 2. Upright Cheering Tabby Cat Body
         double cheerBob = Math.Sin(_frameTick * 0.22) * (1.2 * scale);
-        Point hip = new Point(x, y + (5 * scale));
         Point head = new Point(x, y - (7 * scale) + cheerBob);
 
-        var furGrad = new LinearGradientBrush(Color.FromRgb(248, 168, 92), Color.FromRgb(218, 128, 58), new Point(0, 0), new Point(1, 1));
-        var furPen = new Pen(new SolidColorBrush(Color.FromRgb(185, 95, 38)), 0.8 * scale);
+        var furGrad = s_coffeeCatFurGrad;
+        var furPen = GetSolidPen(Color.FromRgb(185, 95, 38), 0.8 * scale);
 
         // Torso Body
         dc.DrawEllipse(furGrad, furPen, new Point(x, y + (0.5 * scale) + (cheerBob * 0.5)), 7.5 * scale, 7.0 * scale);
         // White chest bib
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 245, 235)), null, new Point(x, y + (0.5 * scale) + (cheerBob * 0.5)), 4.2 * scale, 5.0 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromRgb(255, 245, 235)), null, new Point(x, y + (0.5 * scale) + (cheerBob * 0.5)), 4.2 * scale, 5.0 * scale);
 
         // 3. Cheering Paws Raised High in the Air \(*^▽^*)/
         double cheerWave = Math.Sin(_frameTick * 0.25) * (2.2 * scale);
@@ -5131,74 +5311,86 @@ public partial class VisualCompanionControl : UserControl
         Point pawL = new Point(x - (8.5 * scale) + cheerWave, y - (11.5 * scale) - (cheerWave * 0.5));
         dc.DrawLine(armPen, shoulderL, pawL);
         dc.DrawEllipse(furGrad, furPen, pawL, 1.8 * scale, 1.8 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 175, 185)), null, pawL, 1.0 * scale, 1.0 * scale); // Pink paw pad
+        dc.DrawEllipse(s_coffeeCatPawPad, null, pawL, 1.0 * scale, 1.0 * scale); // Pink paw pad
 
         Point shoulderR = new Point(x + (4.5 * scale), y - (3.5 * scale) + cheerBob);
         Point pawR = new Point(x + (8.5 * scale) - cheerWave, y - (11.5 * scale) + (cheerWave * 0.5));
         dc.DrawLine(armPen, shoulderR, pawR);
         dc.DrawEllipse(furGrad, furPen, pawR, 1.8 * scale, 1.8 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 175, 185)), null, pawR, 1.0 * scale, 1.0 * scale); // Pink paw pad
+        dc.DrawEllipse(s_coffeeCatPawPad, null, pawR, 1.0 * scale, 1.0 * scale); // Pink paw pad
 
         // 4. Cheering Cat Head
         dc.DrawEllipse(furGrad, furPen, head, 6.5 * scale, 5.8 * scale);
 
         // Cat Ears
         // Left ear
-        var earLeft = new PathGeometry();
-        var elf = new PathFigure { StartPoint = new Point(head.X - (4.5 * scale), head.Y - (3.0 * scale)) };
-        elf.Segments.Add(new LineSegment(new Point(head.X - (6.0 * scale), head.Y - (8.5 * scale)), true));
-        elf.Segments.Add(new LineSegment(new Point(head.X - (1.5 * scale), head.Y - (4.5 * scale)), true));
-        elf.IsClosed = true;
-        earLeft.Figures.Add(elf);
+        var earLeft = new StreamGeometry();
+        using (var elctx = earLeft.Open())
+        {
+            elctx.BeginFigure(new Point(head.X - (4.5 * scale), head.Y - (3.0 * scale)), true, true);
+            elctx.LineTo(new Point(head.X - (6.0 * scale), head.Y - (8.5 * scale)), true, false);
+            elctx.LineTo(new Point(head.X - (1.5 * scale), head.Y - (4.5 * scale)), true, false);
+        }
+        earLeft.Freeze();
         dc.DrawGeometry(furGrad, furPen, earLeft);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 180, 190)), null, new Point(head.X - (3.8 * scale), head.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
+        dc.DrawEllipse(s_coffeeCatEarInner, null, new Point(head.X - (3.8 * scale), head.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
 
         // Right ear
-        var earRight = new PathGeometry();
-        var erf = new PathFigure { StartPoint = new Point(head.X + (1.5 * scale), head.Y - (4.5 * scale)) };
-        erf.Segments.Add(new LineSegment(new Point(head.X + (6.0 * scale), head.Y - (8.5 * scale)), true));
-        erf.Segments.Add(new LineSegment(new Point(head.X + (4.5 * scale), head.Y - (3.0 * scale)), true));
-        erf.IsClosed = true;
-        earRight.Figures.Add(erf);
+        var earRight = new StreamGeometry();
+        using (var erctx = earRight.Open())
+        {
+            erctx.BeginFigure(new Point(head.X + (1.5 * scale), head.Y - (4.5 * scale)), true, true);
+            erctx.LineTo(new Point(head.X + (6.0 * scale), head.Y - (8.5 * scale)), true, false);
+            erctx.LineTo(new Point(head.X + (4.5 * scale), head.Y - (3.0 * scale)), true, false);
+        }
+        earRight.Freeze();
         dc.DrawGeometry(furGrad, furPen, earRight);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 180, 190)), null, new Point(head.X + (3.8 * scale), head.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
+        dc.DrawEllipse(s_coffeeCatEarInner, null, new Point(head.X + (3.8 * scale), head.Y - (5.2 * scale)), 1.4 * scale, 2.0 * scale);
 
         // Festive Jazz Beret on Head (Tilted dark velvet navy/burgundy beret with gold pom-pom)
         Point beretCenter = new Point(head.X + (1.5 * scale), head.Y - (5.5 * scale));
         var beretBrush = new LinearGradientBrush(Color.FromRgb(42, 28, 65), Color.FromRgb(24, 15, 38), new Point(0, 0), new Point(1, 1));
-        dc.DrawEllipse(beretBrush, new Pen(new SolidColorBrush(Color.FromRgb(85, 55, 120)), 0.7 * scale), beretCenter, 5.5 * scale, 3.2 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 65)), null, new Point(beretCenter.X, beretCenter.Y - (2.5 * scale)), 1.2 * scale, 1.2 * scale); // Gold pom-pom
+        dc.DrawEllipse(beretBrush, GetSolidPen(Color.FromRgb(85, 55, 120), 0.7 * scale), beretCenter, 5.5 * scale, 3.2 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromRgb(255, 215, 65)), null, new Point(beretCenter.X, beretCenter.Y - (2.5 * scale)), 1.2 * scale, 1.2 * scale); // Gold pom-pom
 
         // Happy Curved Sparkling Eyes (^ ᵕ ^)
-        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(55, 30, 20)), 1.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-        var leFig = new PathGeometry();
-        var lef = new PathFigure { StartPoint = new Point(head.X - (4.0 * scale), head.Y - (0.2 * scale)) };
-        lef.Segments.Add(new QuadraticBezierSegment(new Point(head.X - (2.5 * scale), head.Y - (1.6 * scale)), new Point(head.X - (1.0 * scale), head.Y - (0.2 * scale)), true));
-        leFig.Figures.Add(lef);
+        var eyePen = new Pen(GetSolidBrush(Color.FromRgb(55, 30, 20)), 1.2 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var leFig = new StreamGeometry();
+        using (var lctx = leFig.Open())
+        {
+            lctx.BeginFigure(new Point(head.X - (4.0 * scale), head.Y - (0.2 * scale)), false, false);
+            lctx.QuadraticBezierTo(new Point(head.X - (2.5 * scale), head.Y - (1.6 * scale)), new Point(head.X - (1.0 * scale), head.Y - (0.2 * scale)), true, false);
+        }
+        leFig.Freeze();
         dc.DrawGeometry(null, eyePen, leFig);
 
-        var reFig = new PathGeometry();
-        var refF = new PathFigure { StartPoint = new Point(head.X + (1.0 * scale), head.Y - (0.2 * scale)) };
-        refF.Segments.Add(new QuadraticBezierSegment(new Point(head.X + (2.5 * scale), head.Y - (1.6 * scale)), new Point(head.X + (4.0 * scale), head.Y - (0.2 * scale)), true));
-        reFig.Figures.Add(refF);
+        var reFig = new StreamGeometry();
+        using (var rctx = reFig.Open())
+        {
+            rctx.BeginFigure(new Point(head.X + (1.0 * scale), head.Y - (0.2 * scale)), false, false);
+            rctx.QuadraticBezierTo(new Point(head.X + (2.5 * scale), head.Y - (1.6 * scale)), new Point(head.X + (4.0 * scale), head.Y - (0.2 * scale)), true, false);
+        }
+        reFig.Freeze();
         dc.DrawGeometry(null, eyePen, reFig);
 
         // Rosy Blushing Cheeks
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X - (3.5 * scale), head.Y + (1.5 * scale)), 1.8 * scale, 1.1 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X + (3.5 * scale), head.Y + (1.5 * scale)), 1.8 * scale, 1.1 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X - (3.5 * scale), head.Y + (1.5 * scale)), 1.8 * scale, 1.1 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromArgb(180, 255, 120, 140)), null, new Point(head.X + (3.5 * scale), head.Y + (1.5 * scale)), 1.8 * scale, 1.1 * scale);
 
         // Joyful Open Cheerful Smile ( ▽ ) with pink tongue
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 140, 160)), null, new Point(head.X, head.Y + (1.2 * scale)), 0.8 * scale, 0.6 * scale); // Nose
-        var mouthGeom = new PathGeometry();
-        var mf = new PathFigure { StartPoint = new Point(head.X - (1.8 * scale), head.Y + (2.0 * scale)) };
-        mf.Segments.Add(new QuadraticBezierSegment(new Point(head.X, head.Y + (4.2 * scale)), new Point(head.X + (1.8 * scale), head.Y + (2.0 * scale)), true));
-        mf.IsClosed = true;
-        mouthGeom.Figures.Add(mf);
-        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(180, 45, 55)), null, mouthGeom);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 150, 170)), null, new Point(head.X, head.Y + (3.0 * scale)), 1.0 * scale, 0.7 * scale); // Tongue
+        dc.DrawEllipse(s_coffeeCatNose, null, new Point(head.X, head.Y + (1.2 * scale)), 0.8 * scale, 0.6 * scale); // Nose
+        var mouthGeom = new StreamGeometry();
+        using (var mctx = mouthGeom.Open())
+        {
+            mctx.BeginFigure(new Point(head.X - (1.8 * scale), head.Y + (2.0 * scale)), true, true);
+            mctx.QuadraticBezierTo(new Point(head.X, head.Y + (4.2 * scale)), new Point(head.X + (1.8 * scale), head.Y + (2.0 * scale)), true, false);
+        }
+        mouthGeom.Freeze();
+        dc.DrawGeometry(GetSolidBrush(Color.FromRgb(180, 45, 55)), null, mouthGeom);
+        dc.DrawEllipse(GetSolidBrush(Color.FromRgb(255, 150, 170)), null, new Point(head.X, head.Y + (3.0 * scale)), 1.0 * scale, 0.7 * scale); // Tongue
 
         // Whiskers
-        var whiskerPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 0.6 * scale);
+        var whiskerPen = GetSolidPen(Color.FromArgb(160, 255, 255, 255), 0.6 * scale);
         dc.DrawLine(whiskerPen, new Point(head.X - (4.0 * scale), head.Y + (1.0 * scale)), new Point(head.X - (7.5 * scale), head.Y + (0.5 * scale)));
         dc.DrawLine(whiskerPen, new Point(head.X - (4.0 * scale), head.Y + (2.0 * scale)), new Point(head.X - (7.2 * scale), head.Y + (2.6 * scale)));
         dc.DrawLine(whiskerPen, new Point(head.X + (4.0 * scale), head.Y + (1.0 * scale)), new Point(head.X + (7.5 * scale), head.Y + (0.5 * scale)));
@@ -5207,10 +5399,13 @@ public partial class VisualCompanionControl : UserControl
         // Joyfully Wagging Tail
         double tailWag = Math.Sin(_frameTick * 0.25) * (3.5 * scale);
         var tailPen = new Pen(furGrad, 2.6 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-        var tailGeom = new PathGeometry();
-        var tf = new PathFigure { StartPoint = new Point(x - (6.0 * scale), y + (3.0 * scale)) };
-        tf.Segments.Add(new QuadraticBezierSegment(new Point(x - (12.0 * scale), y + (1.0 * scale)), new Point(x - (11.0 * scale) + tailWag, y - (7.0 * scale)), true));
-        tailGeom.Figures.Add(tf);
+        var tailGeom = new StreamGeometry();
+        using (var tctx = tailGeom.Open())
+        {
+            tctx.BeginFigure(new Point(x - (6.0 * scale), y + (3.0 * scale)), false, false);
+            tctx.QuadraticBezierTo(new Point(x - (12.0 * scale), y + (1.0 * scale)), new Point(x - (11.0 * scale) + tailWag, y - (7.0 * scale)), true, false);
+        }
+        tailGeom.Freeze();
         dc.DrawGeometry(null, tailPen, tailGeom);
 
         // Floating Confetti & Celebration Stars
@@ -5222,11 +5417,11 @@ public partial class VisualCompanionControl : UserControl
             var col = confColors[c % confColors.Length];
             if (c % 2 == 0)
             {
-                DrawStar5(dc, cx, cy, 3.2 * scale, 1.4 * scale, new SolidColorBrush(col));
+                DrawStar5(dc, cx, cy, 3.2 * scale, 1.4 * scale, GetSolidBrush(col));
             }
             else
             {
-                dc.DrawEllipse(new SolidColorBrush(col), null, new Point(cx, cy), 1.5 * scale, 1.5 * scale);
+                dc.DrawEllipse(GetSolidBrush(col), null, new Point(cx, cy), 1.5 * scale, 1.5 * scale);
             }
         }
     }
@@ -5240,12 +5435,12 @@ public partial class VisualCompanionControl : UserControl
         // 1. Radiant Sunburst Golden Rays streaming through window
         double sunX = card.X + (card.Width * 0.66);
         double sunY = card.Y + (viewH * 0.22);
+        var rayPen = GetSolidPen(Color.FromArgb(70, 255, 225, 120), 1.3);
         for (int r = 0; r < (isMini ? 6 : 10); r++)
         {
             double angle = (r * Math.PI * 2.0 / (isMini ? 6 : 10)) + (_frameTick * 0.004/3);
             double r1 = isMini ? 12 : 20;
             double r2 = r1 + (isMini ? 22 : 45);
-            var rayPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 255, 225, 120)), 1.3);
             dc.DrawLine(rayPen, new Point(sunX + (Math.Cos(angle) * r1), sunY + (Math.Sin(angle) * r1)), new Point(sunX + (Math.Cos(angle) * r2), sunY + (Math.Sin(angle) * r2)));
         }
 
@@ -5269,20 +5464,20 @@ public partial class VisualCompanionControl : UserControl
             byte alpha = (byte)Math.Clamp(230 * Math.Sin(progress * Math.PI), 0, 230);
             var col = noteColors[i % noteColors.Length];
             double noteSize = (isMini ? 11 : 16) * scale;
-            var nft = CreateText(goalNotes[i % goalNotes.Length], noteSize, new SolidColorBrush(Color.FromArgb(alpha, col.R, col.G, col.B)), FontWeights.Bold);
+            var nft = CreateText(goalNotes[i % goalNotes.Length], noteSize, GetSolidBrush(Color.FromArgb(alpha, col.R, col.G, col.B)), FontWeights.Bold);
             dc.DrawText(nft, new Point(nx - (nft.Width * 0.5), ny - (nft.Height * 0.5)));
         }
 
         // 4. Goal Reached Banner in Sky Area (calm and subtle, aligned right with translucent glass pill)
         string text = isMini ? "🎷 GOAL REACHED! ☕🎉" : "✨ 🎷 GOAL REACHED! JAZZ CAFE CELEBRATION! ☕ 🏆 ✨";
-        var ft = CreateText(text, isMini ? 11 : 14, new SolidColorBrush(Color.FromArgb(235, 255, 235, 140)), FontWeights.SemiBold);
+        var ft = CreateText(text, isMini ? 11 : 14, GetSolidBrush(Color.FromArgb(235, 255, 235, 140)), FontWeights.SemiBold);
         double bannerW = ft.Width + (isMini ? 14 : 22);
         double bannerH = ft.Height + (isMini ? 5 : 7);
         double bannerX = (card.X + card.Width) - bannerW - (isMini ? 6 : 10);
         double bannerY = card.Y + (isMini ? 5 : 8);
 
         var pillBg = new LinearGradientBrush(Color.FromArgb(75, 45, 20, 55), Color.FromArgb(75, 25, 12, 35), new Point(0, 0), new Point(1, 1));
-        var pillBorder = new Pen(new SolidColorBrush(Color.FromArgb(65, 255, 215, 65)), 0.9);
+        var pillBorder = GetSolidPen(Color.FromArgb(65, 255, 215, 65), 0.9);
         dc.DrawRoundedRectangle(pillBg, pillBorder, new Rect(bannerX, bannerY, bannerW, bannerH), bannerH * 0.5, bannerH * 0.5);
         dc.DrawText(ft, new Point(bannerX + ((bannerW - ft.Width) * 0.5), bannerY + ((bannerH - ft.Height) * 0.5)));
     }
@@ -6340,6 +6535,211 @@ public partial class VisualCompanionControl : UserControl
 
     #region 🎧 Scene: Tokyo Metro Lo-Fi Girl
 
+    private static readonly (double w, double hPct, bool beacon)[] s_farBuildings =
+    {
+        (36, 0.54, false),
+        (26, 0.44, true),
+        (42, 0.62, false),
+        (28, 0.48, true),
+        (44, 0.56, false)
+    };
+    private static readonly double s_totalFarSpan = CalculateTotalFarSpan();
+    private static double CalculateTotalFarSpan()
+    {
+        double span = 0;
+        for (int i = 0; i < s_farBuildings.Length; i++) span += s_farBuildings[i].w + 28;
+        return span;
+    }
+
+    private static readonly (double w, double hPct, int style, string? signText, Color signCol)[] s_midBuildings =
+    {
+        (46, 0.78, 1, "TOKYO", Color.FromRgb(255, 80, 180)),
+        (34, 0.58, 4, null, default),
+        (50, 0.86, 5, null, default),
+        (40, 0.68, 7, "METRO", Color.FromRgb(60, 240, 255))
+    };
+    private static readonly double s_totalMidSpan = CalculateTotalMidSpan();
+    private static double CalculateTotalMidSpan()
+    {
+        double span = 0;
+        for (int i = 0; i < s_midBuildings.Length; i++) span += s_midBuildings[i].w + 42;
+        return span;
+    }
+
+    private static readonly SolidColorBrush s_farSilhouetteBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(16, 12, 34)).GetAsFrozen();
+    private static readonly SolidColorBrush s_farWinBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(90, 255, 235, 140)).GetAsFrozen();
+    private static readonly Pen s_farAntennaPen = (Pen)new Pen(s_farSilhouetteBrush, 1.0).GetAsFrozen();
+    private static readonly SolidColorBrush s_farBeaconBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 60, 60)).GetAsFrozen();
+
+    private static readonly SolidColorBrush s_midBuildBrush1 = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(22, 17, 44)).GetAsFrozen();
+    private static readonly SolidColorBrush s_midBuildBrush2 = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(18, 14, 38)).GetAsFrozen();
+    private static readonly Pen s_midRimPenNormal = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(100, 140, 130, 210)), 0.8).GetAsFrozen();
+    private static readonly Pen s_midRimPenMini = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(100, 140, 130, 210)), 0.7).GetAsFrozen();
+    private static readonly SolidColorBrush s_winGold = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(180, 255, 235, 140)).GetAsFrozen();
+    private static readonly SolidColorBrush s_winCyan = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(170, 130, 225, 255)).GetAsFrozen();
+    private static readonly SolidColorBrush s_winPink = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(160, 255, 150, 210)).GetAsFrozen();
+    private static readonly Pen s_spirePen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(140, 145, 170)), 1.0).GetAsFrozen();
+    private static readonly SolidColorBrush s_spireRedBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 50, 50)).GetAsFrozen();
+    private static readonly RadialGradientBrush s_spireGlow = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(120, 255, 50, 50), Color.FromArgb(0, 255, 50, 50)).GetAsFrozen();
+    private static readonly SolidColorBrush s_waterTankBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(40, 35, 60)).GetAsFrozen();
+    private static readonly Pen s_waterTankPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(30, 26, 48)), 1.0).GetAsFrozen();
+    private static readonly SolidColorBrush s_hvacBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(35, 30, 55)).GetAsFrozen();
+    private static readonly SolidColorBrush s_signBackingBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(170, 20, 16, 36)).GetAsFrozen();
+    private static readonly SolidColorBrush s_signPlateBrush = (SolidColorBrush)new SolidColorBrush(Color.FromArgb(170, 15, 12, 28)).GetAsFrozen();
+
+    private static readonly SolidColorBrush s_towerBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 90, 60)).GetAsFrozen();
+    private static readonly RadialGradientBrush s_towerGlow = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(90, 255, 110, 70), Color.FromArgb(0, 255, 110, 70)).GetAsFrozen();
+    private static readonly SolidColorBrush s_towerDeckBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 235, 160)).GetAsFrozen();
+    private static readonly SolidColorBrush s_towerTipBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 255, 240)).GetAsFrozen();
+    private static readonly RadialGradientBrush s_towerTipGlow = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(180, 255, 80, 80), Color.FromArgb(0, 255, 80, 80)).GetAsFrozen();
+
+    private static readonly (string Text, Color Col, double YPct, double Speed, RadialGradientBrush Glow, SolidColorBrush Brush, Pen PenMini, Pen PenNormal)[] s_neonSignsData = CreateNeonSignsData();
+    private static (string, Color, double, double, RadialGradientBrush, SolidColorBrush, Pen, Pen)[] CreateNeonSignsData()
+    {
+        var raw = new (string text, Color col, double yPct, double speed)[]
+        {
+            ("新宿", Color.FromRgb(70, 240, 255), 0.22, 0.85),
+            ("渋谷", Color.FromRgb(255, 80, 185), 0.38, 1.15),
+            ("秋葉原", Color.FromRgb(185, 105, 255), 0.28, 0.95),
+            ("音楽", Color.FromRgb(255, 225, 70), 0.16, 0.65),
+            ("カフェ", Color.FromRgb(80, 250, 170), 0.44, 1.05),
+            ("地下鉄", Color.FromRgb(255, 150, 50), 0.32, 0.75)
+        };
+        var list = new (string, Color, double, double, RadialGradientBrush, SolidColorBrush, Pen, Pen)[raw.Length];
+        for (int i = 0; i < raw.Length; i++)
+        {
+            var (t, c, y, s) = raw[i];
+            var glow = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(75, c.R, c.G, c.B), Color.FromArgb(0, c.R, c.G, c.B)).GetAsFrozen();
+            var brush = (SolidColorBrush)new SolidColorBrush(c).GetAsFrozen();
+            var penMini = (Pen)new Pen(brush, 0.8).GetAsFrozen();
+            var penNorm = (Pen)new Pen(brush, 1.0).GetAsFrozen();
+            list[i] = (t, c, y, s, glow, brush, penMini, penNorm);
+        }
+        return list;
+    }
+
+    private static readonly RadialGradientBrush s_bokehGlow0 = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(48, 255, 190, 85), Color.FromArgb(0, 255, 190, 85)).GetAsFrozen();
+    private static readonly RadialGradientBrush s_bokehGlow1 = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(48, 255, 105, 170), Color.FromArgb(0, 255, 105, 170)).GetAsFrozen();
+    private static readonly RadialGradientBrush s_bokehGlow2 = (RadialGradientBrush)new RadialGradientBrush(Color.FromArgb(48, 105, 230, 255), Color.FromArgb(0, 105, 230, 255)).GetAsFrozen();
+    private static readonly (double speed, double yFrac, double br)[] s_bokehData = GenerateBokehData();
+    private static (double, double, double)[] GenerateBokehData()
+    {
+        var rand = new Random(555);
+        var data = new (double, double, double)[16];
+        for (int i = 0; i < 16; i++)
+        {
+            data[i] = (1.0 + (rand.NextDouble() * 1.5), rand.NextDouble() * 0.78, 4 + (rand.NextDouble() * 8.5));
+        }
+        return data;
+    }
+
+    private static readonly Pen[] s_streakPensNormal = CreateStreakPens(1.6);
+    private static readonly Pen[] s_streakPensMini = CreateStreakPens(1.0);
+    private static Pen[] CreateStreakPens(double thickness)
+    {
+        Color[] cols = { Color.FromArgb(110, 180, 235, 255), Color.FromArgb(95, 255, 130, 215), Color.FromArgb(85, 255, 240, 150) };
+        var pens = new Pen[cols.Length];
+        for (int i = 0; i < cols.Length; i++)
+        {
+            var c = cols[i];
+            var grad = new LinearGradientBrush(Color.FromArgb(0, c.R, c.G, c.B), c, new Point(0, 0), new Point(1, 0));
+            pens[i] = (Pen)new Pen(grad, thickness).GetAsFrozen();
+        }
+        return pens;
+    }
+
+    private static readonly LinearGradientBrush s_metroGlossBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromArgb(30, 255, 255, 255),
+        Color.FromArgb(0, 255, 255, 255),
+        new Point(0, 0),
+        new Point(1, 1)).GetAsFrozen();
+
+    private static readonly LinearGradientBrush s_metroCarriageBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(36, 40, 56),
+        Color.FromRgb(24, 26, 38),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+
+    private static readonly LinearGradientBrush s_metroSkyBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(14, 10, 32),
+        Color.FromRgb(38, 20, 62),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+
+    private static readonly Pen s_metroFramePenNormal = (Pen)new Pen(new LinearGradientBrush(
+        Color.FromRgb(160, 170, 190),
+        Color.FromRgb(90, 100, 120),
+        new Point(0, 0),
+        new Point(0, 1)), 3.0).GetAsFrozen();
+
+    private static readonly Pen s_metroFramePenMini = (Pen)new Pen(new LinearGradientBrush(
+        Color.FromRgb(160, 170, 190),
+        Color.FromRgb(90, 100, 120),
+        new Point(0, 0),
+        new Point(0, 1)), 1.8).GetAsFrozen();
+
+    private static readonly LinearGradientBrush s_railBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(30, 32, 40),
+        Color.FromRgb(10, 12, 16),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_railPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(50, 54, 65)), 0.6).GetAsFrozen();
+    private static readonly Pen s_strapPenNormal = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(40, 42, 50)), 2.2).GetAsFrozen();
+    private static readonly Pen s_strapPenMini = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(40, 42, 50)), 1.2).GetAsFrozen();
+    private static readonly Pen s_ringPenNormal = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(180, 185, 195)), 1.2).GetAsFrozen();
+    private static readonly Pen s_ringPenMini = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(180, 185, 195)), 0.9).GetAsFrozen();
+
+    private static readonly SolidColorBrush s_tickerBgBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(15, 18, 22)).GetAsFrozen();
+    private static readonly Pen s_tickerBorderPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(60, 65, 75)), 1.0).GetAsFrozen();
+    private static readonly SolidColorBrush s_tickerLedGoal = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(255, 225, 110)).GetAsFrozen();
+    private static readonly SolidColorBrush s_tickerLedRest = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(130, 240, 180)).GetAsFrozen();
+    private static readonly SolidColorBrush s_tickerLedTrack = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(110, 245, 140)).GetAsFrozen();
+
+    private static readonly LinearGradientBrush s_benchBackrestBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(36, 126, 88),
+        Color.FromRgb(22, 80, 56),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_benchBolsterBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(60, 155, 105),
+        Color.FromRgb(42, 122, 82),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_benchHighlightPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(160, 150, 245, 195)), 1.0).GetAsFrozen();
+    private static readonly Pen s_benchStitchPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(110, 130, 235, 180)), 1.2).GetAsFrozen();
+    private static readonly Pen s_benchSeamPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(14, 52, 36)), 1.4).GetAsFrozen();
+    private static readonly LinearGradientBrush s_plinthBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(44, 48, 60),
+        Color.FromRgb(26, 30, 38),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly SolidColorBrush s_louverBrush = (SolidColorBrush)new SolidColorBrush(Color.FromRgb(12, 14, 18)).GetAsFrozen();
+    private static readonly Pen s_louverPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(70, 78, 95)), 0.6).GetAsFrozen();
+    private static readonly LinearGradientBrush s_cushionBrush = (LinearGradientBrush)new LinearGradientBrush(
+        new GradientStopCollection
+        {
+            new GradientStop(Color.FromRgb(50, 160, 112), 0.0),
+            new GradientStop(Color.FromRgb(34, 118, 82), 0.4),
+            new GradientStop(Color.FromRgb(20, 78, 54), 0.85),
+            new GradientStop(Color.FromRgb(14, 56, 38), 1.0)
+        },
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_cushionPen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(14, 50, 34)), 1.2).GetAsFrozen();
+    private static readonly Pen s_cushionTopHighlightPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(170, 150, 245, 195)), 1.5).GetAsFrozen();
+    private static readonly Pen s_cushionDivPen = (Pen)new Pen(new SolidColorBrush(Color.FromArgb(120, 12, 46, 32)), 1.2).GetAsFrozen();
+    private static readonly LinearGradientBrush s_cushionShadowBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromArgb(160, 0, 0, 0),
+        Color.FromArgb(0, 0, 0, 0),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly LinearGradientBrush s_transitFloorBrush = (LinearGradientBrush)new LinearGradientBrush(
+        Color.FromRgb(28, 30, 42),
+        Color.FromRgb(18, 20, 28),
+        new Point(0, 0),
+        new Point(0, 1)).GetAsFrozen();
+    private static readonly Pen s_transitFloorLinePen = (Pen)new Pen(new SolidColorBrush(Color.FromRgb(55, 60, 78)), 1.0).GetAsFrozen();
+
     private void RenderMetroScene(DrawingContext dc, double w, double h)
     {
         double windowTopY = IsMiniMode ? 12 : 20;
@@ -6351,12 +6751,7 @@ public partial class VisualCompanionControl : UserControl
         dc.PushTransform(new RotateTransform(swayAngle, w * 0.5, h * 0.9));
 
         // 1. Carriage Wall & Interior Frame
-        var carriageBrush = new LinearGradientBrush(
-            Color.FromRgb(36, 40, 56),
-            Color.FromRgb(24, 26, 38),
-            new Point(0, 0),
-            new Point(0, 1));
-        dc.DrawRectangle(carriageBrush, null, new Rect(0, 0, w, h));
+        dc.DrawRectangle(s_metroCarriageBrush, null, new Rect(0, 0, w, h));
 
         // 2. Large Panoramic Train Window
         double windowMarginX = IsMiniMode ? 6 : 16;
@@ -6368,12 +6763,7 @@ public partial class VisualCompanionControl : UserControl
         dc.PushClip(windowClip);
 
         // A. Night / Twilight Sky outside the window
-        var skyBrush = new LinearGradientBrush(
-            Color.FromRgb(14, 10, 32),
-            Color.FromRgb(38, 20, 62),
-            new Point(0, 0),
-            new Point(0, 1));
-        dc.DrawRectangle(skyBrush, null, windowRect);
+        dc.DrawRectangle(s_metroSkyBrush, null, windowRect);
 
         // B. Distant Tokyo Skyline Silhouettes & Lit Windows (Reduced density)
         DrawTokyoSkyline(dc, windowRect);
@@ -6396,11 +6786,7 @@ public partial class VisualCompanionControl : UserControl
         dc.Pop(); // Pop window clip
 
         // 3. Window Frame Bevels (Sleek brushed aluminum / warm trim)
-        var framePen = new Pen(new LinearGradientBrush(
-            Color.FromRgb(160, 170, 190),
-            Color.FromRgb(90, 100, 120),
-            new Point(0, 0),
-            new Point(0, 1)), IsMiniMode ? 1.8 : 3.0);
+        var framePen = IsMiniMode ? s_metroFramePenMini : s_metroFramePenNormal;
         dc.DrawRoundedRectangle(null, framePen, windowRect, 6, 6);
 
         // 4. Overhead Stainless Steel Handrail with Hanging Straps
@@ -6443,28 +6829,20 @@ public partial class VisualCompanionControl : UserControl
     private void DrawFarTokyoSkyline(DrawingContext dc, Rect rect, double trainSpeed)
     {
         double bBaseY = rect.Bottom;
-        var farSilhouetteBrush = new SolidColorBrush(Color.FromRgb(16, 12, 34));
-        var farWinBrush = new SolidColorBrush(Color.FromArgb(90, 255, 235, 140));
-
-        // Well-proportioned skyline heights for a clean, visible distant background in both mini and full modes
-        var farBuildings = new (double w, double hPct, bool beacon)[]
-        {
-            (36, 0.54, false),
-            (26, 0.44, true),
-            (42, 0.62, false),
-            (28, 0.48, true),
-            (44, 0.56, false)
-        };
-
-        double totalFarSpan = 0;
+        var farSilhouetteBrush = s_farSilhouetteBrush;
+        var farWinBrush = s_farWinBrush;
+        var farBuildings = s_farBuildings;
+        double totalFarSpan = s_totalFarSpan;
         const double farGap = 28;
-        for (int i = 0; i < farBuildings.Length; i++) totalFarSpan += farBuildings[i].w + farGap;
 
         double farScroll = (_frameTick * trainSpeed * 0.75) % totalFarSpan;
         double startX = rect.Left - farScroll;
         while (startX > rect.Left - totalFarSpan) startX -= totalFarSpan;
 
         double currentX = startX;
+        StreamGeometry? winGeom = null;
+        StreamGeometryContext? winCtx = null;
+
         while (currentX < rect.Right + 30)
         {
             for (int i = 0; i < farBuildings.Length; i++)
@@ -6495,7 +6873,15 @@ public partial class VisualCompanionControl : UserControl
                                 int hash = (col * 19 + row * 13 + i * 37);
                                 if ((hash % 3) == 0)
                                 {
-                                    dc.DrawRectangle(farWinBrush, null, new Rect(wx, wy, winW, winH));
+                                    if (winCtx == null)
+                                    {
+                                        winGeom = new StreamGeometry();
+                                        winCtx = winGeom.Open();
+                                    }
+                                    winCtx.BeginFigure(new Point(wx, wy), true, true);
+                                    winCtx.LineTo(new Point(wx + winW, wy), false, false);
+                                    winCtx.LineTo(new Point(wx + winW, wy + winH), false, false);
+                                    winCtx.LineTo(new Point(wx, wy + winH), false, false);
                                 }
                             }
                         }
@@ -6505,10 +6891,10 @@ public partial class VisualCompanionControl : UserControl
                     if (beacon)
                     {
                         double antH = IsMiniMode ? 4 : 6;
-                        dc.DrawLine(new Pen(farSilhouetteBrush, 1.0), new Point(bx + (bw * 0.5), by), new Point(bx + (bw * 0.5), by - antH));
+                        dc.DrawLine(s_farAntennaPen, new Point(bx + (bw * 0.5), by), new Point(bx + (bw * 0.5), by - antH));
                         if ((_frameTick + (i * 12)) % 32 < 16)
                         {
-                            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 60, 60)), null, new Point(bx + (bw * 0.5), by - antH), IsMiniMode ? 1.0 : 1.2, IsMiniMode ? 1.0 : 1.2);
+                            dc.DrawEllipse(s_farBeaconBrush, null, new Point(bx + (bw * 0.5), by - antH), IsMiniMode ? 1.0 : 1.2, IsMiniMode ? 1.0 : 1.2);
                         }
                     }
                 }
@@ -6516,38 +6902,42 @@ public partial class VisualCompanionControl : UserControl
                 currentX += bw + farGap;
             }
         }
+
+        if (winCtx != null)
+        {
+            winCtx.Close();
+            winGeom!.Freeze();
+            dc.DrawGeometry(farWinBrush, null, winGeom);
+        }
     }
 
     private void DrawMidTokyoCityscape(DrawingContext dc, Rect rect, double trainSpeed)
     {
-        var buildBrush1 = new SolidColorBrush(Color.FromRgb(22, 17, 44));
-        var buildBrush2 = new SolidColorBrush(Color.FromRgb(18, 14, 38));
-        var rimPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 140, 130, 210)), IsMiniMode ? 0.7 : 0.8);
+        var buildBrush1 = s_midBuildBrush1;
+        var buildBrush2 = s_midBuildBrush2;
+        var rimPen = IsMiniMode ? s_midRimPenMini : s_midRimPenNormal;
 
-        var winGold = new SolidColorBrush(Color.FromArgb(180, 255, 235, 140));
-        var winCyan = new SolidColorBrush(Color.FromArgb(170, 130, 225, 255));
-        var winPink = new SolidColorBrush(Color.FromArgb(160, 255, 150, 210));
+        var winGold = s_winGold;
+        var winCyan = s_winCyan;
+        var winPink = s_winPink;
 
-        // Proportional building heights visible and distinct in both mini and full views
-        var midBuildings = new (double w, double hPct, int style, string? signText, Color signCol)[]
-        {
-            (46, 0.78, 1, "TOKYO", Color.FromRgb(255, 80, 180)),            // Shinjuku Stepped Tower with Neon
-            (34, 0.58, 4, null, default),                                   // High-Rise with Rooftop Water Tank
-            (50, 0.86, 5, null, default),                                   // Financial Skyscraper with Spire & Beacon
-            (40, 0.68, 7, "METRO", Color.FromRgb(60, 240, 255))             // Cyber Glass Tower
-        };
-
-        double totalMidSpan = 0;
+        var midBuildings = s_midBuildings;
+        double totalMidSpan = s_totalMidSpan;
         const double midGap = 42;
-        for (int i = 0; i < midBuildings.Length; i++) totalMidSpan += midBuildings[i].w + midGap;
 
-        // Rapid continuous parallax movement from right to left as train travels
         double midScroll = (_frameTick * trainSpeed * 2.0) % totalMidSpan;
         double startX = rect.Left - midScroll;
         while (startX > rect.Left - totalMidSpan) startX -= totalMidSpan;
 
         double currentX = startX;
         double bBaseY = rect.Bottom;
+
+        StreamGeometry? goldGeom = null;
+        StreamGeometry? cyanGeom = null;
+        StreamGeometry? pinkGeom = null;
+        StreamGeometryContext? goldCtx = null;
+        StreamGeometryContext? cyanCtx = null;
+        StreamGeometryContext? pinkCtx = null;
 
         while (currentX < rect.Right + 50)
         {
@@ -6576,11 +6966,11 @@ public partial class VisualCompanionControl : UserControl
 
                         // Rooftop communication spire with blinking collision light
                         double antH = IsMiniMode ? 4.5 : 9.0;
-                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(140, 145, 170)), 1.0), new Point(bx + (bw * 0.5), stepY), new Point(bx + (bw * 0.5), stepY - antH));
+                        dc.DrawLine(s_spirePen, new Point(bx + (bw * 0.5), stepY), new Point(bx + (bw * 0.5), stepY - antH));
                         if ((_frameTick + (i * 8)) % 28 < 14)
                         {
-                            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 50, 50)), null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 1.2 : 1.5, IsMiniMode ? 1.2 : 1.5);
-                            dc.DrawEllipse(new RadialGradientBrush(Color.FromArgb(120, 255, 50, 50), Color.FromArgb(0, 255, 50, 50)), null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 2.5 : 3.5, IsMiniMode ? 2.5 : 3.5);
+                            dc.DrawEllipse(s_spireRedBrush, null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 1.2 : 1.5, IsMiniMode ? 1.2 : 1.5);
+                            dc.DrawEllipse(s_spireGlow, null, new Point(bx + (bw * 0.5), stepY - antH), IsMiniMode ? 2.5 : 3.5, IsMiniMode ? 2.5 : 3.5);
                         }
                     }
                     else if (style == 4) // Rooftop water tank
@@ -6589,9 +6979,9 @@ public partial class VisualCompanionControl : UserControl
                         double tankH = IsMiniMode ? 3.5 : 5.0;
                         double tankX = bx + 4;
                         double tankY = by - tankH;
-                        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(40, 35, 60)), null, new Rect(tankX, tankY, tankW, tankH));
-                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(30, 26, 48)), 1), new Point(tankX + 2, by), new Point(tankX + 2, tankY));
-                        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(30, 26, 48)), 1), new Point(tankX + tankW - 2, by), new Point(tankX + tankW - 2, tankY));
+                        dc.DrawRectangle(s_waterTankBrush, null, new Rect(tankX, tankY, tankW, tankH));
+                        dc.DrawLine(s_waterTankPen, new Point(tankX + 2, by), new Point(tankX + 2, tankY));
+                        dc.DrawLine(s_waterTankPen, new Point(tankX + tankW - 2, by), new Point(tankX + tankW - 2, tankY));
                     }
                     else if (style == 6) // Rooftop HVAC unit
                     {
@@ -6599,7 +6989,7 @@ public partial class VisualCompanionControl : UserControl
                         double hvacH = IsMiniMode ? 3.0 : 4.0;
                         double hvacX = bx + (bw - hvacW) * 0.5;
                         double hvacY = by - hvacH;
-                        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(35, 30, 55)), null, new Rect(hvacX, hvacY, hvacW, hvacH));
+                        dc.DrawRectangle(s_hvacBrush, null, new Rect(hvacX, hvacY, hvacW, hvacH));
                     }
 
                     // Rooftop Mini Neon Sign / LED Accent
@@ -6609,8 +6999,9 @@ public partial class VisualCompanionControl : UserControl
                         double signH = IsMiniMode ? 6.5 : 8.0;
                         double signX = bx + (bw - signW) * 0.5;
                         double signY = by - signH - (IsMiniMode ? 1.0 : 2.0);
-                        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(170, 20, 16, 36)), new Pen(new SolidColorBrush(signCol), IsMiniMode ? 0.7 : 1.0), new Rect(signX, signY, signW, signH), 2, 2);
-                        var sFt = CreateText(signText, IsMiniMode ? 5.5 : 7.0, new SolidColorBrush(signCol), FontWeights.Bold);
+                        var signBorderPen = GetSolidPen(signCol, IsMiniMode ? 0.7 : 1.0);
+                        dc.DrawRoundedRectangle(s_signBackingBrush, signBorderPen, new Rect(signX, signY, signW, signH), 2, 2);
+                        var sFt = CreateText(signText, IsMiniMode ? 5.5 : 7.0, GetSolidBrush(signCol), FontWeights.Bold);
                         dc.DrawText(sFt, new Point(signX + ((signW - sFt.Width) * 0.5), signY + ((signH - sFt.Height) * 0.5)));
                     }
 
@@ -6629,8 +7020,27 @@ public partial class VisualCompanionControl : UserControl
                             int hash = (col * 31 + row * 17 + i * 53);
                             if (hash % 4 != 0) // realistic night occupancy pattern
                             {
-                                var wb = (hash % 7 == 0) ? winPink : ((hash % 3 == 0) ? winGold : winCyan);
-                                dc.DrawRectangle(wb, null, new Rect(wx, wy, winW, winH));
+                                StreamGeometryContext targetCtx;
+                                if (hash % 7 == 0)
+                                {
+                                    if (pinkCtx == null) { pinkGeom = new StreamGeometry(); pinkCtx = pinkGeom.Open(); }
+                                    targetCtx = pinkCtx;
+                                }
+                                else if (hash % 3 == 0)
+                                {
+                                    if (goldCtx == null) { goldGeom = new StreamGeometry(); goldCtx = goldGeom.Open(); }
+                                    targetCtx = goldCtx;
+                                }
+                                else
+                                {
+                                    if (cyanCtx == null) { cyanGeom = new StreamGeometry(); cyanCtx = cyanGeom.Open(); }
+                                    targetCtx = cyanCtx;
+                                }
+
+                                targetCtx.BeginFigure(new Point(wx, wy), true, true);
+                                targetCtx.LineTo(new Point(wx + winW, wy), false, false);
+                                targetCtx.LineTo(new Point(wx + winW, wy + winH), false, false);
+                                targetCtx.LineTo(new Point(wx, wy + winH), false, false);
                             }
                         }
                     }
@@ -6639,6 +7049,10 @@ public partial class VisualCompanionControl : UserControl
                 currentX += bw + midGap;
             }
         }
+
+        if (goldCtx != null) { goldCtx.Close(); goldGeom!.Freeze(); dc.DrawGeometry(winGold, null, goldGeom); }
+        if (cyanCtx != null) { cyanCtx.Close(); cyanGeom!.Freeze(); dc.DrawGeometry(winCyan, null, cyanGeom); }
+        if (pinkCtx != null) { pinkCtx.Close(); pinkGeom!.Freeze(); dc.DrawGeometry(winPink, null, pinkGeom); }
     }
 
     private void DrawTokyoTower(DrawingContext dc, Rect rect)
@@ -6657,9 +7071,7 @@ public partial class VisualCompanionControl : UserControl
         double towerH = rect.Height * 0.88;
         double towerTopY = towerBaseY - towerH;
 
-        var towerBrush = new SolidColorBrush(Color.FromRgb(255, 90, 60));
-        var towerGlow = new RadialGradientBrush(Color.FromArgb(90, 255, 110, 70), Color.FromArgb(0, 255, 110, 70));
-        dc.DrawEllipse(towerGlow, null, new Point(towerX, towerBaseY - (towerH * 0.5)), IsMiniMode ? 16 : 28, towerH * 0.55);
+        dc.DrawEllipse(s_towerGlow, null, new Point(towerX, towerBaseY - (towerH * 0.5)), IsMiniMode ? 16 : 28, towerH * 0.55);
 
         // Lower main observation deck & top deck
         double mainDeckY = towerBaseY - (towerH * 0.42);
@@ -6667,51 +7079,42 @@ public partial class VisualCompanionControl : UserControl
         double towerScale = IsMiniMode ? 0.75 : 1.0;
 
         // Tower Lattice Geometry
-        var tGeom = new PathGeometry();
-        var tf = new PathFigure { StartPoint = new Point(towerX - (13 * towerScale), towerBaseY) };
-        tf.Segments.Add(new LineSegment(new Point(towerX - (5.5 * towerScale), mainDeckY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX - (3.5 * towerScale), topDeckY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX - (1.5 * towerScale), towerTopY + (12 * towerScale)), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX, towerTopY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + (1.5 * towerScale), towerTopY + (12 * towerScale)), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + (3.5 * towerScale), topDeckY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + (5.5 * towerScale), mainDeckY), true));
-        tf.Segments.Add(new LineSegment(new Point(towerX + (13 * towerScale), towerBaseY), true));
-        tf.IsClosed = true;
-        tGeom.Figures.Add(tf);
-        dc.DrawGeometry(towerBrush, null, tGeom);
+        var tGeom = new StreamGeometry();
+        using (var ctx = tGeom.Open())
+        {
+            ctx.BeginFigure(new Point(towerX - (13 * towerScale), towerBaseY), true, true);
+            ctx.LineTo(new Point(towerX - (5.5 * towerScale), mainDeckY), true, false);
+            ctx.LineTo(new Point(towerX - (3.5 * towerScale), topDeckY), true, false);
+            ctx.LineTo(new Point(towerX - (1.5 * towerScale), towerTopY + (12 * towerScale)), true, false);
+            ctx.LineTo(new Point(towerX, towerTopY), true, false);
+            ctx.LineTo(new Point(towerX + (1.5 * towerScale), towerTopY + (12 * towerScale)), true, false);
+            ctx.LineTo(new Point(towerX + (3.5 * towerScale), topDeckY), true, false);
+            ctx.LineTo(new Point(towerX + (5.5 * towerScale), mainDeckY), true, false);
+            ctx.LineTo(new Point(towerX + (13 * towerScale), towerBaseY), true, false);
+        }
+        tGeom.Freeze();
+        dc.DrawGeometry(s_towerBrush, null, tGeom);
 
         // Observation Deck illuminated galleries
-        var deckBrush = new SolidColorBrush(Color.FromRgb(255, 235, 160));
-        dc.DrawRoundedRectangle(deckBrush, null, new Rect(towerX - (6.5 * towerScale), mainDeckY - (2 * towerScale), 13 * towerScale, 4.5 * towerScale), 1, 1);
-        dc.DrawRoundedRectangle(deckBrush, null, new Rect(towerX - (4.5 * towerScale), topDeckY - (1.5 * towerScale), 9 * towerScale, 3.5 * towerScale), 1, 1);
+        dc.DrawRoundedRectangle(s_towerDeckBrush, null, new Rect(towerX - (6.5 * towerScale), mainDeckY - (2 * towerScale), 13 * towerScale, 4.5 * towerScale), 1, 1);
+        dc.DrawRoundedRectangle(s_towerDeckBrush, null, new Rect(towerX - (4.5 * towerScale), topDeckY - (1.5 * towerScale), 9 * towerScale, 3.5 * towerScale), 1, 1);
 
         // Blinking aviation strobe beacon light at tip
         if (_frameTick % 20 < 10)
         {
-            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 240)), null, new Point(towerX, towerTopY), IsMiniMode ? 1.8 : 2.5, IsMiniMode ? 1.8 : 2.5);
-            var tipGlow = new RadialGradientBrush(Color.FromArgb(180, 255, 80, 80), Color.FromArgb(0, 255, 80, 80));
-            dc.DrawEllipse(tipGlow, null, new Point(towerX, towerTopY), IsMiniMode ? 6 : 9, IsMiniMode ? 6 : 9);
+            dc.DrawEllipse(s_towerTipBrush, null, new Point(towerX, towerTopY), IsMiniMode ? 1.8 : 2.5, IsMiniMode ? 1.8 : 2.5);
+            dc.DrawEllipse(s_towerTipGlow, null, new Point(towerX, towerTopY), IsMiniMode ? 6 : 9, IsMiniMode ? 6 : 9);
         }
     }
 
     private void DrawPassingTokyoNeonSigns(DrawingContext dc, Rect rect)
     {
         double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
-
-        var signs = new (string text, Color color, double yPct, double speed)[]
-        {
-            ("新宿", Color.FromRgb(70, 240, 255), 0.22, 0.85),    // Radiant Cyan Neon (Shinjuku)
-            ("渋谷", Color.FromRgb(255, 80, 185), 0.38, 1.15),    // Vibrant Magenta Neon (Shibuya)
-            ("秋葉原", Color.FromRgb(185, 105, 255), 0.28, 0.95), // Electric Violet Neon (Akihabara)
-            ("音楽", Color.FromRgb(255, 225, 70), 0.16, 0.65),    // Warm Amber Gold (Music)
-            ("カフェ", Color.FromRgb(80, 250, 170), 0.44, 1.05),  // Emerald Mint (Cafe)
-            ("地下鉄", Color.FromRgb(255, 150, 50), 0.32, 0.75)   // Sunset Orange (Metro)
-        };
+        var signs = s_neonSignsData;
 
         for (int i = 0; i < signs.Length; i++)
         {
-            var (text, col, yPct, speed) = signs[i];
+            var (text, _, yPct, speed, glowBrush, signBrush, borderPenMini, borderPenNormal) = signs[i];
             double travelWidth = rect.Width + 160;
             double rawX = (rect.Right + 80) - (((_frameTick * speed * trainSpeed * 2.4) + (i * 110)) % travelWidth);
             double sy = rect.Top + (rect.Height * yPct);
@@ -6719,15 +7122,14 @@ public partial class VisualCompanionControl : UserControl
             if (rawX >= rect.Left - 50 && rawX <= rect.Right + 50)
             {
                 // Neon glow background box
-                var glowBrush = new RadialGradientBrush(Color.FromArgb(75, col.R, col.G, col.B), Color.FromArgb(0, col.R, col.G, col.B));
                 dc.DrawEllipse(glowBrush, null, new Point(rawX + (IsMiniMode ? 10 : 16), sy + (IsMiniMode ? 5 : 8)), IsMiniMode ? 18 : 28, IsMiniMode ? 12 : 18);
 
                 // Dark backing plate with thin neon border
-                var signBrush = new SolidColorBrush(col);
                 var ft = CreateText(text, IsMiniMode ? 8.0 : 12.0, signBrush, FontWeights.Bold);
                 double boxW = ft.Width + (IsMiniMode ? 6 : 8);
                 double boxH = ft.Height + (IsMiniMode ? 3 : 4);
-                dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(170, 15, 12, 28)), new Pen(signBrush, IsMiniMode ? 0.8 : 1.0), new Rect(rawX - (IsMiniMode ? 3 : 4), sy - (IsMiniMode ? 1.5 : 2), boxW, boxH), 2.5, 2.5);
+                var borderPen = IsMiniMode ? borderPenMini : borderPenNormal;
+                dc.DrawRoundedRectangle(s_signPlateBrush, borderPen, new Rect(rawX - (IsMiniMode ? 3 : 4), sy - (IsMiniMode ? 1.5 : 2), boxW, boxH), 2.5, 2.5);
                 dc.DrawText(ft, new Point(rawX, sy));
             }
         }
@@ -6736,22 +7138,19 @@ public partial class VisualCompanionControl : UserControl
     private void DrawMetroPassingBokeh(DrawingContext dc, Rect rect)
     {
         double trainSpeed = IsTracking ? 5.2 : (IsRestPhase ? 0.6 : (IsGoalReached ? 0.4 : 0.25));
-        var rand = new Random(555);
-
-        for (int i = 0; i < (IsMiniMode ? 7 : 16); i++)
+        int count = IsMiniMode ? 7 : 16;
+        for (int i = 0; i < count; i++)
         {
-            double speed = 1.0 + (rand.NextDouble() * 1.5);
+            var (speed, yFrac, br) = s_bokehData[i];
             double bx = (rect.Right + 30) - (((_frameTick * speed * trainSpeed * 3.0) + (i * 36)) % (rect.Width + 60));
-            double by = rect.Top + (rand.NextDouble() * (rect.Height * 0.78));
-            double br = 4 + (rand.NextDouble() * 8.5);
+            double by = rect.Top + (yFrac * rect.Height);
 
-            Color bColor = (i % 3 == 0)
-                ? Color.FromArgb(48, 255, 190, 85)
+            var bGlow = (i % 3 == 0)
+                ? s_bokehGlow0
                 : (i % 3 == 1)
-                    ? Color.FromArgb(48, 255, 105, 170)
-                    : Color.FromArgb(48, 105, 230, 255);
+                    ? s_bokehGlow1
+                    : s_bokehGlow2;
 
-            var bGlow = new RadialGradientBrush(bColor, Color.FromArgb(0, bColor.R, bColor.G, bColor.B));
             dc.DrawEllipse(bGlow, null, new Point(bx, by), br, br);
         }
     }
@@ -6765,6 +7164,7 @@ public partial class VisualCompanionControl : UserControl
         if (!IsTracking) return;
 
         int streakCount = IsMiniMode ? 6 : 14;
+        var pens = IsMiniMode ? s_streakPensMini : s_streakPensNormal;
         for (int i = 0; i < streakCount; i++)
         {
             double speed = 16.0 + ((i * 37) % 18);
@@ -6773,52 +7173,29 @@ public partial class VisualCompanionControl : UserControl
             double y = rect.Top + 6 + (((i * 41) % (int)Math.Max(10, rect.Height - 14)));
             double len = IsMiniMode ? (20 + (i % 4) * 12) : (45 + (i % 5) * 25);
 
-            Color col = (i % 3 == 0)
-                ? Color.FromArgb(110, 180, 235, 255)
-                : (i % 3 == 1)
-                    ? Color.FromArgb(95, 255, 130, 215)
-                    : Color.FromArgb(85, 255, 240, 150);
-
-            var streakGrad = new LinearGradientBrush(
-                Color.FromArgb(0, col.R, col.G, col.B),
-                col,
-                new Point(0, 0),
-                new Point(1, 0));
-
-            dc.DrawLine(new Pen(streakGrad, IsMiniMode ? 1.0 : 1.6), new Point(x, y), new Point(x + len, y));
+            var pen = pens[i % 3];
+            dc.DrawLine(pen, new Point(x, y), new Point(x + len, y));
         }
     }
 
     private void DrawMetroWindowReflection(DrawingContext dc, Rect rect)
     {
         // Diagonal gloss reflection streak
-        var glossBrush = new LinearGradientBrush(
-            Color.FromArgb(30, 255, 255, 255),
-            Color.FromArgb(0, 255, 255, 255),
-            new Point(0, 0),
-            new Point(1, 1));
-        dc.DrawRectangle(glossBrush, null, new Rect(rect.Left + (rect.Width * 0.45), rect.Top, rect.Width * 0.35, rect.Height));
+        dc.DrawRectangle(s_metroGlossBrush, null, new Rect(rect.Left + (rect.Width * 0.45), rect.Top, rect.Width * 0.35, rect.Height));
     }
 
     private void DrawMetroHandrailsAndStraps(DrawingContext dc, double w, double topY)
     {
         // Matte black modern subway rail bar
         double railY = topY + (IsMiniMode ? 2.5 : 8);
-        var railBrush = new LinearGradientBrush(
-            Color.FromRgb(30, 32, 40),
-            Color.FromRgb(10, 12, 16),
-            new Point(0, 0),
-            new Point(0, 1));
-        var railPen = new Pen(new SolidColorBrush(Color.FromRgb(50, 54, 65)), 0.6);
-        dc.DrawRectangle(railBrush, railPen, new Rect(0, railY, w, IsMiniMode ? 2.0 : 4.0));
+        dc.DrawRectangle(s_railBrush, s_railPen, new Rect(0, railY, w, IsMiniMode ? 2.0 : 4.0));
 
         // Hanging leather straps with triangular handholds
         int strapCount = IsMiniMode ? 3 : 5;
         double strapSpacing = w / (strapCount + 1);
 
-        var strapPen = new Pen(new SolidColorBrush(Color.FromRgb(40, 42, 50)), IsMiniMode ? 1.2 : 2.2);
-        var ringBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-        var ringPen = new Pen(new SolidColorBrush(Color.FromRgb(180, 185, 195)), IsMiniMode ? 0.9 : 1.2);
+        var strapPen = IsMiniMode ? s_strapPenMini : s_strapPenNormal;
+        var ringPen = IsMiniMode ? s_ringPenMini : s_ringPenNormal;
 
         for (int i = 1; i <= strapCount; i++)
         {
@@ -6849,7 +7226,7 @@ public partial class VisualCompanionControl : UserControl
         if (tickerY < 1) tickerY = 1;
 
         // LED Display Body
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(15, 18, 22)), new Pen(new SolidColorBrush(Color.FromRgb(60, 65, 75)), 1), new Rect(tickerX, tickerY, tickerW, tickerH), 2.5, 2.5);
+        dc.DrawRoundedRectangle(s_tickerBgBrush, s_tickerBorderPen, new Rect(tickerX, tickerY, tickerW, tickerH), 2.5, 2.5);
 
         string tickerText = (IsGoalReached || ProgressFraction >= 0.999)
             ? (IsMiniMode ? "🌟 TARGET REACHED! 🌟" : "🌟 ARRIVED: TARGET STATION • 100% FOCUS! 🌟")
@@ -6860,10 +7237,10 @@ public partial class VisualCompanionControl : UserControl
                     : (IsMiniMode ? "🟢 READY TO DEPART" : "🟢 YAMANOTE LINE • READY TO DEPART");
 
         var ledBrush = (IsGoalReached || ProgressFraction >= 0.999)
-            ? new SolidColorBrush(Color.FromRgb(255, 225, 110))
+            ? s_tickerLedGoal
             : IsRestPhase
-                ? new SolidColorBrush(Color.FromRgb(130, 240, 180))
-                : new SolidColorBrush(Color.FromRgb(110, 245, 140));
+                ? s_tickerLedRest
+                : s_tickerLedTrack;
 
         var ft = CreateText(tickerText, IsMiniMode ? 7.0 : 9.5, ledBrush, FontWeights.Bold);
         dc.DrawText(ft, new Point(tickerX + ((tickerW - ft.Width) * 0.5), tickerY + ((tickerH - ft.Height) * 0.5)));
@@ -6881,50 +7258,43 @@ public partial class VisualCompanionControl : UserControl
         double seatSecW = isMini ? 32 : 48;
         int numSections = (int)Math.Ceiling(w / seatSecW) + 1;
 
+        var backrestBrush = s_benchBackrestBrush;
+        var bolsterBrush = s_benchBolsterBrush;
+        var highlightPen = s_benchHighlightPen;
+        var stitchPen = s_benchStitchPen;
+        var seamPen = s_benchSeamPen;
+
         for (int i = 0; i < numSections; i++)
         {
             double secX = i * seatSecW;
             var secRect = new Rect(secX, backrestTop, seatSecW, backrestH);
 
             // A. Backrest Main Plush Velvet Body (Deep Tokyo Metro Emerald Green Moquette)
-            var backrestBrush = new LinearGradientBrush(
-                Color.FromRgb(36, 126, 88),
-                Color.FromRgb(22, 80, 56),
-                new Point(0, 0),
-                new Point(0, 1));
             dc.DrawRoundedRectangle(backrestBrush, null, secRect, isMini ? 2 : 4, isMini ? 2 : 4);
 
             // B. Upper Headrest/Shoulder Bolster Roll Accent (Sage/Olive moquette)
             double bolsterH = isMini ? 3.0 : 6.5;
-            var bolsterBrush = new LinearGradientBrush(
-                Color.FromRgb(60, 155, 105),
-                Color.FromRgb(42, 122, 82),
-                new Point(0, 0),
-                new Point(0, 1));
             dc.DrawRoundedRectangle(bolsterBrush, null, new Rect(secX + 1, backrestTop, seatSecW - 2, bolsterH), isMini ? 1.5 : 3, isMini ? 1.5 : 3);
 
             // C. Top Bolster Velvet Highlight Sheen Line
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(160, 150, 245, 195)), 1.0), new Point(secX + 2, backrestTop + 1), new Point(secX + seatSecW - 2, backrestTop + 1));
+            dc.DrawLine(highlightPen, new Point(secX + 2, backrestTop + 1), new Point(secX + seatSecW - 2, backrestTop + 1));
 
             // D. Center Ergonomic Vertical Accent Stitch / Piping
             double cx = secX + (seatSecW * 0.5);
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 130, 235, 180)), 1.2), new Point(cx, backrestTop + bolsterH + 1), new Point(cx, seatY - 1));
+            dc.DrawLine(stitchPen, new Point(cx, backrestTop + bolsterH + 1), new Point(cx, seatY - 1));
 
             // E. Vertical Seam Divider Groove between passenger spots
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(14, 52, 36)), 1.4), new Point(secX, backrestTop), new Point(secX, seatY));
+            dc.DrawLine(seamPen, new Point(secX, backrestTop), new Point(secX, seatY));
         }
 
         // 2. Stainless Steel Under-Seat Heater Plinth & Kickplate (蹴込板 / ヒーター)
         double cushionBottom = seatY + (isMini ? 6.5 : 12.0);
         double plinthH = Math.Max(0, floorY - cushionBottom);
-        var plinthBrush = new LinearGradientBrush(
-            Color.FromRgb(44, 48, 60),
-            Color.FromRgb(26, 30, 38),
-            new Point(0, 0),
-            new Point(0, 1));
-        dc.DrawRectangle(plinthBrush, null, new Rect(0, cushionBottom, w, plinthH));
+        dc.DrawRectangle(s_plinthBrush, null, new Rect(0, cushionBottom, w, plinthH));
 
         // Horizontal Heater Ventilation Louver Slits under each seat
+        var louverBrush = s_louverBrush;
+        var louverPen = s_louverPen;
         for (int i = 0; i < numSections; i++)
         {
             double secX = i * seatSecW;
@@ -6932,52 +7302,32 @@ public partial class VisualCompanionControl : UserControl
             double louverX = secX + ((seatSecW - louverW) * 0.5);
             for (double ly = cushionBottom + (isMini ? 2 : 4); ly < floorY - 2; ly += (isMini ? 3.5 : 5.0))
             {
-                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(12, 14, 18)), null, new Rect(louverX, ly, louverW, isMini ? 1.2 : 1.8));
-                dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(70, 78, 95)), 0.6), new Point(louverX, ly + (isMini ? 1.2 : 1.8)), new Point(louverX + louverW, ly + (isMini ? 1.2 : 1.8)));
+                dc.DrawRectangle(louverBrush, null, new Rect(louverX, ly, louverW, isMini ? 1.2 : 1.8));
+                dc.DrawLine(louverPen, new Point(louverX, ly + (isMini ? 1.2 : 1.8)), new Point(louverX + louverW, ly + (isMini ? 1.2 : 1.8)));
             }
         }
 
         // 3. Thick Front Seat-Base Cushion (座面 - Sculpted 3D Velvet Cushion with Highlight)
         double cushionH = cushionBottom - (seatY - (isMini ? 1.5 : 2.5));
-        var cushionBrush = new LinearGradientBrush(
-            new GradientStopCollection
-            {
-                new GradientStop(Color.FromRgb(50, 160, 112), 0.0),
-                new GradientStop(Color.FromRgb(34, 118, 82), 0.4),
-                new GradientStop(Color.FromRgb(20, 78, 54), 0.85),
-                new GradientStop(Color.FromRgb(14, 56, 38), 1.0)
-            },
-            new Point(0, 0),
-            new Point(0, 1));
-        var cushionPen = new Pen(new SolidColorBrush(Color.FromRgb(14, 50, 34)), 1.2);
-        dc.DrawRoundedRectangle(cushionBrush, cushionPen, new Rect(0, seatY - (isMini ? 1.5 : 2.5), w, cushionH), isMini ? 2.5 : 4.5, isMini ? 2.5 : 4.5);
+        dc.DrawRoundedRectangle(s_cushionBrush, s_cushionPen, new Rect(0, seatY - (isMini ? 1.5 : 2.5), w, cushionH), isMini ? 2.5 : 4.5, isMini ? 2.5 : 4.5);
 
         // Plush velvet top highlight line catching interior lighting
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(170, 150, 245, 195)), 1.5), new Point(0, seatY - (isMini ? 0.5 : 1.0)), new Point(w, seatY - (isMini ? 0.5 : 1.0)));
+        dc.DrawLine(s_cushionTopHighlightPen, new Point(0, seatY - (isMini ? 0.5 : 1.0)), new Point(w, seatY - (isMini ? 0.5 : 1.0)));
 
         // Cushion division indentations aligning with backrest seats
+        var divPen = s_cushionDivPen;
         for (int i = 0; i < numSections; i++)
         {
             double secX = i * seatSecW;
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 12, 46, 32)), 1.2), new Point(secX, seatY - (isMini ? 1.5 : 2.5)), new Point(secX, cushionBottom));
+            dc.DrawLine(divPen, new Point(secX, seatY - (isMini ? 1.5 : 2.5)), new Point(secX, cushionBottom));
         }
 
         // Under-cushion drop shadow cast onto heater plinth
-        var shadowBrush = new LinearGradientBrush(
-            Color.FromArgb(160, 0, 0, 0),
-            Color.FromArgb(0, 0, 0, 0),
-            new Point(0, 0),
-            new Point(0, 1));
-        dc.DrawRectangle(shadowBrush, null, new Rect(0, cushionBottom, w, isMini ? 2.5 : 4.5));
+        dc.DrawRectangle(s_cushionShadowBrush, null, new Rect(0, cushionBottom, w, isMini ? 2.5 : 4.5));
 
         // 4. Carriage Transit Floor along bottom
-        var floorBrush = new LinearGradientBrush(
-            Color.FromRgb(28, 30, 42),
-            Color.FromRgb(18, 20, 28),
-            new Point(0, 0),
-            new Point(0, 1));
-        dc.DrawRectangle(floorBrush, null, new Rect(0, floorY, w, seatH - (floorY - seatY)));
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(55, 60, 78)), 1.0), new Point(0, floorY), new Point(w, floorY));
+        dc.DrawRectangle(s_transitFloorBrush, null, new Rect(0, floorY, w, seatH - (floorY - seatY)));
+        dc.DrawLine(s_transitFloorLinePen, new Point(0, floorY), new Point(w, floorY));
     }
 
     /// <summary>
@@ -6996,7 +7346,7 @@ public partial class VisualCompanionControl : UserControl
             Color.FromRgb(140, 150, 165),
             new Point(0, 0),
             new Point(1, 0));
-        var framePen = new Pen(new SolidColorBrush(Color.FromRgb(100, 110, 125)), 0.8 * scale);
+        var framePen = GetSolidPen(Color.FromRgb(100, 110, 125), 0.8 * scale);
         dc.DrawRoundedRectangle(frameBrush, framePen, new Rect(x - (partW * 0.5), topY, partW, partH), 3 * scale, 3 * scale);
 
         // 2. Frosted Safety Glass Panel Insert
@@ -7010,7 +7360,7 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawRoundedRectangle(glassBrush, null, new Rect(x - (partW * 0.5) + glassMargin, topY + (3 * scale), partW - (glassMargin * 2), glassH), 1.5 * scale, 1.5 * scale);
 
         // Glass reflection sheen
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)), 1.0 * scale), new Point(x - 2 * scale, topY + 5 * scale), new Point(x + 2 * scale, topY + (glassH - 2 * scale)));
+        dc.DrawLine(GetSolidPen(Color.FromArgb(120, 255, 255, 255), 1.0 * scale), new Point(x - 2 * scale, topY + 5 * scale), new Point(x + 2 * scale, topY + (glassH - 2 * scale)));
 
         // 3. Vertical Stainless Steel Grab Stanchion Pole
         double poleX = x + (partW * 0.5) - (1.5 * scale);
@@ -7020,7 +7370,7 @@ public partial class VisualCompanionControl : UserControl
             Color.FromRgb(165, 175, 190),
             new Point(0, 0),
             new Point(1, 0));
-        dc.DrawRoundedRectangle(poleBrush, new Pen(new SolidColorBrush(Color.FromRgb(120, 130, 145)), 0.8 * scale), new Rect(poleX - (1.6 * scale), poleTopY, 3.2 * scale, floorY - poleTopY), 1.5 * scale, 1.5 * scale);
+        dc.DrawRoundedRectangle(poleBrush, GetSolidPen(Color.FromRgb(120, 130, 145), 0.8 * scale), new Rect(poleX - (1.6 * scale), poleTopY, 3.2 * scale, floorY - poleTopY), 1.5 * scale, 1.5 * scale);
 
         // 4. Iconic Tokyo Metro High-Visibility Safety Orange Non-Slip Grip Sleeve
         double gripTopY = topY - (8 * scale);
@@ -7030,18 +7380,19 @@ public partial class VisualCompanionControl : UserControl
             Color.FromRgb(220, 130, 30),
             new Point(0, 0),
             new Point(1, 0));
-        dc.DrawRoundedRectangle(gripBrush, new Pen(new SolidColorBrush(Color.FromRgb(190, 105, 20)), 0.8 * scale), new Rect(poleX - (2.2 * scale), gripTopY, 4.4 * scale, gripH), 2 * scale, 2 * scale);
+        dc.DrawRoundedRectangle(gripBrush, GetSolidPen(Color.FromRgb(190, 105, 20), 0.8 * scale), new Rect(poleX - (2.2 * scale), gripTopY, 4.4 * scale, gripH), 2 * scale, 2 * scale);
 
         // Subtle grip rings
+        var gripRingPen = GetSolidPen(Color.FromArgb(120, 255, 220, 150), 0.8 * scale);
         for (double gy = gripTopY + (3 * scale); gy < gripTopY + gripH - (2 * scale); gy += (4 * scale))
         {
-            dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 220, 150)), 0.8 * scale), new Point(poleX - (2.0 * scale), gy), new Point(poleX + (2.0 * scale), gy));
+            dc.DrawLine(gripRingPen, new Point(poleX - (2.0 * scale), gy), new Point(poleX + (2.0 * scale), gy));
         }
 
         // 5. Padded Armrest Cap matching Emerald Velvet Moquette
         dc.DrawRoundedRectangle(
-            new SolidColorBrush(Color.FromRgb(32, 112, 78)),
-            new Pen(new SolidColorBrush(Color.FromRgb(18, 70, 48)), 0.8 * scale),
+            GetSolidBrush(Color.FromRgb(32, 112, 78)),
+            GetSolidPen(Color.FromRgb(18, 70, 48), 0.8 * scale),
             new Rect(x - (partW * 0.5) - (1.5 * scale), seatY - (4 * scale), partW + (3 * scale), 6 * scale),
             2 * scale,
             2 * scale);
@@ -7054,7 +7405,8 @@ public partial class VisualCompanionControl : UserControl
     /// </summary>
     private void DrawSeatedGirlLegs(DrawingContext dc, double girlX, double hipY, double floorY, double scale, Color legColor, Color shoeColor, double spreadScale = 1.0)
     {
-        var legPen = new Pen(new SolidColorBrush(legColor), 6.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var legBrush = GetSolidBrush(legColor);
+        var legPen = new Pen(legBrush, 6.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         double kneeY = hipY + (9 * scale);
         double kneeSpread = 6.5 * scale * spreadScale;
         double footSpread = 5.5 * scale * spreadScale;
@@ -7073,7 +7425,7 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawLine(legPen, rightKnee, rightFoot);
 
         // Cute little shoes resting on the train floor
-        var shoeBrush = new SolidColorBrush(shoeColor);
+        var shoeBrush = GetSolidBrush(shoeColor);
         dc.DrawRoundedRectangle(shoeBrush, null, new Rect(leftFoot.X - (4 * scale), floorY - (2 * scale), 8 * scale, 4 * scale), 2, 2);
         dc.DrawRoundedRectangle(shoeBrush, null, new Rect(rightFoot.X - (4 * scale), floorY - (2 * scale), 8 * scale, 4 * scale), 2, 2);
     }
@@ -7089,9 +7441,9 @@ public partial class VisualCompanionControl : UserControl
         double bpY = seatTopY - bpH + (3 * scale);
 
         var bpBrush = new LinearGradientBrush(Color.FromRgb(255, 195, 210), Color.FromRgb(235, 150, 175), new Point(0, 0), new Point(0, 1));
-        dc.DrawRoundedRectangle(bpBrush, new Pen(new SolidColorBrush(Color.FromRgb(205, 115, 145)), 1), new Rect(x, bpY, bpW, bpH), 4, 4);
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 220, 228)), null, new Rect(x + (2 * scale), bpY + (2 * scale), bpW - (4 * scale), bpH * 0.38), 3, 3);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(225, 140, 165)), null, new Point(x + (bpW * 0.5), bpY + (2 * scale)), 1.6 * scale, 1.6 * scale);
+        dc.DrawRoundedRectangle(bpBrush, GetSolidPen(Color.FromRgb(205, 115, 145), 1), new Rect(x, bpY, bpW, bpH), 4, 4);
+        dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(255, 220, 228)), null, new Rect(x + (2 * scale), bpY + (2 * scale), bpW - (4 * scale), bpH * 0.38), 3, 3);
+        dc.DrawEllipse(GetSolidBrush(Color.FromRgb(225, 140, 165)), null, new Point(x + (bpW * 0.5), bpY + (2 * scale)), 1.6 * scale, 1.6 * scale);
     }
 
     private void DrawMetroLoFiGirl(DrawingContext dc, double w, double seatY, double progress, bool isTracking, bool isMini)
@@ -7127,18 +7479,18 @@ public partial class VisualCompanionControl : UserControl
             Color.FromRgb(165, 140, 205),
             new Point(0, 0),
             new Point(0, 1));
-        var hoodiePen = new Pen(new SolidColorBrush(Color.FromRgb(140, 115, 180)), 1.2 * scale);
+        var hoodiePen = GetSolidPen(Color.FromRgb(140, 115, 180), 1.2 * scale);
 
         // Body torso
         dc.DrawRoundedRectangle(hoodieBrush, hoodiePen, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 26 * scale), 6 * scale, 6 * scale);
 
         // Cozy scarf / collar
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 245, 230)), null, new Rect(girlX - (11 * scale), girlY + (18 * scale), 22 * scale, 8 * scale), 4 * scale, 4 * scale);
+        dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(255, 245, 230)), null, new Rect(girlX - (11 * scale), girlY + (18 * scale), 22 * scale, 8 * scale), 4 * scale, 4 * scale);
 
         // 2. Chibi Anime Head & Face
-        var skinBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
-        var blushBrush = new SolidColorBrush(Color.FromArgb(170, 255, 125, 150));
-        var eyeBrush = new SolidColorBrush(Color.FromRgb(60, 40, 35));
+        var skinBrush = GetSolidBrush(Color.FromRgb(255, 224, 205));
+        var blushBrush = GetSolidBrush(Color.FromArgb(170, 255, 125, 150));
+        var eyePen = GetSolidPen(Color.FromRgb(60, 40, 35), 1.6 * scale);
 
         dc.DrawEllipse(skinBrush, null, new Point(girlX, girlY + (10 * scale)), 11 * scale, 10 * scale);
         // Blushing cheeks
@@ -7146,14 +7498,14 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(blushBrush, null, new Point(girlX + (6 * scale), girlY + (12 * scale)), 2.8 * scale, 1.8 * scale);
 
         // Eyes: Relaxed peaceful gaze or gentle smile (^_^)
-        dc.DrawLine(new Pen(eyeBrush, 1.6 * scale), new Point(girlX - (7 * scale), girlY + (9 * scale)), new Point(girlX - (3 * scale), girlY + (10 * scale)));
-        dc.DrawLine(new Pen(eyeBrush, 1.6 * scale), new Point(girlX + (3 * scale), girlY + (10 * scale)), new Point(girlX + (7 * scale), girlY + (9 * scale)));
+        dc.DrawLine(eyePen, new Point(girlX - (7 * scale), girlY + (9 * scale)), new Point(girlX - (3 * scale), girlY + (10 * scale)));
+        dc.DrawLine(eyePen, new Point(girlX + (3 * scale), girlY + (10 * scale)), new Point(girlX + (7 * scale), girlY + (9 * scale)));
 
         // Cute smiling mouth curve
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(210, 100, 120)), 1.2 * scale), new Point(girlX - (2 * scale), girlY + (15 * scale)), new Point(girlX + (2 * scale), girlY + (15 * scale)));
+        dc.DrawLine(GetSolidPen(Color.FromRgb(210, 100, 120), 1.2 * scale), new Point(girlX - (2 * scale), girlY + (15 * scale)), new Point(girlX + (2 * scale), girlY + (15 * scale)));
 
         // 3. Cute Anime Hair with Bangs & Side Strands
-        var hairBrush = new SolidColorBrush(Color.FromRgb(85, 55, 45));
+        var hairBrush = GetSolidBrush(Color.FromRgb(85, 55, 45));
         // Back hair
         dc.DrawEllipse(hairBrush, null, new Point(girlX, girlY + (8 * scale)), 13 * scale, 12 * scale);
         // Bangs
@@ -7163,30 +7515,33 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawRoundedRectangle(hairBrush, null, new Rect(girlX + (8 * scale), girlY + (4 * scale), 4 * scale, 16 * scale), 2 * scale, 2 * scale);
 
         // 4. Stylish Over-Ear Headphones with Pulsing LED Ring
-        var hpHeadband = new Pen(new SolidColorBrush(Color.FromRgb(240, 240, 245)), 2.5 * scale);
-        var hpGeom = new PathGeometry();
-        var hpf = new PathFigure { StartPoint = new Point(girlX - (12 * scale), girlY + (8 * scale)) };
-        hpf.Segments.Add(new QuadraticBezierSegment(new Point(girlX, girlY - (4 * scale)), new Point(girlX + (12 * scale), girlY + (8 * scale)), true));
-        hpGeom.Figures.Add(hpf);
+        var hpHeadband = GetSolidPen(Color.FromRgb(240, 240, 245), 2.5 * scale);
+        var hpGeom = new StreamGeometry();
+        using (var hctx = hpGeom.Open())
+        {
+            hctx.BeginFigure(new Point(girlX - (12 * scale), girlY + (8 * scale)), false, false);
+            hctx.QuadraticBezierTo(new Point(girlX, girlY - (4 * scale)), new Point(girlX + (12 * scale), girlY + (8 * scale)), true, false);
+        }
+        hpGeom.Freeze();
         dc.DrawGeometry(null, hpHeadband, hpGeom);
 
         // Earcups
-        var earcupBrush = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-        dc.DrawRoundedRectangle(earcupBrush, new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 255)), 1), new Rect(girlX - (15 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
-        dc.DrawRoundedRectangle(earcupBrush, new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 255)), 1), new Rect(girlX + (10 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
+        var earcupBrush = GetSolidBrush(Color.FromRgb(45, 50, 65));
+        var whitePen = GetSolidPen(Color.FromRgb(255, 255, 255), 1);
+        dc.DrawRoundedRectangle(earcupBrush, whitePen, new Rect(girlX - (15 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
+        dc.DrawRoundedRectangle(earcupBrush, whitePen, new Rect(girlX + (10 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
 
         // Pulsing Neon LED Ring on Earcup
         double pulse = Math.Sin(_frameTick * 0.25) * 0.35 + 0.65;
         var ledColor = Color.FromArgb((byte)(220 * pulse), 90, 220, 255);
-        dc.DrawEllipse(new SolidColorBrush(ledColor), null, new Point(girlX - (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
-        dc.DrawEllipse(new SolidColorBrush(ledColor), null, new Point(girlX + (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
+        var ledBrush = GetSolidBrush(ledColor);
+        dc.DrawEllipse(ledBrush, null, new Point(girlX - (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
+        dc.DrawEllipse(ledBrush, null, new Point(girlX + (12.5 * scale), girlY + (10 * scale)), 2 * scale, 3 * scale);
 
         // 4b. Hands resting on her lap holding a phone, with the headphone cord running up to her ear.
-        // This ties the headphones to a visible source and gives her lap something to hold,
-        // instead of leaving her arms invisible inside the hoodie block.
         double lapY = hipY - (6 * scale);
-        var handBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
-        var sleevePen = new Pen(new SolidColorBrush(Color.FromRgb(180, 160, 215)), 4.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        var handBrush = skinBrush;
+        var sleevePen = new Pen(GetSolidBrush(Color.FromRgb(180, 160, 215)), 4.5 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         dc.DrawLine(sleevePen, new Point(girlX - (11 * scale), girlY + (26 * scale)), new Point(girlX - (7 * scale), lapY));
         dc.DrawLine(sleevePen, new Point(girlX + (11 * scale), girlY + (26 * scale)), new Point(girlX + (7 * scale), lapY));
         dc.DrawEllipse(handBrush, null, new Point(girlX - (7 * scale), lapY), 2.6 * scale, 2.6 * scale);
@@ -7195,15 +7550,18 @@ public partial class VisualCompanionControl : UserControl
         if (!isMini)
         {
             // Phone cradled in her hands
-            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(55, 52, 70)), new Pen(new SolidColorBrush(Color.FromRgb(30, 28, 42)), 1), new Rect(girlX - (4 * scale), lapY - (2 * scale), 8 * scale, 12 * scale), 2, 2);
-            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(130, 220, 255)), null, new Rect(girlX - (3 * scale), lapY - (1 * scale), 6 * scale, 10 * scale), 1, 1);
+            dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(55, 52, 70)), GetSolidPen(Color.FromRgb(30, 28, 42), 1), new Rect(girlX - (4 * scale), lapY - (2 * scale), 8 * scale, 12 * scale), 2, 2);
+            dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(130, 220, 255)), null, new Rect(girlX - (3 * scale), lapY - (1 * scale), 6 * scale, 10 * scale), 1, 1);
 
             // Headphone cord looping from the phone up to her ear
-            var cordPen = new Pen(new SolidColorBrush(Color.FromRgb(235, 235, 240)), 1.1 * scale);
-            var cordGeom = new PathGeometry();
-            var cordFig = new PathFigure { StartPoint = new Point(girlX, lapY - (2 * scale)) };
-            cordFig.Segments.Add(new QuadraticBezierSegment(new Point(girlX + (10 * scale), girlY + (4 * scale)), new Point(girlX + (12.5 * scale), girlY + (9 * scale)), true));
-            cordGeom.Figures.Add(cordFig);
+            var cordPen = GetSolidPen(Color.FromRgb(235, 235, 240), 1.1 * scale);
+            var cordGeom = new StreamGeometry();
+            using (var cctx = cordGeom.Open())
+            {
+                cctx.BeginFigure(new Point(girlX, lapY - (2 * scale)), false, false);
+                cctx.QuadraticBezierTo(new Point(girlX + (10 * scale), girlY + (4 * scale)), new Point(girlX + (12.5 * scale), girlY + (9 * scale)), true, false);
+            }
+            cordGeom.Freeze();
             dc.DrawGeometry(null, cordPen, cordGeom);
         }
 
@@ -7222,7 +7580,7 @@ public partial class VisualCompanionControl : UserControl
                 if (ny > 8)
                 {
                     double alpha = Math.Clamp(1.0 - (noteOffset / 65.0), 0.1, 0.9);
-                    var nBrush = new SolidColorBrush(Color.FromArgb((byte)(230 * alpha), noteColors[n % noteColors.Length].R, noteColors[n % noteColors.Length].G, noteColors[n % noteColors.Length].B));
+                    var nBrush = GetSolidBrush(Color.FromArgb((byte)(230 * alpha), noteColors[n % noteColors.Length].R, noteColors[n % noteColors.Length].G, noteColors[n % noteColors.Length].B));
                     var ft = CreateText(notes[n % notes.Length], (isMini ? 10 : 13) * scale, nBrush, FontWeights.Bold);
                     dc.DrawText(ft, new Point(nx, ny));
                 }
@@ -7234,10 +7592,10 @@ public partial class VisualCompanionControl : UserControl
         {
             double canX = girlX - (28 * scale);
             double canY = seatY - (14 * scale);
-            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(240, 205, 120)), new Pen(new SolidColorBrush(Color.FromRgb(180, 140, 70)), 1), new Rect(canX, canY, 9 * scale, 14 * scale), 2, 2);
-            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, new Rect(canX + 1, canY + 3, 7 * scale, 4 * scale));
+            dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(240, 205, 120)), GetSolidPen(Color.FromRgb(180, 140, 70), 1), new Rect(canX, canY, 9 * scale, 14 * scale), 2, 2);
+            dc.DrawRectangle(GetSolidBrush(Color.FromRgb(255, 255, 255)), null, new Rect(canX + 1, canY + 3, 7 * scale, 4 * scale));
             // Steam from hot can
-            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)), null, new Point(canX + (4.5 * scale), canY - 3), 2, 3);
+            dc.DrawEllipse(GetSolidBrush(Color.FromArgb(90, 255, 255, 255)), null, new Point(canX + (4.5 * scale), canY - 3), 2, 3);
         }
     }
 
@@ -7260,38 +7618,40 @@ public partial class VisualCompanionControl : UserControl
         DrawSeatedGirlLegs(dc, girlX, hipY - kick * 0.3, floorY - kick, scale, Color.FromRgb(70, 60, 90), Color.FromRgb(255, 250, 245), 1.15);
 
         // Body
-        var hoodieBrush = new SolidColorBrush(Color.FromRgb(215, 190, 245));
+        var hoodieBrush = GetSolidBrush(Color.FromRgb(215, 190, 245));
         dc.DrawRoundedRectangle(hoodieBrush, null, new Rect(girlX - (14 * scale), girlY + (22 * scale), 28 * scale, 26 * scale), 6 * scale, 6 * scale);
 
         // Head
-        var skinBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
+        var skinBrush = GetSolidBrush(Color.FromRgb(255, 224, 205));
         dc.DrawEllipse(skinBrush, null, new Point(girlX, girlY + (10 * scale)), 11 * scale, 10 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(190, 255, 125, 150)), null, new Point(girlX - (6 * scale), girlY + (12 * scale)), 3 * scale, 2 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(190, 255, 125, 150)), null, new Point(girlX + (6 * scale), girlY + (12 * scale)), 3 * scale, 2 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromArgb(190, 255, 125, 150)), null, new Point(girlX - (6 * scale), girlY + (12 * scale)), 3 * scale, 2 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromArgb(190, 255, 125, 150)), null, new Point(girlX + (6 * scale), girlY + (12 * scale)), 3 * scale, 2 * scale);
 
         // Sparkling Joyful Eyes (^o^)
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(50, 30, 25)), null, new Point(girlX - (5 * scale), girlY + (9 * scale)), 2.8 * scale, 2.8 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, new Point(girlX - (5.5 * scale), girlY + (8.2 * scale)), 1.2 * scale, 1.2 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(50, 30, 25)), null, new Point(girlX + (5 * scale), girlY + (9 * scale)), 2.8 * scale, 2.8 * scale);
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, new Point(girlX + (4.5 * scale), girlY + (8.2 * scale)), 1.2 * scale, 1.2 * scale);
+        var darkEyeBrush = GetSolidBrush(Color.FromRgb(50, 30, 25));
+        var whiteBrush = GetSolidBrush(Color.FromRgb(255, 255, 255));
+        dc.DrawEllipse(darkEyeBrush, null, new Point(girlX - (5 * scale), girlY + (9 * scale)), 2.8 * scale, 2.8 * scale);
+        dc.DrawEllipse(whiteBrush, null, new Point(girlX - (5.5 * scale), girlY + (8.2 * scale)), 1.2 * scale, 1.2 * scale);
+        dc.DrawEllipse(darkEyeBrush, null, new Point(girlX + (5 * scale), girlY + (9 * scale)), 2.8 * scale, 2.8 * scale);
+        dc.DrawEllipse(whiteBrush, null, new Point(girlX + (4.5 * scale), girlY + (8.2 * scale)), 1.2 * scale, 1.2 * scale);
 
         // Happy open smile
-        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(230, 80, 105)), null, new Point(girlX, girlY + (15 * scale)), 3 * scale, 2.5 * scale);
+        dc.DrawEllipse(GetSolidBrush(Color.FromRgb(230, 80, 105)), null, new Point(girlX, girlY + (15 * scale)), 3 * scale, 2.5 * scale);
 
         // Hair
-        var hairBrush = new SolidColorBrush(Color.FromRgb(85, 55, 45));
+        var hairBrush = GetSolidBrush(Color.FromRgb(85, 55, 45));
         dc.DrawRoundedRectangle(hairBrush, null, new Rect(girlX - (11 * scale), girlY, 22 * scale, 8 * scale), 4 * scale, 4 * scale);
 
         // Headphones around neck in celebration
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX - (12 * scale), girlY + (18 * scale), 24 * scale, 6 * scale), 3 * scale, 3 * scale);
+        dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX - (12 * scale), girlY + (18 * scale), 24 * scale, 6 * scale), 3 * scale, 3 * scale);
 
         // Victory Peace Sign v(^_^)v
         double armY = girlY + (14 * scale);
         var armPen = new Pen(skinBrush, 2.4 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         dc.DrawLine(armPen, new Point(girlX - (11 * scale), girlY + (26 * scale)), new Point(girlX - (16 * scale), armY));
         dc.DrawEllipse(skinBrush, null, new Point(girlX - (16 * scale), armY), 3.5 * scale, 3.5 * scale);
-        dc.DrawLine(new Pen(skinBrush, 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (19 * scale), armY - (8 * scale)));
-        dc.DrawLine(new Pen(skinBrush, 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (13 * scale), armY - (8 * scale)));
+        dc.DrawLine(GetSolidPen(Color.FromRgb(255, 224, 205), 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (19 * scale), armY - (8 * scale)));
+        dc.DrawLine(GetSolidPen(Color.FromRgb(255, 224, 205), 2.2 * scale), new Point(girlX - (16 * scale), armY), new Point(girlX - (13 * scale), armY - (8 * scale)));
 
         // Other arm resting cheerfully on her lap
         dc.DrawLine(armPen, new Point(girlX + (11 * scale), girlY + (26 * scale)), new Point(girlX + (8 * scale), hipY - (6 * scale)));
@@ -7301,15 +7661,15 @@ public partial class VisualCompanionControl : UserControl
         double bannerW = isMini ? 150 : 280;
         double bannerH = isMini ? 18 : 24;
         var bBrush = new LinearGradientBrush(Color.FromRgb(255, 225, 110), Color.FromRgb(255, 185, 60), new Point(0, 0), new Point(0, 1));
-        dc.DrawRoundedRectangle(bBrush, new Pen(new SolidColorBrush(Color.FromRgb(215, 140, 30)), 1), new Rect(isMini ? 10 : 24, isMini ? 4 : 10, bannerW, bannerH), 4, 4);
+        dc.DrawRoundedRectangle(bBrush, GetSolidPen(Color.FromRgb(215, 140, 30), 1), new Rect(isMini ? 10 : 24, isMini ? 4 : 10, bannerW, bannerH), 4, 4);
 
         string text = isMini ? "✨ ARRIVED! ✨" : "✨ 🚉 TOKYO METRO: DESTINATION REACHED! ✨";
-        var ft = CreateText(text, isMini ? 9.5 : 11.5, new SolidColorBrush(Color.FromRgb(60, 35, 10)), FontWeights.Bold);
+        var ft = CreateText(text, isMini ? 9.5 : 11.5, GetSolidBrush(Color.FromRgb(60, 35, 10)), FontWeights.Bold);
         dc.DrawText(ft, new Point((isMini ? 10 : 5) + ((bannerW - ft.Width) * 0.5), (isMini ? 4 : 10) + ((bannerH - ft.Height) * 0.5)));
 
         // Floating sparkles
-        DrawSparkle(dc, girlX + (18 * scale), girlY, 6 * scale, new SolidColorBrush(Color.FromRgb(255, 230, 110)));
-        DrawSparkle(dc, girlX - (22 * scale), girlY - 6, 5 * scale, new SolidColorBrush(Color.FromRgb(255, 140, 190)));
+        DrawSparkle(dc, girlX + (18 * scale), girlY, 6 * scale, GetSolidBrush(Color.FromRgb(255, 230, 110)));
+        DrawSparkle(dc, girlX - (22 * scale), girlY - 6, 5 * scale, GetSolidBrush(Color.FromRgb(255, 140, 190)));
     }
 
     private void DrawMetroRestGirl(DrawingContext dc, double w, double seatY, bool isMini)
@@ -7330,23 +7690,24 @@ public partial class VisualCompanionControl : UserControl
         DrawSeatedGirlLegs(dc, girlX, hipY, floorY, scale, Color.FromRgb(70, 60, 90), Color.FromRgb(255, 250, 245), 1.3);
 
         // Body leaning on arm
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(190, 175, 225)), null, new Rect(girlX - (14 * scale), girlY + (20 * scale), 28 * scale, 24 * scale), 6 * scale, 6 * scale);
+        dc.DrawRoundedRectangle(GetSolidBrush(Color.FromRgb(190, 175, 225)), null, new Rect(girlX - (14 * scale), girlY + (20 * scale), 28 * scale, 24 * scale), 6 * scale, 6 * scale);
 
         // Head resting peacefully
-        var skinBrush = new SolidColorBrush(Color.FromRgb(255, 224, 205));
+        var skinBrush = GetSolidBrush(Color.FromRgb(255, 224, 205));
         dc.DrawEllipse(skinBrush, null, new Point(girlX, girlY + (10 * scale)), 11 * scale, 10 * scale);
         // Sleepy eyes ( ᴗ ᴗ)
-        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(70, 45, 40)), 1.5 * scale);
+        var eyePen = GetSolidPen(Color.FromRgb(70, 45, 40), 1.5 * scale);
         dc.DrawLine(eyePen, new Point(girlX - (6 * scale), girlY + (11 * scale)), new Point(girlX - (2 * scale), girlY + (11 * scale)));
         dc.DrawLine(eyePen, new Point(girlX + (2 * scale), girlY + (11 * scale)), new Point(girlX + (6 * scale), girlY + (11 * scale)));
 
         // Hair
-        var hairBrush = new SolidColorBrush(Color.FromRgb(85, 55, 45));
+        var hairBrush = GetSolidBrush(Color.FromRgb(85, 55, 45));
         dc.DrawRoundedRectangle(hairBrush, null, new Rect(girlX - (11 * scale), girlY, 22 * scale, 8 * scale), 4 * scale, 4 * scale);
 
         // Headphones on head
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX - (15 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
-        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(45, 50, 65)), null, new Rect(girlX + (10 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
+        var earcupBrush = GetSolidBrush(Color.FromRgb(45, 50, 65));
+        dc.DrawRoundedRectangle(earcupBrush, null, new Rect(girlX - (15 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
+        dc.DrawRoundedRectangle(earcupBrush, null, new Rect(girlX + (10 * scale), girlY + (4 * scale), 5 * scale, 12 * scale), 2.5 * scale, 2.5 * scale);
 
         // Arms resting loosely in her lap
         var armPen = new Pen(skinBrush, 2.4 * scale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
@@ -7357,12 +7718,12 @@ public partial class VisualCompanionControl : UserControl
 
         // Floating Dream / Snooze "💤 z Z Z"
         string zText = (_frameTick % 20 < 10) ? "💤 z Z Z" : "💤 Z z z";
-        var zFt = CreateText(zText, isMini ? 10 : 13, new SolidColorBrush(Color.FromRgb(190, 150, 255)), FontWeights.Bold);
+        var zFt = CreateText(zText, isMini ? 10 : 13, GetSolidBrush(Color.FromRgb(190, 150, 255)), FontWeights.Bold);
         dc.DrawText(zFt, new Point(girlX - (26 * scale), girlY - (16 * scale)));
 
         // Rest Banner
         string text = isMini ? "🎧 🍵 Tokyo Rest Break" : "🎧 🍵 Tokyo Rest Break • Lo-Fi Chill & Breathe ✨";
-        var ft = CreateText(text, isMini ? 9.5 : 12, new SolidColorBrush(Color.FromRgb(150, 235, 185)), FontWeights.Bold);
+        var ft = CreateText(text, isMini ? 9.5 : 12, GetSolidBrush(Color.FromRgb(150, 235, 185)), FontWeights.Bold);
         dc.DrawText(ft, new Point(isMini ? 10 : 20, isMini ? 10 : 25));
     }
 
