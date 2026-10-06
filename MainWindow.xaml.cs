@@ -1402,17 +1402,27 @@ public partial class MainWindow : Window
             {
                 companionProgressPercentage = _intervalManager.ProgressPercentage;
                 companionProgressFraction = Math.Clamp(_intervalManager.ProgressPercentage / 100.0, 0.0, 1.0);
-                companionGoalReached = false;
                 companionRestPhase = _intervalManager.IsRestPhase;
+                companionGoalReached = !companionRestPhase && (companionProgressFraction >= 0.999 || _intervalManager.IsAlertPending);
             }
             else
             {
-                const double continuousLoopSeconds = 20.0 * 60.0; // 20 minutes
-                var totalElapsedSeconds = Math.Max(0.0, elapsed.TotalSeconds);
-                companionProgressFraction = (totalElapsedSeconds % continuousLoopSeconds) / continuousLoopSeconds;
-                companionProgressPercentage = companionProgressFraction * 100.0;
-                companionGoalReached = false;
-                companionRestPhase = false;
+                if (hasGoal)
+                {
+                    companionProgressPercentage = goalProgressPercentage;
+                    companionProgressFraction = Math.Clamp(goalProgressPercentage / 100.0, 0.0, 1.0);
+                    companionGoalReached = goalReached || goalProgressPercentage >= 99.9;
+                    companionRestPhase = false;
+                }
+                else
+                {
+                    const double continuousLoopSeconds = 20.0 * 60.0; // 20 minutes
+                    var totalElapsedSeconds = Math.Max(0.0, elapsed.TotalSeconds);
+                    companionProgressFraction = (totalElapsedSeconds % continuousLoopSeconds) / continuousLoopSeconds;
+                    companionProgressPercentage = companionProgressFraction * 100.0;
+                    companionGoalReached = false;
+                    companionRestPhase = false;
+                }
             }
 
             // Update Companion Control
@@ -1420,7 +1430,8 @@ public partial class MainWindow : Window
                 isTracking: true,
                 progressPercentage: companionProgressPercentage,
                 isGoalReached: companionGoalReached,
-                currentTaskDetails: $"{projectName}{activitySuffix}");
+                currentTaskDetails: $"{projectName}{activitySuffix}",
+                isRestPhase: companionRestPhase);
 
             // Mini companion line calculation
             var miniScene = AsciiArtEngine.Render(

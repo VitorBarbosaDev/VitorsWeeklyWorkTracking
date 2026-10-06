@@ -32,7 +32,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="MinutesTextBox"
-                         Height="34"
+                         Height="40"
                          FontSize="14"
                          FontWeight="SemiBold"
                          VerticalContentAlignment="Center"

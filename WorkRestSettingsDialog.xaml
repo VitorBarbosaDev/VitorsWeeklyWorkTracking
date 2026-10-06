@@ -857,22 +857,22 @@
                                                 <StackPanel>
                                                     <Grid Margin="0,0,0,4">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                        <TextBlock Text="🪓 Lumberjack Wood Chopping" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="🌲 Lumberjack Wood Chopping" FontFamily="Segoe UI Emoji, Segoe UI, sans-serif" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
                                                         <Button Tag="lumberjack" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
                                                     </Grid>
                                                     <Grid Margin="6,0,0,2">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                        <CheckBox x:Name="Var_cheer_lumberjack_chop" Content="🪓 Axe Strike &amp; Splinter (E3 + A4 + E5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <CheckBox x:Name="Var_cheer_lumberjack_chop" Content="🪓 Axe Strike &amp; Splinter (E3 + A4 + E5)" FontFamily="Segoe UI Emoji, Segoe UI, sans-serif" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
                                                         <Button Tag="cheer_lumberjack_chop" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
                                                     </Grid>
                                                     <Grid Margin="6,0,0,2">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                        <CheckBox x:Name="Var_cheer_lumberjack_timber" Content="🌲 'Timber!' Forest Echo (G5 → E5 → C5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <CheckBox x:Name="Var_cheer_lumberjack_timber" Content="🌲 'Timber!' Forest Echo (G5 → E5 → C5)" FontFamily="Segoe UI Emoji, Segoe UI, sans-serif" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
                                                         <Button Tag="cheer_lumberjack_timber" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
                                                     </Grid>
                                                     <Grid Margin="6,0,0,0">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                        <CheckBox x:Name="Var_cheer_lumberjack_van" Content="🚚 Timber Van Horn (F4 + A4 → C5 + F5)" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
+                                                        <CheckBox x:Name="Var_cheer_lumberjack_van" Content="🚚 Timber Van Horn (F4 + A4 → C5 + F5)" FontFamily="Segoe UI Emoji, Segoe UI, sans-serif" FontSize="10.5" VerticalAlignment="Center" IsChecked="True"/>
                                                         <Button Tag="cheer_lumberjack_van" Grid.Column="1" Content="▶" Style="{StaticResource GhostButton}" Width="20" Height="18" Padding="0" FontSize="9.5" ToolTip="Preview variation" Click="TestVariationButton_Click"/>
                                                     </Grid>
                                                 </StackPanel>

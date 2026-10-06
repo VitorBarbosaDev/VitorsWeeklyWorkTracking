@@ -532,7 +532,7 @@ public partial class MiniTimerWidget : Window
             "cat" => "🐱 'Purrrrr! (=^･ω･^=) Kitty loves your focus!' 💖",
             "runner" => "🏃 'Keep the pace! Gold medal focus sprint!' 🥇",
             "tamagotchi" => "👾 'Yay! Pet happiness +10%! Quest forward!' 💖",
-            "lumberjack" => "🪓 'Chop chop! Timber down, van packing up nicely!' 🌲",
+            "lumberjack" => "🌲 'Chop chop! Timber down, van packing up nicely!' 🚚",
             _ => "✨ Cheering you on! Fantastic focus progress!"
         };
     }

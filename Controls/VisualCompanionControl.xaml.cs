@@ -695,7 +695,7 @@ public partial class VisualCompanionControl : UserControl
         }
 
         // 3. Floating Celebration Banner
-        string msg = IsMiniMode ? "🪓 TIMBER POWER! 🌲" : "✨ 🪓 TIMBER! FOREST POWER & LOADED VAN! 🚚 ✨";
+        string msg = IsMiniMode ? "🌲 TIMBER POWER! 🚚" : "✨ 🌲 TIMBER! FOREST CLEARED & VAN LOADED! 🚚 ✨";
         var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 80, 45, 25), Color.FromArgb((byte)(240 * cheerFade), 45, 25, 15), new Point(0, 0), new Point(1, 1));
         var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 245, 185, 75)), 1.5);
         var textBrush = new SolidColorBrush(Color.FromArgb(fadeByte, 255, 235, 190));
@@ -1399,8 +1399,10 @@ public partial class VisualCompanionControl : UserControl
 
         // Banner
         string text = isMini ? "★ HOME! ★" : "🎉 WELCOME HOME! 🏡✨";
-        var ft = CreateText(text, isMini ? 10 : 13, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(boyPos.X - (ft.Width / 2), boyPos.Y - (30 * scale)));
+        var ft = CreateText(text, isMini ? 18 : 25, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
+        
+        var boyTextWidth = isMini ? (ft.Width * 1) : (ft.Width * .8);
+        dc.DrawText(ft, new Point(boyTextWidth, boyPos.Y - (30 * scale)));
     }
 
     private void DrawRestPicnic(DrawingContext dc, double x, double groundY, bool isMini)
@@ -1923,7 +1925,7 @@ public partial class VisualCompanionControl : UserControl
         DrawChunkyChibiRocket(dc, x - (12 * scale), y, isMini, false);
 
         // Planted Flagpole
-        Point flagPole = new Point(x + (16 * scale), y - (20 * scale));
+        Point flagPole = new Point(x+10 + (16 * scale), y - (20 * scale)-10);
         dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(235, 235, 245)), 2 * scale), flagPole, new Point(flagPole.X, flagPole.Y + (28 * scale)));
 
         // Flag banner with golden star
@@ -1931,8 +1933,10 @@ public partial class VisualCompanionControl : UserControl
         DrawSparkle(dc, flagPole.X + (8 * scale), flagPole.Y + (5 * scale), 3.5 * scale, new SolidColorBrush(Color.FromRgb(255, 225, 75)));
 
         string text = isMini ? "★ MOON BASE! ★" : "🚀 MISSION ACCOMPLISHED! 🌕✨";
-        var ft = CreateText(text, isMini ? 10 : 13, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.45), y - (36 * scale)));
+        var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
+
+        var celebrationTextPlacementWidth = isMini ? (ft.Width * 0.5) : (ft.Width * .8);
+        dc.DrawText(ft, new Point(celebrationTextPlacementWidth, y - (36 * scale)));
     }
 
     private void DrawCuteZeroGLounge(DrawingContext dc, double x, double y, bool isMini)
@@ -1954,7 +1958,7 @@ public partial class VisualCompanionControl : UserControl
 
         string text = isMini ? "☕ Zero-G Rest" : "🧋 Zero-G Chill Lounge • Take a sip! ✨";
         var ft = CreateText(text, isMini ? 10 : 12, new SolidColorBrush(Color.FromRgb(160, 230, 255)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), y - (26 * scale)));
+        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), y - (26 * scale) -12));
     }
 
     #endregion
@@ -2750,7 +2754,10 @@ public partial class VisualCompanionControl : UserControl
 
         string text = isMini ? "💖 Yum!" : "💖 Purrr... deluxe feast!";
         var ft = CreateText(text, isMini ? 9.0 : 11.2, new SolidColorBrush(Color.FromRgb(255, 92, 148)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.25), floorY - (38 * scale)));
+
+        var catTextHeight = isMini ? floorY - (38 * scale)- 5 : floorY - (38 * scale) - ft.Height;
+        var catTextWidth = isMini ? x - (ft.Width * 0.3) : x - (ft.Width * 0.5);
+        dc.DrawText(ft, new Point(catTextWidth, catTextHeight));
     }
 
     private void DrawCuteSleepingKitty(DrawingContext dc, double x, double floorY, bool isMini)
@@ -4196,6 +4203,7 @@ public partial class VisualCompanionControl : UserControl
 
         double truckX = baseTruckX;
         double shutterProgress = 0.0;
+        bool isDriving = false;
 
         if (isGoalReached && elapsed >= shutterStart)
         {
@@ -4206,6 +4214,7 @@ public partial class VisualCompanionControl : UserControl
 
         if (isGoalReached && elapsed >= driveStart)
         {
+            isDriving = true;
             double driveT = Math.Clamp((elapsed - driveStart) / (double)driveFrames, 0.0, 1.0);
             double eased = driveT * driveT * (3 - (2 * driveT)); // smoothstep acceleration
             truckX = baseTruckX + (eased * (w + truckW));
@@ -4216,23 +4225,20 @@ public partial class VisualCompanionControl : UserControl
         bool truckVisible = truckX < w + 4;
         if (truckVisible)
         {
-            DrawPastelIceCreamTruck(dc, truckX, truckY, truckW, truckH, scale, shutterProgress, isServingNow);
+            DrawPastelIceCreamTruck(dc, truckX, truckY, truckW, truckH, scale, shutterProgress, isServingNow, isDriving);
         }
 
         // 5. Draw Queueing Kids, Celebration / Goodbye, Rest, or Closed-Street mode
+        double kidsStartX = baseTruckX + truckW + (8 * scale);
         if (isGoalReached)
         {
             if (elapsed < shutterStart)
             {
-                DrawIceCreamPartyCelebration(dc, w, groundY, truckX + truckW + (8 * scale), scale);
-            }
-            else if (elapsed < driveStart)
-            {
-                DrawIceCreamGoodbyeKids(dc, w, groundY, truckX + truckW + (8 * scale), scale);
+                DrawIceCreamPartyCelebration(dc, w, groundY, kidsStartX, scale);
             }
             else if (truckVisible)
             {
-                DrawIceCreamGoodbyeKids(dc, w, groundY, Math.Min(truckX + truckW + (8 * scale), w - (10 * scale)), scale);
+                DrawIceCreamGoodbyeKids(dc, w, groundY, kidsStartX, scale);
             }
             else
             {
@@ -4241,11 +4247,11 @@ public partial class VisualCompanionControl : UserControl
         }
         else if (IsRestPhase)
         {
-            DrawIceCreamRestPicnic(dc, w, groundY, truckX + truckW + (8 * scale), scale);
+            DrawIceCreamRestPicnic(dc, w, groundY, kidsStartX, scale);
         }
         else
         {
-            DrawIceCreamKidsFlow(dc, w, groundY, truckX + truckW + (8 * scale), scale, ProgressFraction, IsTracking);
+            DrawIceCreamKidsFlow(dc, w, groundY, kidsStartX, scale, ProgressFraction, IsTracking);
         }
     }
 
@@ -4564,7 +4570,7 @@ public partial class VisualCompanionControl : UserControl
         }
     }
 
-    private void DrawPastelIceCreamTruck(DrawingContext dc, double x, double y, double w, double h, double scale, double shutterProgress = 0.0, bool isServing = false)
+    private void DrawPastelIceCreamTruck(DrawingContext dc, double x, double y, double w, double h, double scale, double shutterProgress = 0.0, bool isServing = false, bool isDriving = false)
     {
         // 1. Truck Shadow on Ground
         dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 20, 40, 20)), null, new Point(x + (w * 0.5), y + h + (3 * scale)), w * 0.52, 6 * scale);
@@ -4746,8 +4752,8 @@ public partial class VisualCompanionControl : UserControl
         DrawTruckWheel(dc, frontWheelX, wheelY, wheelRadius, scale);
         DrawTruckWheel(dc, rearWheelX, wheelY, wheelRadius, scale);
 
-        // 8. Cute Chalkboard Menu Sign standing beside truck
-        if (!IsMiniMode)
+        // 8. Cute Chalkboard Menu Sign standing beside truck (only when parked and open)
+        if (!IsMiniMode && shutterProgress < 0.5 && !isDriving)
         {
             double menuX = x + w + 4;
             double menuY = bodyY + (bodyH * 0.35);
@@ -4759,6 +4765,22 @@ public partial class VisualCompanionControl : UserControl
             dc.DrawText(menuFt, new Point(menuX + 4, menuY + 3));
             dc.DrawLine(new Pen(menuWood, 2), new Point(menuX + 3, menuY + 28), new Point(menuX + 1, menuY + 34));
             dc.DrawLine(new Pen(menuWood, 2), new Point(menuX + 17, menuY + 28), new Point(menuX + 19, menuY + 34));
+        }
+
+        // 9. Exhaust smoke puffs when driving away
+        if (isDriving)
+        {
+            double exhaustX = x - (2 * scale);
+            double exhaustY = bodyY + bodyH - (2 * scale);
+            for (int p = 0; p < 3; p++)
+            {
+                double smokeShift = ((_frameTick * 1.8) + (p * 10)) % 28;
+                double sx = exhaustX - (smokeShift * scale);
+                double sy = exhaustY - (smokeShift * 0.3 * scale);
+                double pr = (2.5 + (p * 1.2) + (smokeShift * 0.15)) * scale;
+                byte alpha = (byte)Math.Clamp((int)(140 * (1.0 - (smokeShift / 28.0))), 0, 255);
+                dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(alpha, 240, 245, 250)), null, new Point(sx, sy), pr, pr);
+            }
         }
     }
 
@@ -5088,20 +5110,48 @@ public partial class VisualCompanionControl : UserControl
             new Point(0, 1));
         dc.DrawRectangle(duskGlow, null, new Rect(0, 0, w, groundY));
 
-        double signX = w * (IsMiniMode ? 0.42 : 0.38);
-        double signY = groundY - (30 * scale);
+        string chalkText = IsMiniMode ? "🍦 Closed" : "🍦 Closed\nSee you\ntomorrow!";
+        var chalkFt = CreateText(chalkText, IsMiniMode ? 8.0 : 9.5, new SolidColorBrush(Color.FromRgb(255, 240, 210)), FontWeights.SemiBold);
+        chalkFt.TextAlignment = TextAlignment.Center;
+
+        double padX = IsMiniMode ? (7 * scale) : (12 * scale);
+        double padY = IsMiniMode ? (4 * scale) : (7 * scale);
+        double border = 2.5 * scale;
+
+        double signW = Math.Max(IsMiniMode ? 56 * scale : 82 * scale, chalkFt.Width + (padX * 2) + (border * 2));
+        double signH = Math.Max(IsMiniMode ? 24 * scale : 56 * scale, chalkFt.Height + (padY * 2) + (border * 2));
+
+        double signCenterX = w * (IsMiniMode ? 0.44 : 0.38);
+        double signX = signCenterX - (signW * 0.5);
+        double signY = groundY - signH + (2 * scale);
 
         // Leaning wooden chalkboard sign
         var woodBrush = new SolidColorBrush(Color.FromRgb(120, 75, 45));
-        var boardBrush = new SolidColorBrush(Color.FromRgb(45, 55, 50));
-        dc.DrawRoundedRectangle(woodBrush, null, new Rect(signX, signY, 34 * scale, 30 * scale), 2, 2);
-        dc.DrawRoundedRectangle(boardBrush, null, new Rect(signX + (2 * scale), signY + (2 * scale), 30 * scale, 26 * scale), 1.5, 1.5);
-        dc.DrawLine(new Pen(woodBrush, 2.5 * scale), new Point(signX + (4 * scale), signY + (30 * scale)), new Point(signX, signY + (40 * scale)));
-        dc.DrawLine(new Pen(woodBrush, 2.5 * scale), new Point(signX + (30 * scale), signY + (30 * scale)), new Point(signX + (34 * scale), signY + (40 * scale)));
+        var boardBrush = new SolidColorBrush(Color.FromRgb(40, 50, 46));
+        var chalkLedgeBrush = new SolidColorBrush(Color.FromRgb(95, 55, 30));
 
-        string chalkText = IsMiniMode ? "🍦 Closed" : "🍦 Closed\nSee you\ntomorrow!";
-        var chalkFt = CreateText(chalkText, IsMiniMode ? 7.5 : 9, new SolidColorBrush(Color.FromRgb(255, 240, 210)), FontWeights.SemiBold);
-        dc.DrawText(chalkFt, new Point(signX + (17 * scale) - (chalkFt.Width * 0.5), signY + (14 * scale) - (chalkFt.Height * 0.5)));
+        // Wooden outer A-frame board
+        dc.DrawRoundedRectangle(woodBrush, null, new Rect(signX, signY, signW, signH), 3 * scale, 3 * scale);
+        // Slate chalkboard insert
+        dc.DrawRoundedRectangle(boardBrush, null, new Rect(signX + border, signY + border, signW - (border * 2), signH - (border * 2)), 2 * scale, 2 * scale);
+        // Bottom chalk tray / ledge
+        dc.DrawRectangle(chalkLedgeBrush, null, new Rect(signX, signY + signH - (2.5 * scale), signW, 2.5 * scale));
+
+        // Angled A-frame legs extending to sidewalk
+        double legBottomY = groundY + (IsMiniMode ? (7 * scale) : (11 * scale));
+        var legPen = new Pen(woodBrush, 2.8 * scale);
+        dc.DrawLine(legPen, new Point(signX + (5 * scale), signY + signH - (2 * scale)), new Point(signX + (1 * scale), legBottomY));
+        dc.DrawLine(legPen, new Point(signX + signW - (5 * scale), signY + signH - (2 * scale)), new Point(signX + signW - (1 * scale), legBottomY));
+
+        // Draw centered chalk message inside the slate
+        double textY = signY + border + padY + Math.Max(0, (signH - (border * 2) - (padY * 2) - chalkFt.Height) * 0.5);
+        dc.DrawText(chalkFt, new Point(signCenterX, textY));
+
+        if (!IsMiniMode)
+        {
+            // Tiny piece of white chalk resting on the ledge
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(255, 255, 245)), null, new Rect(signX + (signW * 0.75), signY + signH - (3.8 * scale), 4.5 * scale, 2.0 * scale), 0.5, 0.5);
+        }
 
         // A couple of gentle drifting dandelion seeds for a calm end-of-day feel
         if (!IsMiniMode)
@@ -6081,14 +6131,14 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(skinBrush, null, new Point(girlX + (8 * scale), hipY - (6 * scale)), 2.6 * scale, 2.6 * scale);
 
         // Celebration Banner on top left
-        double bannerW = isMini ? 150 : 270;
+        double bannerW = isMini ? 150 : 280;
         double bannerH = isMini ? 18 : 24;
         var bBrush = new LinearGradientBrush(Color.FromRgb(255, 225, 110), Color.FromRgb(255, 185, 60), new Point(0, 0), new Point(0, 1));
         dc.DrawRoundedRectangle(bBrush, new Pen(new SolidColorBrush(Color.FromRgb(215, 140, 30)), 1), new Rect(isMini ? 10 : 24, isMini ? 4 : 10, bannerW, bannerH), 4, 4);
 
         string text = isMini ? "✨ ARRIVED! ✨" : "✨ 🚉 TOKYO METRO: DESTINATION REACHED! ✨";
         var ft = CreateText(text, isMini ? 9.5 : 11.5, new SolidColorBrush(Color.FromRgb(60, 35, 10)), FontWeights.Bold);
-        dc.DrawText(ft, new Point((isMini ? 10 : 24) + ((bannerW - ft.Width) * 0.5), (isMini ? 4 : 10) + ((bannerH - ft.Height) * 0.5)));
+        dc.DrawText(ft, new Point((isMini ? 10 : 5) + ((bannerW - ft.Width) * 0.5), (isMini ? 4 : 10) + ((bannerH - ft.Height) * 0.5)));
 
         // Floating sparkles
         DrawSparkle(dc, girlX + (18 * scale), girlY, 6 * scale, new SolidColorBrush(Color.FromRgb(255, 230, 110)));
@@ -6146,7 +6196,7 @@ public partial class VisualCompanionControl : UserControl
         // Rest Banner
         string text = isMini ? "🎧 🍵 Tokyo Rest Break" : "🎧 🍵 Tokyo Rest Break • Lo-Fi Chill & Breathe ✨";
         var ft = CreateText(text, isMini ? 9.5 : 12, new SolidColorBrush(Color.FromRgb(150, 235, 185)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(isMini ? 10 : 20, isMini ? 4 : 8));
+        dc.DrawText(ft, new Point(isMini ? 10 : 20, isMini ? 10 : 25));
     }
 
     #endregion
@@ -6285,8 +6335,9 @@ public partial class VisualCompanionControl : UserControl
         DrawSparkle(dc, head.X, head.Y - (18 * scale), 7 * scale, new SolidColorBrush(Color.FromRgb(255, 220, 60)));
 
         string text = isMini ? "🏆 FINISH! 🏆" : "🏆 CHAMPION! FINISH LINE CROSSED! 🥇✨";
-        var ft = CreateText(text, isMini ? 10 : 13, new SolidColorBrush(Color.FromRgb(255, 220, 60)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), trackY - (48 * scale)));
+        var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 220, 60)), FontWeights.Bold);
+        var runnerCelebrationTextPlacementWidth = isMini ? (ft.Width * 0.8) : (ft.Width * .5);
+        dc.DrawText(ft, new Point(runnerCelebrationTextPlacementWidth, trackY - (48 * scale)));
     }
 
     private void DrawCuteRestRunner(DrawingContext dc, double x, double trackY, bool isMini)
@@ -6301,8 +6352,9 @@ public partial class VisualCompanionControl : UserControl
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 215, 180)), null, head, 6 * scale, 6 * scale);
 
         string text = isMini ? "💧 Hydrate" : "💧 Hydrate & Cool Down! 🧃✨";
-        var ft = CreateText(text, isMini ? 10 : 12, new SolidColorBrush(Color.FromRgb(110, 215, 255)), FontWeights.Bold);
-        dc.DrawText(ft, new Point(x - (ft.Width * 0.5), trackY - (36 * scale)));
+        var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(110, 215, 255)), FontWeights.Bold);
+        var runnerRestTextPlacementWidth = isMini ? (ft.Width * 1.1) : (ft.Width * .8);
+        dc.DrawText(ft, new Point(runnerRestTextPlacementWidth, trackY - (36 * scale) - (isMini ? 20: 35)));
     }
 
     #endregion
@@ -7032,7 +7084,7 @@ public partial class VisualCompanionControl : UserControl
 
     #endregion
 
-    #region 🪓 Scene: Lumberjack Wood Chopping
+    #region 🌲 Scene: Lumberjack Wood Chopping
 
     private void RenderLumberjackScene(DrawingContext dc, double w, double h)
     {
@@ -7046,6 +7098,8 @@ public partial class VisualCompanionControl : UserControl
             DrawLumberjackCampfireRest(dc, w, h, groundY, scale, _frameTick);
             return;
         }
+
+        bool isGoal = IsGoalReached || ProgressFraction >= 0.999;
 
         // 1. Sky Gradient: Transforms from crisp mountain morning blue into a warm sunset dusk glow as trees get cleared
         double duskT = Math.Clamp(ProgressFraction, 0.0, 1.0);
@@ -7154,13 +7208,13 @@ public partial class VisualCompanionControl : UserControl
             ? new[] { w * 0.09, w * 0.23, w * 0.38 }
             : new[] { w * 0.07, w * 0.17, w * 0.27, w * 0.37, w * 0.47 };
 
-        int choppedCount = Math.Clamp((int)(ProgressFraction * totalTrees), 0, totalTrees);
+        int choppedCount = isGoal ? totalTrees : Math.Clamp((int)(ProgressFraction * totalTrees), 0, totalTrees);
 
         // Draw each tree slot (stump or standing pine)
         for (int i = 0; i < totalTrees; i++)
         {
             double tx = treePositions[i];
-            if (i < choppedCount || IsGoalReached)
+            if (i < choppedCount || isGoal)
             {
                 // Tree is chopped down into a clean stump with sawdust and rings
                 DrawTreeStump(dc, tx, groundY, scale);
@@ -7179,12 +7233,25 @@ public partial class VisualCompanionControl : UserControl
             }
         }
 
+        // Cute Forest Squirrel companion
+        if (!IsMiniMode)
+        {
+            if (choppedCount > 0)
+            {
+                DrawForestSquirrel(dc, treePositions[0], groundY - (16 * scale), scale, _frameTick);
+            }
+            else
+            {
+                DrawForestSquirrel(dc, treePositions[totalTrees - 1] + (18 * scale), groundY - (28 * scale), scale, _frameTick);
+            }
+        }
+
         // 7. Timber Van / Wood Hauler on the Right
         double vanX = IsMiniMode ? (w * 0.58) : (w * 0.62);
-        DrawTimberVan(dc, vanX, groundY, scale, ProgressFraction, IsGoalReached, _frameTick);
+        DrawTimberVan(dc, vanX, groundY, scale, ProgressFraction, isGoal, _frameTick);
 
         // 8. Lumberjack Character
-        if (IsGoalReached)
+        if (isGoal)
         {
             // Goal celebration: Standing triumphantly beside the fully packed van with arms high!
             double jackX = vanX - (IsMiniMode ? (16 * scale) : (24 * scale));
@@ -7326,6 +7393,52 @@ public partial class VisualCompanionControl : UserControl
         }
     }
 
+    private void DrawForestSquirrel(DrawingContext dc, double x, double y, double scale, int frameTick)
+    {
+        double sqScale = scale * 0.85;
+        // Animated tail swish
+        double tailAngle = Math.Sin(frameTick * 0.25) * 12.0;
+
+        // Tail (Big fluffy orange-brown tail curved up)
+        var tailBrush = new SolidColorBrush(Color.FromRgb(190, 105, 45));
+        dc.PushTransform(new RotateTransform(tailAngle, x - (4 * sqScale), y + (2 * sqScale)));
+        var tailGeom = new PathGeometry();
+        var tf = new PathFigure { StartPoint = new Point(x - (4 * sqScale), y + (3 * sqScale)) };
+        tf.Segments.Add(new QuadraticBezierSegment(new Point(x - (14 * sqScale), y - (12 * sqScale)), new Point(x - (6 * sqScale), y - (18 * sqScale)), true));
+        tf.Segments.Add(new QuadraticBezierSegment(new Point(x - (2 * sqScale), y - (10 * sqScale)), new Point(x - (2 * sqScale), y + (1 * sqScale)), true));
+        tf.IsClosed = true;
+        tailGeom.Figures.Add(tf);
+        dc.DrawGeometry(tailBrush, null, tailGeom);
+        dc.Pop();
+
+        // Body
+        var bodyBrush = new SolidColorBrush(Color.FromRgb(205, 115, 50));
+        dc.DrawEllipse(bodyBrush, null, new Point(x, y), 5 * sqScale, 6.5 * sqScale);
+        // Cream tummy
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(245, 225, 195)), null, new Point(x + (1.5 * sqScale), y + (1 * sqScale)), 2.5 * sqScale, 4 * sqScale);
+
+        // Head
+        double headY = y - (6 * sqScale);
+        dc.DrawEllipse(bodyBrush, null, new Point(x + (2 * sqScale), headY), 4 * sqScale, 4 * sqScale);
+
+        // Cute pointy ear
+        var earGeom = new PathGeometry();
+        var ef = new PathFigure { StartPoint = new Point(x + (1 * sqScale), headY - (3 * sqScale)) };
+        ef.Segments.Add(new LineSegment(new Point(x + (2 * sqScale), headY - (7 * sqScale)), true));
+        ef.Segments.Add(new LineSegment(new Point(x + (4 * sqScale), headY - (3 * sqScale)), true));
+        ef.IsClosed = true;
+        earGeom.Figures.Add(ef);
+        dc.DrawGeometry(bodyBrush, null, earGeom);
+
+        // Eye (Shiny black bead with glint)
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(30, 20, 15)), null, new Point(x + (4 * sqScale), headY - (0.5 * sqScale)), 1.1 * sqScale, 1.1 * sqScale);
+        dc.DrawEllipse(Brushes.White, null, new Point(x + (4.3 * sqScale), headY - (0.8 * sqScale)), 0.4 * sqScale, 0.4 * sqScale);
+
+        // Holding small acorn in little paws
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(135, 80, 35)), null, new Point(x + (4.5 * sqScale), y + (1 * sqScale)), 2 * sqScale, 2.5 * sqScale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(95, 55, 25)), null, new Point(x + (4.5 * sqScale), y - (0.8 * sqScale)), 2.2 * sqScale, 1.2 * sqScale);
+    }
+
     private void DrawLumberjack(DrawingContext dc, double x, double groundY, double scale, bool isTracking, bool isGoal, int frameTick)
     {
         double bodyScale = scale * 1.05;
@@ -7415,6 +7528,11 @@ public partial class VisualCompanionControl : UserControl
             double axeX = x + (14 * bodyScale);
             double axeY = groundY - (38 * bodyScale);
             DrawDoubleBitAxe(dc, axeX, axeY, bodyScale, angleDeg: 30);
+
+            // Twinkling golden celebration stars around the lumberjack
+            DrawStar5(dc, x - (18 * bodyScale), groundY - (42 * bodyScale), 4.5 * bodyScale, 2.0 * bodyScale, new SolidColorBrush(Color.FromRgb(255, 220, 70)));
+            DrawStar5(dc, x + (20 * bodyScale), groundY - (48 * bodyScale), 5.5 * bodyScale, 2.4 * bodyScale, new SolidColorBrush(Color.FromRgb(255, 235, 110)));
+            DrawStar5(dc, x, groundY - (52 * bodyScale), 4.0 * bodyScale, 1.8 * bodyScale, new SolidColorBrush(Color.FromRgb(255, 210, 60)));
         }
         else if (isTracking)
         {

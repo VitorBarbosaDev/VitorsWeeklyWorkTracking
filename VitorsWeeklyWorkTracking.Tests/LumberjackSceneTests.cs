@@ -16,7 +16,7 @@ public class LumberjackSceneTests
         Assert.NotNull(scene);
         Assert.Equal("lumberjack", scene.Id);
         Assert.Equal("Lumberjack Wood Chopping", scene.Name);
-        Assert.Equal("🪓", scene.Icon);
+        Assert.Equal("🌲", scene.Icon);
         Assert.Contains("timber", scene.Description, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("van", scene.Description, StringComparison.OrdinalIgnoreCase);
     }
@@ -36,7 +36,7 @@ public class LumberjackSceneTests
         Assert.NotNull(rendered);
         Assert.Contains("/|\\", rendered.AsciiArt);
         Assert.Contains("van", rendered.AsciiArt, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("🪓 READY TO CHOP", rendered.BadgeText);
+        Assert.Equal("🌲 READY TO CHOP", rendered.BadgeText);
         Assert.Contains("forest", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -117,5 +117,100 @@ public class LumberjackSceneTests
         Assert.True(settings.IsVariationEnabled("cheer_lumberjack_chop"));
         Assert.True(settings.IsVariationEnabled("cheer_lumberjack_timber"));
         Assert.True(settings.IsVariationEnabled("cheer_lumberjack_van"));
+    }
+
+    [Fact]
+    public void ArtSceneOption_DisplayName_HasCorrectIconAndTitle()
+    {
+        var scene = ArtSceneOption.AvailableScenes.First(s => s.Id == "lumberjack");
+        Assert.Equal("🌲 Lumberjack Wood Chopping", scene.DisplayName);
+    }
+
+    [Theory]
+    [InlineData(0.00, 0)]
+    [InlineData(0.20, 1)]
+    [InlineData(0.40, 2)]
+    [InlineData(0.60, 3)]
+    [InlineData(0.80, 4)]
+    [InlineData(1.00, 5)]
+    public void AsciiArtEngine_TreeClearingProgress_CountsChoppedTrees(double progress, int expectedTreesDown)
+    {
+        var rendered = AsciiArtEngine.Render(
+            sceneId: "lumberjack",
+            frameTick: 0,
+            progressFraction: progress,
+            isTracking: true,
+            isGoalReached: false,
+            isRestPhase: false,
+            contextDetails: "Chopping Work");
+
+        Assert.NotNull(rendered);
+        Assert.Contains($"{expectedTreesDown}/5 trees", rendered.StoryText);
+    }
+
+    [Theory]
+    [InlineData("cycling", "ARRIVED HOME!")]
+    [InlineData("cafe", "GOOD JOB!")]
+    [InlineData("coffeejazz", "TARGET REACHED!")]
+    [InlineData("icecream", "ICE CREAM PARTY!")]
+    [InlineData("metro", "ARRIVED!")]
+    [InlineData("rocket", "MISSION COMPLETE!")]
+    [InlineData("cat", "PURR-FECT FEAST!")]
+    [InlineData("runner", "FINISH LINE!")]
+    [InlineData("tamagotchi", "QUEST COMPLETE")]
+    [InlineData("lumberjack", "VAN FULL PACKED!")]
+    public void AsciiArtEngine_AllScenes_ShowCompletionStateWhenPausedOrGoalReached(string sceneId, string expectedBadgeSnippet)
+    {
+        // When paused, isTracking is false, progressFraction is 1.0, isGoalReached is true
+        var rendered = AsciiArtEngine.Render(
+            sceneId: sceneId,
+            frameTick: 0,
+            progressFraction: 1.0,
+            isTracking: false,
+            isGoalReached: true,
+            isRestPhase: false,
+            contextDetails: "Paused Task");
+
+        Assert.NotNull(rendered);
+        Assert.Contains(expectedBadgeSnippet, rendered.BadgeText);
+        Assert.NotNull(rendered.StoryText);
+        Assert.NotEmpty(rendered.StoryText);
+        Assert.NotNull(rendered.MiniLine);
+        Assert.NotEmpty(rendered.MiniLine);
+    }
+
+    [Fact]
+    public void AsciiArtEngine_RendersIceCream_ActiveTracking_ShowsTruckAndKids()
+    {
+        var rendered = AsciiArtEngine.Render(
+            sceneId: "icecream",
+            frameTick: 0,
+            progressFraction: 0.5,
+            isTracking: true,
+            isGoalReached: false,
+            isRestPhase: false,
+            contextDetails: "Coding");
+
+        Assert.NotNull(rendered);
+        Assert.Contains("ICE CREAM", rendered.AsciiArt);
+        Assert.Contains("50%", rendered.BadgeText);
+        Assert.Contains("kid", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AsciiArtEngine_RendersIceCream_GoalReached_ShowsParty()
+    {
+        var rendered = AsciiArtEngine.Render(
+            sceneId: "icecream",
+            frameTick: 0,
+            progressFraction: 1.0,
+            isTracking: false,
+            isGoalReached: true,
+            isRestPhase: false,
+            contextDetails: "Complete");
+
+        Assert.NotNull(rendered);
+        Assert.Contains("ICE CREAM PARTY!", rendered.BadgeText);
+        Assert.Contains("treat", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
     }
 }

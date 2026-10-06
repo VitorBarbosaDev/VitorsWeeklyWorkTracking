@@ -36,8 +36,9 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🎨 Scene:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <ComboBox x:Name="SceneComboBox"
-                              Width="150"
+                              Width="180"
                               Height="26"
+                              FontFamily="Segoe UI Emoji, Segoe UI, sans-serif"
                               SelectedValuePath="Id"
                               DisplayMemberPath="DisplayName"
                               SelectionChanged="SceneComboBox_SelectionChanged"/>
@@ -52,7 +53,7 @@
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="CompanionStatusIcon" Text="🚴" FontSize="11" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="CompanionStatusIcon" Text="🚴" FontFamily="Segoe UI Emoji, Segoe UI, sans-serif" FontSize="11" Margin="0,0,4,0"/>
                             <TextBlock x:Name="CompanionStatusText" Text="READY TO RIDE" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}"/>
                         </StackPanel>
                     </Border>

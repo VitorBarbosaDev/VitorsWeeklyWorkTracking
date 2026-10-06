@@ -24,6 +24,7 @@ public partial class AsciiCompanionControl : UserControl
     private bool _isTracking = false;
     private double _currentProgressFraction = 0.0;
     private bool _isGoalReached = false;
+    private bool _isRestPhase = false;
     private string _currentDetails = string.Empty;
 
     public event Action<WorkRestSettings>? SettingsChanged;
@@ -78,11 +79,13 @@ public partial class AsciiCompanionControl : UserControl
         bool isTracking,
         double progressPercentage,
         bool isGoalReached,
-        string currentTaskDetails)
+        string currentTaskDetails,
+        bool isRestPhase = false)
     {
         _isTracking = isTracking;
         _currentProgressFraction = Math.Clamp(progressPercentage / 100.0, 0.0, 1.0);
         _isGoalReached = isGoalReached;
+        _isRestPhase = isRestPhase;
         _currentDetails = currentTaskDetails;
 
         UpdateIntervalModeUi();
@@ -95,10 +98,40 @@ public partial class AsciiCompanionControl : UserControl
 
         var selectedScene = SceneComboBox.SelectedItem as ArtSceneOption ?? ArtSceneOption.AvailableScenes[0];
         bool isInterval = _intervalManager.Settings.IntervalModeEnabled;
-        bool isRestPhase = isInterval && _intervalManager.IsRestPhase;
 
-        double progress = isInterval ? (_intervalManager.ProgressPercentage / 100.0) : _currentProgressFraction;
-        bool goalReached = isInterval ? false : _isGoalReached;
+        bool isRestPhase;
+        double progress;
+        bool goalReached;
+
+        if (_isGoalReached)
+        {
+            // Goal reached or session paused (showing completion state for review/saving)
+            isRestPhase = false;
+            progress = Math.Max(1.0, _currentProgressFraction);
+            goalReached = true;
+        }
+        else if (_isTracking)
+        {
+            if (isInterval)
+            {
+                isRestPhase = _intervalManager.IsRestPhase;
+                progress = Math.Clamp(_intervalManager.ProgressPercentage / 100.0, 0.0, 1.0);
+                goalReached = !isRestPhase && (progress >= 0.999 || _intervalManager.IsAlertPending);
+            }
+            else
+            {
+                isRestPhase = _isRestPhase;
+                progress = _currentProgressFraction;
+                goalReached = _isGoalReached;
+            }
+        }
+        else
+        {
+            // Idle / not tracking
+            isRestPhase = false;
+            progress = _currentProgressFraction;
+            goalReached = false;
+        }
 
         var rendered = AsciiArtEngine.Render(
             selectedScene.Id,
@@ -202,11 +235,22 @@ public partial class AsciiCompanionControl : UserControl
         {
             IntervalCycleBadge.Visibility = Visibility.Visible;
             IntervalActionBar.Visibility = Visibility.Visible;
-            IntervalCycleText.Text = $"🍅 Interval Mode Ready";
-            IntervalPhaseLabel.Text = $"🎯 { _intervalManager.Settings.FocusMinutes}m Focus / { _intervalManager.Settings.ShortBreakMinutes}m Rest";
-            IntervalPhaseLabel.Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
-            IntervalPhaseTimerText.Text = $"Cycles before long break: { _intervalManager.Settings.CyclesBeforeLongBreak}";
+            if (_isGoalReached)
+            {
+                IntervalCycleText.Text = "🍅 Session Paused";
+                IntervalPhaseLabel.Text = "✨ Review & Save Entry";
+                IntervalPhaseLabel.Foreground = TryFindResource("Theme.Warning") as Brush ?? Brushes.Orange;
+                IntervalPhaseTimerText.Text = "Session complete! Click Save Entry, Resume, or Discard.";
+            }
+            else
+            {
+                IntervalCycleText.Text = "🍅 Interval Mode Ready";
+                IntervalPhaseLabel.Text = $"🎯 {_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest";
+                IntervalPhaseLabel.Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
+                IntervalPhaseTimerText.Text = $"Cycles before long break: {_intervalManager.Settings.CyclesBeforeLongBreak}";
+            }
             ExtraRestButton.Visibility = Visibility.Collapsed;
+            NextSessionButton.Visibility = Visibility.Collapsed;
             SkipPhaseButton.Visibility = Visibility.Collapsed;
         }
         else
@@ -260,7 +304,7 @@ public partial class AsciiCompanionControl : UserControl
             "cat" => "🐱 'Purrrrr! (=^･ω･^=) Kitty loves your focus!' 💖",
             "runner" => "🏃 'Keep the pace! Gold medal focus sprint!' 🥇",
             "tamagotchi" => "👾 'Yay! Pet happiness +10%! Let's conquer this quest!' 💖",
-            "lumberjack" => "🪓 'Chop chop! Timber down, van packing up nicely!' 🌲",
+            "lumberjack" => "🌲 'Chop chop! Timber down, van packing up nicely!' 🚚",
             _ => "✨ Cheering you on! Fantastic focus energy!"
         };
 

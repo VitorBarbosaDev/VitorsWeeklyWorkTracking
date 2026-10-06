@@ -904,7 +904,7 @@ public static class AsciiArtEngine
 
     #endregion
 
-    #region Scene 7: 🪓 Lumberjack Wood Chopping
+    #region Scene 7: 🌲 Lumberjack Wood Chopping
 
     private static RenderedArtScene RenderLumberjackScene(
         int frameTick,
@@ -949,7 +949,7 @@ public static class AsciiArtEngine
                 AsciiArt = sb.ToString(),
                 StoryText = "🚚 TIMBER! All trees chopped down! Van packed to the roof with firewood ready to drive home! 🎉",
                 BadgeText = "🚚 VAN FULL PACKED!",
-                MiniLine = "[🪓 Cleared Forest! Van Packed Full of Wood! 🎉]"
+                MiniLine = "[🌲 Cleared Forest! Van Packed Full of Wood! 🎉]"
             };
         }
 
@@ -958,16 +958,16 @@ public static class AsciiArtEngine
             sb.AppendLine("   /|\\   /|\\   /|\\   /|\\   /|\\       [___]");
             sb.AppendLine("   /|\\   /|\\   /|\\   /|\\   /|\\       [   ] 🚐");
             sb.AppendLine("   ||    ||    ||    ||    ||        o-o-o");
-            sb.AppendLine("  _o/🪓 Full forest to chop...     Van empty & ready!");
+            sb.AppendLine("  _o/P Full forest to chop...     Van empty & ready!");
             sb.AppendLine("  /|\\  Start timer to swing the axe!");
             sb.AppendLine(" ─────────────────────────────────────────────");
 
             return new RenderedArtScene
             {
                 AsciiArt = sb.ToString(),
-                StoryText = "🪓 Lumberjack stands ready in the dense pine forest. Start the timer to begin chopping wood!",
-                BadgeText = "🪓 READY TO CHOP",
-                MiniLine = "[🪓 Full Forest ---> 🚐 Timber Van]"
+                StoryText = "🌲 Lumberjack stands ready in the dense pine forest. Start the timer to begin chopping wood!",
+                BadgeText = "🌲 READY TO CHOP",
+                MiniLine = "[🌲 Full Forest ---> 🚐 Timber Van]"
             };
         }
 
@@ -996,9 +996,9 @@ public static class AsciiArtEngine
         };
 
         // Lumberjack axe swing frames
-        string[] axeFrames0 = { "  _o/🪓 ", "  /|\\   ", "  / \\   " };
-        string[] axeFrames1 = { "  _o|🪓 ", "  /|    ", "  / \\   " };
-        string[] axeFrames2 = { "  _o\\🪓*", "  /|    ", "  / \\   " };
+        string[] axeFrames0 = { "  _o/P  ", "  /|\\   ", "  / \\   " };
+        string[] axeFrames1 = { "  _o|P  ", "  /|    ", "  / \\   " };
+        string[] axeFrames2 = { "  _o\\P* ", "  /|    ", "  / \\   " };
 
         string[] jackFrame = (f % 3) switch
         {
@@ -1038,9 +1038,9 @@ public static class AsciiArtEngine
         return new RenderedArtScene
         {
             AsciiArt = sb.ToString(),
-            StoryText = $"🪓 Chopping forest • {choppedCount}/5 trees chopped down • Van {pct}% loaded with firewood!",
-            BadgeText = $"🪓 {pct}% CHOPPING",
-            MiniLine = $"[🪓 {choppedCount}/5 Trees Cut • 🚐 Van {pct}% Full]"
+            StoryText = $"🌲 Chopping forest • {choppedCount}/5 trees chopped down • Van {pct}% loaded with firewood!",
+            BadgeText = $"🌲 {pct}% CHOPPING",
+            MiniLine = $"[🌲 {choppedCount}/5 Trees Cut • 🚐 Van {pct}% Full]"
         };
     }
 
