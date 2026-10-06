@@ -145,6 +145,9 @@ public partial class VisualCompanionControl : UserControl
             case "tamagotchi":
                 RenderTamagotchiScene(dc, w, h);
                 break;
+            case "lumberjack":
+                RenderLumberjackScene(dc, w, h);
+                break;
             case "cycling":
             default:
                 RenderCyclingScene(dc, w, h);
@@ -207,6 +210,9 @@ public partial class VisualCompanionControl : UserControl
                 break;
             case "tamagotchi":
                 RenderTamagotchiCelebration(dc, w, h, cheerProgress, cheerFade);
+                break;
+            case "lumberjack":
+                RenderLumberjackCelebration(dc, w, h, cheerProgress, cheerFade);
                 break;
             default:
                 RenderDefaultCelebration(dc, w, h, cheerProgress, cheerFade);
@@ -650,6 +656,49 @@ public partial class VisualCompanionControl : UserControl
         var bg = new LinearGradientBrush(Color.FromArgb((byte)(245 * cheerFade), 36, 34, 66), Color.FromArgb((byte)(245 * cheerFade), 16, 18, 34), new Point(0, 0), new Point(1, 1));
         var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 255, 220, 80)), 2.0);
         var textBrush = new SolidColorBrush(Color.FromArgb(fadeByte, 255, 240, 150));
+        DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
+    }
+
+    private void RenderLumberjackCelebration(DrawingContext dc, double w, double h, double cheerProgress, double cheerFade)
+    {
+        byte fadeByte = (byte)(255 * cheerFade);
+
+        // 1. Burst of flying pine wood chips & gold sparks
+        var chipColors = new[]
+        {
+            Color.FromRgb(230, 180, 110), // Pine wood light
+            Color.FromRgb(185, 130, 70),  // Pine wood dark
+            Color.FromRgb(255, 215, 80),  // Golden spark
+            Color.FromRgb(120, 190, 95),  // Pine needle green
+            Color.FromRgb(255, 145, 60)   // Amber leaf
+        };
+
+        var rand = new Random(555 + (_frameTick / 2));
+        int chipCount = IsMiniMode ? 10 : 22;
+        for (int c = 0; c < chipCount; c++)
+        {
+            double angle = (c * Math.PI * 2.0 / chipCount) + (_frameTick * 0.05);
+            double dist = (cheerProgress * (IsMiniMode ? 45 : 95)) + (rand.NextDouble() * 15);
+            double cx = (w * 0.40) + (Math.Cos(angle) * dist);
+            double cy = (h * 0.55) + (Math.Sin(angle) * dist * 0.7);
+            var col = chipColors[c % chipColors.Length];
+            var chipBrush = new SolidColorBrush(Color.FromArgb((byte)(225 * cheerFade), col.R, col.G, col.B));
+            DrawLeaf(dc, cx, cy, (IsMiniMode ? 3.0 : 5.0) * cheerFade, angle, chipBrush);
+        }
+
+        // 2. Golden Starbursts
+        for (int s = 0; s < (IsMiniMode ? 3 : 6); s++)
+        {
+            double sx = (w * 0.15) + (s * (w * 0.70 / (IsMiniMode ? 3 : 6)));
+            double sy = (h * 0.30) + (Math.Sin((_frameTick * 0.2) + s) * 10);
+            DrawStar5(dc, sx, sy, 5.0 * cheerFade, 2.5 * cheerFade, new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 255, 220, 60)));
+        }
+
+        // 3. Floating Celebration Banner
+        string msg = IsMiniMode ? "🪓 TIMBER POWER! 🌲" : "✨ 🪓 TIMBER! FOREST POWER & LOADED VAN! 🚚 ✨";
+        var bg = new LinearGradientBrush(Color.FromArgb((byte)(240 * cheerFade), 80, 45, 25), Color.FromArgb((byte)(240 * cheerFade), 45, 25, 15), new Point(0, 0), new Point(1, 1));
+        var border = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * cheerFade), 245, 185, 75)), 1.5);
+        var textBrush = new SolidColorBrush(Color.FromArgb(fadeByte, 255, 235, 190));
         DrawCelebrationBanner(dc, w, h, msg, bg, border, textBrush, cheerProgress, cheerFade);
     }
 
@@ -6979,6 +7028,774 @@ public partial class VisualCompanionControl : UserControl
         }
 
         dc.Pop();
+    }
+
+    #endregion
+
+    #region 🪓 Scene: Lumberjack Wood Chopping
+
+    private void RenderLumberjackScene(DrawingContext dc, double w, double h)
+    {
+        double scale = IsMiniMode ? (h / 75.0) : (h / 140.0);
+        double groundY = h * 0.72;
+        double groundH = h - groundY;
+
+        // Handle Rest Mode: Campfire evening scene
+        if (IsRestPhase)
+        {
+            DrawLumberjackCampfireRest(dc, w, h, groundY, scale, _frameTick);
+            return;
+        }
+
+        // 1. Sky Gradient: Transforms from crisp mountain morning blue into a warm sunset dusk glow as trees get cleared
+        double duskT = Math.Clamp(ProgressFraction, 0.0, 1.0);
+        Color skyTop = LerpColor(Color.FromRgb(75, 145, 225), Color.FromRgb(235, 120, 80), duskT * 0.75);
+        Color skyBottom = LerpColor(Color.FromRgb(240, 230, 210), Color.FromRgb(255, 205, 150), duskT * 0.85);
+        var skyBrush = new LinearGradientBrush(skyTop, skyBottom, new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(skyBrush, null, new Rect(0, 0, w, groundY));
+
+        // 2. Distant Majestic Snowy Alpine Mountain Peaks
+        var mountainGeom = new PathGeometry();
+        var mf = new PathFigure { StartPoint = new Point(0, groundY) };
+        mf.Segments.Add(new LineSegment(new Point(w * 0.15, groundY - (h * 0.52)), true));
+        mf.Segments.Add(new LineSegment(new Point(w * 0.32, groundY - (h * 0.28)), true));
+        mf.Segments.Add(new LineSegment(new Point(w * 0.50, groundY - (h * 0.58)), true));
+        mf.Segments.Add(new LineSegment(new Point(w * 0.68, groundY - (h * 0.32)), true));
+        mf.Segments.Add(new LineSegment(new Point(w * 0.85, groundY - (h * 0.48)), true));
+        mf.Segments.Add(new LineSegment(new Point(w, groundY), true));
+        mf.IsClosed = true;
+        mountainGeom.Figures.Add(mf);
+        var mountainBrush = new LinearGradientBrush(Color.FromRgb(140, 168, 200), Color.FromRgb(180, 200, 225), new Point(0, 0), new Point(0, 1));
+        dc.DrawGeometry(mountainBrush, null, mountainGeom);
+
+        // Snow Caps on the mountain peaks
+        var snowGeom = new PathGeometry();
+        // Peak 1
+        var s1 = new PathFigure { StartPoint = new Point(w * 0.10, groundY - (h * 0.38)) };
+        s1.Segments.Add(new LineSegment(new Point(w * 0.15, groundY - (h * 0.52)), true));
+        s1.Segments.Add(new LineSegment(new Point(w * 0.20, groundY - (h * 0.40)), true));
+        s1.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.15, groundY - (h * 0.36)), new Point(w * 0.10, groundY - (h * 0.38)), true));
+        s1.IsClosed = true;
+        snowGeom.Figures.Add(s1);
+        // Peak 2
+        var s2 = new PathFigure { StartPoint = new Point(w * 0.44, groundY - (h * 0.44)) };
+        s2.Segments.Add(new LineSegment(new Point(w * 0.50, groundY - (h * 0.58)), true));
+        s2.Segments.Add(new LineSegment(new Point(w * 0.56, groundY - (h * 0.45)), true));
+        s2.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.50, groundY - (h * 0.40)), new Point(w * 0.44, groundY - (h * 0.44)), true));
+        s2.IsClosed = true;
+        snowGeom.Figures.Add(s2);
+        // Peak 3
+        var s3 = new PathFigure { StartPoint = new Point(w * 0.80, groundY - (h * 0.36)) };
+        s3.Segments.Add(new LineSegment(new Point(w * 0.85, groundY - (h * 0.48)), true));
+        s3.Segments.Add(new LineSegment(new Point(w * 0.90, groundY - (h * 0.37)), true));
+        s3.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.85, groundY - (h * 0.34)), new Point(w * 0.80, groundY - (h * 0.36)), true));
+        s3.IsClosed = true;
+        snowGeom.Figures.Add(s3);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(235, 255, 255, 255)), null, snowGeom);
+
+        // 3. Rolling Pine Hills in Mid-Ground
+        var midHillGeom = new PathGeometry();
+        var mhf = new PathFigure { StartPoint = new Point(0, groundY) };
+        mhf.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.25, groundY - (h * 0.30)), new Point(w * 0.55, groundY), true));
+        mhf.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.80, groundY - (h * 0.25)), new Point(w, groundY), true));
+        mhf.IsClosed = true;
+        midHillGeom.Figures.Add(mhf);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(48, 92, 70)), null, midHillGeom);
+
+        // Near Pine Hill
+        var nearHillGeom = new PathGeometry();
+        var nhf = new PathFigure { StartPoint = new Point(0, groundY) };
+        nhf.Segments.Add(new QuadraticBezierSegment(new Point(w * 0.40, groundY - (h * 0.18)), new Point(w * 0.85, groundY), true));
+        nhf.Segments.Add(new LineSegment(new Point(w, groundY), true));
+        nhf.IsClosed = true;
+        nearHillGeom.Figures.Add(nhf);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(65, 125, 88)), null, nearHillGeom);
+
+        // 4. Soft Golden Sun with rays & Drifting Clouds
+        double sunX = w * 0.88;
+        double sunY = h * 0.18;
+        double sunR = IsMiniMode ? 13 : 20;
+        var sunGlow = new RadialGradientBrush(Color.FromArgb(190, 255, 235, 130), Color.FromArgb(0, 255, 210, 80));
+        dc.DrawEllipse(sunGlow, null, new Point(sunX, sunY), sunR * 2.2, sunR * 2.2);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 222, 85)), null, new Point(sunX, sunY), sunR, sunR);
+        // Sun face
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(60, 40, 20)), null, new Point(sunX - (sunR * 0.32), sunY - (sunR * 0.08)), 1.4, 1.8);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(60, 40, 20)), null, new Point(sunX + (sunR * 0.32), sunY - (sunR * 0.08)), 1.4, 1.8);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 255, 120, 130)), null, new Point(sunX - (sunR * 0.48), sunY + (sunR * 0.22)), 2.6, 1.4);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 255, 120, 130)), null, new Point(sunX + (sunR * 0.48), sunY + (sunR * 0.22)), 2.6, 1.4);
+
+        // Clouds
+        double cloud1X = ((_frameTick * 0.30) % (w + 120)) - 60;
+        double cloud2X = (((_frameTick * 0.18) + (w * 0.52)) % (w + 120)) - 60;
+        DrawCuteCloud(dc, cloud1X, h * 0.12, IsMiniMode ? 15 : 24);
+        DrawCuteCloud(dc, cloud2X, h * 0.22, IsMiniMode ? 13 : 20);
+
+        // 5. Woodland Forest Floor
+        var groundBrush = new LinearGradientBrush(
+            Color.FromRgb(105, 68, 38),
+            Color.FromRgb(70, 44, 24),
+            new Point(0, 0),
+            new Point(0, 1));
+        dc.DrawRectangle(groundBrush, null, new Rect(0, groundY, w, groundH));
+
+        // Lush grass and moss fringe along the surface
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(88, 160, 68)), null, new Rect(0, groundY, w, 4));
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(70, 135, 54)), null, new Rect(0, h - 3, w, 3));
+
+        // Woodland pebbles and cute red mushrooms
+        if (!IsMiniMode)
+        {
+            DrawForestDetails(dc, w, groundY);
+        }
+
+        // 6. Forest Tree Clearing & Chopping Logic
+        int totalTrees = IsMiniMode ? 3 : 5;
+        double[] treePositions = IsMiniMode
+            ? new[] { w * 0.09, w * 0.23, w * 0.38 }
+            : new[] { w * 0.07, w * 0.17, w * 0.27, w * 0.37, w * 0.47 };
+
+        int choppedCount = Math.Clamp((int)(ProgressFraction * totalTrees), 0, totalTrees);
+
+        // Draw each tree slot (stump or standing pine)
+        for (int i = 0; i < totalTrees; i++)
+        {
+            double tx = treePositions[i];
+            if (i < choppedCount || IsGoalReached)
+            {
+                // Tree is chopped down into a clean stump with sawdust and rings
+                DrawTreeStump(dc, tx, groundY, scale);
+            }
+            else if (i == choppedCount)
+            {
+                // Active tree being chopped!
+                bool isChopping = IsTracking;
+                double shake = (isChopping && (_frameTick % 4 == 2)) ? (Math.Sin(_frameTick * 1.5) * (1.8 * scale)) : 0.0;
+                DrawPineTree(dc, tx + shake, groundY, scale, hasChopNotch: true, isMini: IsMiniMode);
+            }
+            else
+            {
+                // Standing majestic pine tree
+                DrawPineTree(dc, tx, groundY, scale, hasChopNotch: false, isMini: IsMiniMode);
+            }
+        }
+
+        // 7. Timber Van / Wood Hauler on the Right
+        double vanX = IsMiniMode ? (w * 0.58) : (w * 0.62);
+        DrawTimberVan(dc, vanX, groundY, scale, ProgressFraction, IsGoalReached, _frameTick);
+
+        // 8. Lumberjack Character
+        if (IsGoalReached)
+        {
+            // Goal celebration: Standing triumphantly beside the fully packed van with arms high!
+            double jackX = vanX - (IsMiniMode ? (16 * scale) : (24 * scale));
+            DrawLumberjack(dc, jackX, groundY, scale, isTracking: false, isGoal: true, _frameTick);
+
+            // Celebration Badge over loaded van
+            string goalMsg = IsMiniMode ? "🚚 TIMBER! PACKED & READY! 🎉" : "🌲 🚚 TIMBER! FOREST CLEARED & VAN LOADED! 🎉 🌲";
+            var badgeFt = CreateText(goalMsg, IsMiniMode ? 10 : 12.5, Brushes.White, FontWeights.Bold);
+            double badgeW = badgeFt.Width + 18;
+            double badgeH = IsMiniMode ? 20 : 25;
+            double bx = (w * 0.5) - (badgeW * 0.5);
+            double by = h * 0.08;
+            var badgeBg = new LinearGradientBrush(Color.FromRgb(185, 105, 30), Color.FromRgb(125, 60, 15), new Point(0, 0), new Point(0, 1));
+            dc.DrawRoundedRectangle(badgeBg, new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 80)), 1.5), new Rect(bx, by, badgeW, badgeH), 5, 5);
+            dc.DrawText(badgeFt, new Point(bx + 9, by + ((badgeH - badgeFt.Height) * 0.5)));
+        }
+        else
+        {
+            int activeTreeIndex = Math.Min(choppedCount, totalTrees - 1);
+            double activeTreeX = treePositions[activeTreeIndex];
+            // Working stance at the active tree
+            double jackX = activeTreeX + (IsMiniMode ? (15 * scale) : (22 * scale));
+            DrawLumberjack(dc, jackX, groundY, scale, IsTracking, isGoal: false, _frameTick);
+
+            // Flying wood chips when chopping
+            if (IsTracking)
+            {
+                DrawWoodChipsParticleBurst(dc, activeTreeX + (4 * scale), groundY - (16 * scale), scale, _frameTick);
+            }
+        }
+    }
+
+    private void DrawPineTree(DrawingContext dc, double x, double groundY, double scale, bool hasChopNotch, bool isMini)
+    {
+        double trunkW = (isMini ? 8 : 12) * scale;
+        double trunkH = (isMini ? 24 : 40) * scale;
+        double trunkX = x - (trunkW * 0.5);
+        double trunkY = groundY - trunkH;
+
+        // Trunk shadow
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(80, 30, 20, 10)), null, new Point(x, groundY), trunkW * 1.3, 3 * scale);
+
+        // Wooden Trunk with bark gradient
+        var trunkBrush = new LinearGradientBrush(Color.FromRgb(118, 76, 42), Color.FromRgb(76, 46, 24), new Point(0, 0), new Point(1, 0));
+        dc.DrawRoundedRectangle(trunkBrush, new Pen(new SolidColorBrush(Color.FromRgb(55, 32, 16)), 1 * scale), new Rect(trunkX, trunkY, trunkW, trunkH), 2 * scale, 2 * scale);
+
+        // Bark vertical ridges
+        if (!isMini)
+        {
+            var barkPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 50, 30, 15)), 1 * scale);
+            dc.DrawLine(barkPen, new Point(trunkX + (3 * scale), trunkY + (4 * scale)), new Point(trunkX + (3 * scale), trunkY + trunkH - (4 * scale)));
+            dc.DrawLine(barkPen, new Point(trunkX + (trunkW - (3 * scale)), trunkY + (6 * scale)), new Point(trunkX + (trunkW - (3 * scale)), trunkY + trunkH - (2 * scale)));
+        }
+
+        // Chop notch cut if active
+        if (hasChopNotch)
+        {
+            double notchY = groundY - (16 * scale);
+            var notchGeom = new PathGeometry();
+            var nf = new PathFigure { StartPoint = new Point(trunkX + trunkW, notchY - (4 * scale)) };
+            nf.Segments.Add(new LineSegment(new Point(trunkX + (trunkW * 0.35), notchY), true));
+            nf.Segments.Add(new LineSegment(new Point(trunkX + trunkW, notchY + (4 * scale)), true));
+            nf.IsClosed = true;
+            notchGeom.Figures.Add(nf);
+            dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(242, 210, 155)), new Pen(new SolidColorBrush(Color.FromRgb(185, 140, 80)), 0.8 * scale), notchGeom);
+        }
+
+        // 3 Tier Pine Foliage (triangles)
+        double folBaseY = groundY - (trunkH * 0.45);
+        double[] tierWidths = isMini ? new[] { 32 * scale, 25 * scale, 18 * scale } : new[] { 54 * scale, 42 * scale, 30 * scale };
+        double[] tierHeights = isMini ? new[] { 14 * scale, 13 * scale, 14 * scale } : new[] { 24 * scale, 22 * scale, 24 * scale };
+        Color[] tierColors = { Color.FromRgb(36, 102, 62), Color.FromRgb(46, 126, 76), Color.FromRgb(58, 150, 90) };
+        Color[] tierShadows = { Color.FromRgb(26, 78, 46), Color.FromRgb(34, 98, 58), Color.FromRgb(42, 118, 70) };
+
+        double currY = folBaseY;
+        for (int t = 0; t < 3; t++)
+        {
+            double tw = tierWidths[t];
+            double th = tierHeights[t];
+            double ty = currY - th;
+
+            var pineGeom = new PathGeometry();
+            var pf = new PathFigure { StartPoint = new Point(x - (tw * 0.5), currY) };
+            pf.Segments.Add(new LineSegment(new Point(x, ty), true));
+            pf.Segments.Add(new LineSegment(new Point(x + (tw * 0.5), currY), true));
+            // Jagged pine needle bottom edge
+            pf.Segments.Add(new QuadraticBezierSegment(new Point(x + (tw * 0.25), currY - (3 * scale)), new Point(x, currY - (1 * scale)), true));
+            pf.Segments.Add(new QuadraticBezierSegment(new Point(x - (tw * 0.25), currY - (3 * scale)), new Point(x - (tw * 0.5), currY), true));
+            pf.IsClosed = true;
+            pineGeom.Figures.Add(pf);
+
+            var folBrush = new LinearGradientBrush(tierColors[t], tierShadows[t], new Point(0, 0), new Point(0, 1));
+            dc.DrawGeometry(folBrush, new Pen(new SolidColorBrush(Color.FromRgb(22, 66, 40)), 1 * scale), pineGeom);
+
+            // Pine cones on bottom tier
+            if (!isMini && t == 0)
+            {
+                dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(140, 80, 40)), null, new Point(x - (tw * 0.3), currY - (1 * scale)), 2.5 * scale, 4 * scale);
+                dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(140, 80, 40)), null, new Point(x + (tw * 0.28), currY - (1 * scale)), 2.5 * scale, 4 * scale);
+            }
+
+            currY -= th * 0.55;
+        }
+    }
+
+    private void DrawTreeStump(DrawingContext dc, double x, double groundY, double scale)
+    {
+        double stumpW = (IsMiniMode ? 14 : 22) * scale;
+        double stumpH = (IsMiniMode ? 10 : 16) * scale;
+        double sx = x - (stumpW * 0.5);
+        double sy = groundY - stumpH;
+
+        // Sawdust mound around base
+        var sawdustBrush = new RadialGradientBrush(Color.FromRgb(240, 205, 145), Color.FromArgb(0, 215, 175, 110));
+        dc.DrawEllipse(sawdustBrush, null, new Point(x, groundY + (1 * scale)), stumpW * 1.4, 4 * scale);
+
+        // Stump cylindrical body
+        var bodyBrush = new LinearGradientBrush(Color.FromRgb(118, 76, 42), Color.FromRgb(72, 44, 22), new Point(0, 0), new Point(1, 0));
+        dc.DrawRectangle(bodyBrush, new Pen(new SolidColorBrush(Color.FromRgb(55, 32, 16)), 1 * scale), new Rect(sx, sy + (3 * scale), stumpW, stumpH - (3 * scale)));
+
+        // Cut top surface (Oval with growth rings)
+        var topBrush = new LinearGradientBrush(Color.FromRgb(235, 198, 145), Color.FromRgb(205, 165, 115), new Point(0, 0), new Point(1, 1));
+        dc.DrawEllipse(topBrush, new Pen(new SolidColorBrush(Color.FromRgb(105, 66, 35)), 1 * scale), new Point(x, sy + (3 * scale)), stumpW * 0.5, 4 * scale);
+
+        // Concentric Annular Rings
+        var ringPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 130, 85, 45)), 0.8 * scale);
+        dc.DrawEllipse(null, ringPen, new Point(x, sy + (3 * scale)), stumpW * 0.32, 2.5 * scale);
+        dc.DrawEllipse(null, ringPen, new Point(x, sy + (3 * scale)), stumpW * 0.16, 1.2 * scale);
+
+        // Center tree core knot
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(95, 58, 30)), null, new Point(x, sy + (3 * scale)), 1.2 * scale, 0.8 * scale);
+
+        // Tiny green moss / mushroom on side
+        if (!IsMiniMode)
+        {
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(100, 185, 80)), null, new Point(sx + (2 * scale), groundY - (4 * scale)), 2 * scale, 3 * scale);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(235, 60, 60)), null, new Point(sx - (3 * scale), groundY - (3 * scale)), 2.5 * scale, 2 * scale);
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(245, 240, 230)), null, new Rect(sx - (3.5 * scale), groundY - (2 * scale), 1 * scale, 2 * scale));
+        }
+    }
+
+    private void DrawLumberjack(DrawingContext dc, double x, double groundY, double scale, bool isTracking, bool isGoal, int frameTick)
+    {
+        double bodyScale = scale * 1.05;
+
+        // 1. Shadow on ground
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 20, 25, 20)), null, new Point(x, groundY), 10 * bodyScale, 3.5 * bodyScale);
+
+        // 2. Boots (Brown logger work boots)
+        var bootBrush = new SolidColorBrush(Color.FromRgb(85, 50, 25));
+        dc.DrawRoundedRectangle(bootBrush, null, new Rect(x - (7 * bodyScale), groundY - (5 * bodyScale), 6 * bodyScale, 5 * bodyScale), 1.5 * bodyScale, 1.5 * bodyScale);
+        dc.DrawRoundedRectangle(bootBrush, null, new Rect(x + (1 * bodyScale), groundY - (5 * bodyScale), 6 * bodyScale, 5 * bodyScale), 1.5 * bodyScale, 1.5 * bodyScale);
+
+        // 3. Pants / Denim Dungarees (Indigo blue)
+        var denimBrush = new LinearGradientBrush(Color.FromRgb(52, 95, 158), Color.FromRgb(36, 68, 118), new Point(0, 0), new Point(0, 1));
+        var denimPen = new Pen(new SolidColorBrush(Color.FromRgb(25, 48, 85)), 1 * bodyScale);
+        dc.DrawRoundedRectangle(denimBrush, denimPen, new Rect(x - (7 * bodyScale), groundY - (17 * bodyScale), 14 * bodyScale, 13 * bodyScale), 2 * bodyScale, 2 * bodyScale);
+        // Pant leg divider
+        dc.DrawLine(denimPen, new Point(x, groundY - (12 * bodyScale)), new Point(x, groundY - (5 * bodyScale)));
+
+        // Suspenders straps
+        var suspenderPen = new Pen(new SolidColorBrush(Color.FromRgb(120, 70, 35)), 1.5 * bodyScale);
+        dc.DrawLine(suspenderPen, new Point(x - (4.5 * bodyScale), groundY - (28 * bodyScale)), new Point(x - (4.5 * bodyScale), groundY - (16 * bodyScale)));
+        dc.DrawLine(suspenderPen, new Point(x + (4.5 * bodyScale), groundY - (28 * bodyScale)), new Point(x + (4.5 * bodyScale), groundY - (16 * bodyScale)));
+
+        // 4. Red Buffalo Plaid Flannel Shirt
+        var flannelBrush = new LinearGradientBrush(Color.FromRgb(215, 45, 45), Color.FromRgb(170, 30, 30), new Point(0, 0), new Point(0, 1));
+        var flannelPen = new Pen(new SolidColorBrush(Color.FromRgb(125, 20, 20)), 1 * bodyScale);
+        dc.DrawRoundedRectangle(flannelBrush, flannelPen, new Rect(x - (8 * bodyScale), groundY - (29 * bodyScale), 16 * bodyScale, 13 * bodyScale), 3 * bodyScale, 3 * bodyScale);
+
+        // Plaid grid stripes
+        var plaidPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 40, 20, 20)), 1.2 * bodyScale);
+        dc.DrawLine(plaidPen, new Point(x - (4 * bodyScale), groundY - (29 * bodyScale)), new Point(x - (4 * bodyScale), groundY - (16 * bodyScale)));
+        dc.DrawLine(plaidPen, new Point(x + (4 * bodyScale), groundY - (29 * bodyScale)), new Point(x + (4 * bodyScale), groundY - (16 * bodyScale)));
+        dc.DrawLine(plaidPen, new Point(x - (8 * bodyScale), groundY - (23 * bodyScale)), new Point(x + (8 * bodyScale), groundY - (23 * bodyScale)));
+
+        // 5. Head & Facial Features
+        double headY = groundY - (36 * bodyScale);
+        var skinBrush = new SolidColorBrush(Color.FromRgb(255, 218, 185));
+        dc.DrawEllipse(skinBrush, null, new Point(x, headY), 7.5 * bodyScale, 7.5 * bodyScale);
+
+        // Rosy cheeks
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 255, 130, 140)), null, new Point(x - (4.5 * bodyScale), headY + (1.5 * bodyScale)), 2 * bodyScale, 1.2 * bodyScale);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 255, 130, 140)), null, new Point(x + (4.5 * bodyScale), headY + (1.5 * bodyScale)), 2 * bodyScale, 1.2 * bodyScale);
+
+        // Cozy Brown Beard & Mustache
+        var beardBrush = new SolidColorBrush(Color.FromRgb(105, 58, 28));
+        var beardGeom = new PathGeometry();
+        var bf = new PathFigure { StartPoint = new Point(x - (6 * bodyScale), headY + (1 * bodyScale)) };
+        bf.Segments.Add(new QuadraticBezierSegment(new Point(x - (4 * bodyScale), headY + (8.5 * bodyScale)), new Point(x, headY + (9 * bodyScale)), true));
+        bf.Segments.Add(new QuadraticBezierSegment(new Point(x + (4 * bodyScale), headY + (8.5 * bodyScale)), new Point(x + (6 * bodyScale), headY + (1 * bodyScale)), true));
+        bf.Segments.Add(new QuadraticBezierSegment(new Point(x, headY + (4 * bodyScale)), new Point(x - (6 * bodyScale), headY + (1 * bodyScale)), true));
+        bf.IsClosed = true;
+        beardGeom.Figures.Add(bf);
+        dc.DrawGeometry(beardBrush, null, beardGeom);
+
+        // Friendly smiling eyes
+        var eyePen = new Pen(new SolidColorBrush(Color.FromRgb(45, 25, 15)), 1.3 * bodyScale);
+        dc.DrawLine(eyePen, new Point(x - (4.2 * bodyScale), headY - (1.2 * bodyScale)), new Point(x - (1.5 * bodyScale), headY - (1.2 * bodyScale)));
+        dc.DrawLine(eyePen, new Point(x + (1.5 * bodyScale), headY - (1.2 * bodyScale)), new Point(x + (4.2 * bodyScale), headY - (1.2 * bodyScale)));
+
+        // 6. Warm Red Knit Beanie / Toque
+        double hatY = headY - (3 * bodyScale);
+        var beanieBrush = new LinearGradientBrush(Color.FromRgb(220, 50, 40), Color.FromRgb(175, 30, 25), new Point(0, 0), new Point(0, 1));
+        var beaniePen = new Pen(new SolidColorBrush(Color.FromRgb(140, 20, 15)), 1 * bodyScale);
+        var beanieGeom = new PathGeometry();
+        var hf = new PathFigure { StartPoint = new Point(x - (8 * bodyScale), hatY) };
+        hf.Segments.Add(new QuadraticBezierSegment(new Point(x, hatY - (12 * bodyScale)), new Point(x + (8 * bodyScale), hatY), true));
+        hf.IsClosed = true;
+        beanieGeom.Figures.Add(hf);
+        dc.DrawGeometry(beanieBrush, beaniePen, beanieGeom);
+
+        // Beanie folded cuff
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(190, 35, 30)), beaniePen, new Rect(x - (8.5 * bodyScale), hatY - (2 * bodyScale), 17 * bodyScale, 4 * bodyScale), 1.5 * bodyScale, 1.5 * bodyScale);
+
+        // White fluffy pom-pom on top of beanie
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(250, 245, 240)), null, new Point(x, hatY - (11 * bodyScale)), 3 * bodyScale, 3 * bodyScale);
+
+        // 7. Arms and Double-Bit Axe Animation
+        if (isGoal)
+        {
+            // Triumph / Victory Pose: Arms raised high with axe lifted in air!
+            var armPen = new Pen(flannelBrush, 3.5 * bodyScale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawLine(armPen, new Point(x - (7 * bodyScale), groundY - (26 * bodyScale)), new Point(x - (14 * bodyScale), groundY - (38 * bodyScale)));
+            dc.DrawLine(armPen, new Point(x + (7 * bodyScale), groundY - (26 * bodyScale)), new Point(x + (14 * bodyScale), groundY - (38 * bodyScale)));
+
+            // Axe held high in right hand
+            double axeX = x + (14 * bodyScale);
+            double axeY = groundY - (38 * bodyScale);
+            DrawDoubleBitAxe(dc, axeX, axeY, bodyScale, angleDeg: 30);
+        }
+        else if (isTracking)
+        {
+            // Dynamic Chop Swing Animation
+            int swingFrame = (frameTick / 2) % 4;
+            double armAngle = swingFrame switch
+            {
+                0 => -65.0, // High backswing
+                1 => -15.0, // Mid downward swing
+                2 => 45.0,  // Chop impact hit!
+                _ => 15.0   // Recoil recovery
+            };
+
+            double rad = armAngle * Math.PI / 180.0;
+            double handX = x - (6 * bodyScale) + (Math.Sin(rad) * (14 * bodyScale));
+            double handY = groundY - (24 * bodyScale) + (Math.Cos(rad) * (14 * bodyScale));
+
+            var armPen = new Pen(flannelBrush, 3.5 * bodyScale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawLine(armPen, new Point(x - (6 * bodyScale), groundY - (26 * bodyScale)), new Point(handX, handY));
+            dc.DrawEllipse(skinBrush, null, new Point(handX, handY), 2.5 * bodyScale, 2.5 * bodyScale);
+
+            // Axe attached to hand
+            DrawDoubleBitAxe(dc, handX, handY, bodyScale, angleDeg: armAngle + 70);
+        }
+        else
+        {
+            // Idle Stance: Axe resting on shoulder
+            var armPen = new Pen(flannelBrush, 3.5 * bodyScale) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawLine(armPen, new Point(x + (6 * bodyScale), groundY - (26 * bodyScale)), new Point(x + (10 * bodyScale), groundY - (30 * bodyScale)));
+            dc.DrawEllipse(skinBrush, null, new Point(x + (10 * bodyScale), groundY - (30 * bodyScale)), 2.5 * bodyScale, 2.5 * bodyScale);
+
+            DrawDoubleBitAxe(dc, x + (10 * bodyScale), groundY - (30 * bodyScale), bodyScale, angleDeg: -40);
+        }
+    }
+
+    private void DrawDoubleBitAxe(DrawingContext dc, double x, double y, double scale, double angleDeg)
+    {
+        dc.PushTransform(new RotateTransform(angleDeg, x, y));
+
+        // Wooden handle
+        var handleBrush = new SolidColorBrush(Color.FromRgb(215, 168, 105));
+        dc.DrawRoundedRectangle(handleBrush, new Pen(new SolidColorBrush(Color.FromRgb(140, 95, 45)), 0.8 * scale), new Rect(x - (1.5 * scale), y - (18 * scale), 3 * scale, 32 * scale), 1 * scale, 1 * scale);
+
+        // Steel Double-Bit Axe Head
+        double headY = y - (14 * scale);
+        var steelBrush = new LinearGradientBrush(Color.FromRgb(230, 235, 245), Color.FromRgb(160, 170, 185), new Point(0, 0), new Point(1, 0));
+        var steelPen = new Pen(new SolidColorBrush(Color.FromRgb(100, 110, 125)), 1 * scale);
+
+        var axeGeom = new PathGeometry();
+        // Left blade
+        var lf = new PathFigure { StartPoint = new Point(x - (1.5 * scale), headY - (3 * scale)) };
+        lf.Segments.Add(new LineSegment(new Point(x - (11 * scale), headY - (7 * scale)), true));
+        lf.Segments.Add(new QuadraticBezierSegment(new Point(x - (13 * scale), headY), new Point(x - (11 * scale), headY + (7 * scale)), true));
+        lf.Segments.Add(new LineSegment(new Point(x - (1.5 * scale), headY + (3 * scale)), true));
+        lf.IsClosed = true;
+        axeGeom.Figures.Add(lf);
+
+        // Right blade
+        var rf = new PathFigure { StartPoint = new Point(x + (1.5 * scale), headY - (3 * scale)) };
+        rf.Segments.Add(new LineSegment(new Point(x + (11 * scale), headY - (7 * scale)), true));
+        rf.Segments.Add(new QuadraticBezierSegment(new Point(x + (13 * scale), headY), new Point(x + (11 * scale), headY + (7 * scale)), true));
+        rf.Segments.Add(new LineSegment(new Point(x + (1.5 * scale), headY + (3 * scale)), true));
+        rf.IsClosed = true;
+        axeGeom.Figures.Add(rf);
+
+        dc.DrawGeometry(steelBrush, steelPen, axeGeom);
+
+        // Silver blade sharp edge glints
+        dc.DrawLine(new Pen(Brushes.White, 1.2 * scale), new Point(x - (11 * scale), headY - (5 * scale)), new Point(x - (11 * scale), headY + (5 * scale)));
+        dc.DrawLine(new Pen(Brushes.White, 1.2 * scale), new Point(x + (11 * scale), headY - (5 * scale)), new Point(x + (11 * scale), headY + (5 * scale)));
+
+        dc.Pop();
+    }
+
+    private void DrawTimberVan(DrawingContext dc, double x, double groundY, double scale, double progress, bool isGoal, int frameTick)
+    {
+        double vanW = (IsMiniMode ? 85 : 135) * scale;
+        double vanH = (IsMiniMode ? 44 : 68) * scale;
+
+        // 1. Van Shadow
+        dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 25, 30, 25)), null, new Point(x + (vanW * 0.5), groundY), vanW * 0.52, 5 * scale);
+
+        // 2. Open Cargo Flatbed (Left portion: ~60% of van width)
+        double bedW = vanW * 0.60;
+        double bedX = x;
+        double bedH = vanH * 0.40;
+        double bedY = groundY - bedH - (10 * scale);
+
+        // Wooden Bed Floor
+        var woodBedBrush = new LinearGradientBrush(Color.FromRgb(140, 92, 52), Color.FromRgb(95, 58, 30), new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(woodBedBrush, new Pen(new SolidColorBrush(Color.FromRgb(65, 38, 18)), 1.2 * scale), new Rect(bedX, bedY + (bedH * 0.7), bedW, bedH * 0.3));
+
+        // Wooden Stake Bed Rails (Vertical posts & horizontal slats)
+        var stakePen = new Pen(new SolidColorBrush(Color.FromRgb(110, 72, 38)), 2.5 * scale);
+        dc.DrawLine(stakePen, new Point(bedX + (4 * scale), bedY), new Point(bedX + (4 * scale), bedY + bedH));
+        dc.DrawLine(stakePen, new Point(bedX + (bedW * 0.5), bedY), new Point(bedX + (bedW * 0.5), bedY + bedH));
+        dc.DrawLine(stakePen, new Point(bedX + bedW - (4 * scale), bedY), new Point(bedX + bedW - (4 * scale), bedY + bedH));
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(130, 85, 46)), 2 * scale), new Point(bedX + (2 * scale), bedY + (4 * scale)), new Point(bedX + bedW - (2 * scale), bedY + (4 * scale)));
+
+        // 3. Stacking Timber Logs in the Cargo Bed Based on Progress!
+        int maxLogs = IsMiniMode ? 8 : 14;
+        int currentLogs = isGoal ? maxLogs : Math.Clamp((int)(progress * (maxLogs + 1)), 0, maxLogs);
+
+        if (currentLogs > 0)
+        {
+            double logR = (IsMiniMode ? 4.5 : 7.0) * scale;
+            double logSpacing = logR * 1.85;
+
+            var logPositions = new List<Point>();
+            // Row 1 (bottom layer: 4 logs)
+            for (int col = 0; col < 4; col++)
+                logPositions.Add(new Point(bedX + (10 * scale) + (col * logSpacing), bedY + bedH - logR));
+            // Row 2 (3 logs)
+            for (int col = 0; col < 3; col++)
+                logPositions.Add(new Point(bedX + (10 * scale) + (logSpacing * 0.5) + (col * logSpacing), bedY + bedH - (logR * 2.6)));
+            // Row 3 (3 logs)
+            for (int col = 0; col < 3; col++)
+                logPositions.Add(new Point(bedX + (10 * scale) + (col * logSpacing), bedY + bedH - (logR * 4.2)));
+            // Row 4 (2 peak logs)
+            for (int col = 0; col < 2; col++)
+                logPositions.Add(new Point(bedX + (10 * scale) + (logSpacing * 0.5) + (col * logSpacing), bedY + bedH - (logR * 5.8)));
+            // Extra top logs
+            logPositions.Add(new Point(bedX + (10 * scale) + logSpacing, bedY + bedH - (logR * 7.2)));
+            logPositions.Add(new Point(bedX + (10 * scale) + (logSpacing * 1.5), bedY + bedH - (logR * 7.2)));
+
+            int logsToDraw = Math.Min(currentLogs, logPositions.Count);
+            for (int li = 0; li < logsToDraw; li++)
+            {
+                var lp = logPositions[li];
+                // Log cross section
+                var logEndBrush = new LinearGradientBrush(Color.FromRgb(235, 198, 142), Color.FromRgb(198, 155, 105), new Point(0, 0), new Point(1, 1));
+                dc.DrawEllipse(logEndBrush, new Pen(new SolidColorBrush(Color.FromRgb(95, 58, 28)), 1.2 * scale), lp, logR, logR);
+                // Log annular ring & core
+                dc.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromArgb(120, 110, 70, 35)), 0.8 * scale), lp, logR * 0.55, logR * 0.55);
+                dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(85, 48, 22)), null, lp, 1.2 * scale, 1.2 * scale);
+            }
+
+            // At Goal: Yellow ratchet tie-down straps over the packed logs
+            if (isGoal)
+            {
+                var strapPen = new Pen(new SolidColorBrush(Color.FromRgb(245, 205, 40)), 2.0 * scale);
+                dc.DrawLine(strapPen, new Point(bedX + (8 * scale), bedY + bedH), new Point(bedX + (bedW * 0.5), bedY - (logR * 6.5)));
+                dc.DrawLine(strapPen, new Point(bedX + (bedW * 0.5), bedY - (logR * 6.5)), new Point(bedX + bedW - (8 * scale), bedY + bedH));
+            }
+        }
+
+        // 4. Vintage Cab (Right portion of van)
+        double cabW = vanW * 0.44;
+        double cabX = x + bedW - (4 * scale);
+        double cabH = vanH * 0.75;
+        double cabY = groundY - cabH - (8 * scale);
+
+        // Cab Body (Forest Green / Vintage Amber Orange)
+        var cabBrush = new LinearGradientBrush(Color.FromRgb(42, 118, 82), Color.FromRgb(28, 84, 58), new Point(0, 0), new Point(0, 1));
+        var cabPen = new Pen(new SolidColorBrush(Color.FromRgb(18, 56, 38)), 1.2 * scale);
+        dc.DrawRoundedRectangle(cabBrush, cabPen, new Rect(cabX, cabY, cabW, cabH), 8 * scale, 8 * scale);
+
+        // Cream White Roof Top
+        var roofBrush = new LinearGradientBrush(Color.FromRgb(252, 248, 238), Color.FromRgb(225, 218, 205), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(roofBrush, new Pen(new SolidColorBrush(Color.FromRgb(175, 170, 160)), 1 * scale), new Rect(cabX - (2 * scale), cabY - (2 * scale), cabW + (2 * scale), cabH * 0.28), 5 * scale, 5 * scale);
+
+        // Front Windshield Glass
+        double windW = cabW * 0.52;
+        double windH = cabH * 0.42;
+        double windX = cabX + cabW - windW - (4 * scale);
+        double windY = cabY + (cabH * 0.18);
+        var glassBrush = new LinearGradientBrush(Color.FromArgb(200, 195, 235, 255), Color.FromArgb(140, 145, 195, 235), new Point(0, 0), new Point(1, 1));
+        dc.DrawRoundedRectangle(glassBrush, new Pen(new SolidColorBrush(Color.FromRgb(130, 175, 205)), 1 * scale), new Rect(windX, windY, windW, windH), 4 * scale, 4 * scale);
+
+        // Windshield specular glint
+        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(170, 255, 255, 255)), 1.5 * scale), new Point(windX + (4 * scale), windY + (3 * scale)), new Point(windX + (windW * 0.6), windY + windH - (3 * scale)));
+
+        // Vintage Round Front Headlight
+        double hlX = cabX + cabW - (2 * scale);
+        double hlY = cabY + (cabH * 0.68);
+        double hlR = (IsMiniMode ? 3.5 : 5.5) * scale;
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 235, 130)), new Pen(new SolidColorBrush(Color.FromRgb(205, 175, 65)), 1 * scale), new Point(hlX, hlY), hlR, hlR);
+
+        // Headlight Beam when goal reached
+        if (isGoal)
+        {
+            var beamGeom = new PathGeometry();
+            var bf = new PathFigure { StartPoint = new Point(hlX, hlY) };
+            bf.Segments.Add(new LineSegment(new Point(hlX + (55 * scale), hlY - (18 * scale)), true));
+            bf.Segments.Add(new LineSegment(new Point(hlX + (55 * scale), hlY + (22 * scale)), true));
+            bf.IsClosed = true;
+            beamGeom.Figures.Add(bf);
+            var beamBrush = new LinearGradientBrush(Color.FromArgb(140, 255, 245, 160), Color.FromArgb(0, 255, 245, 160), new Point(0, 0), new Point(1, 0));
+            dc.DrawGeometry(beamBrush, null, beamGeom);
+        }
+
+        // Chrome Front Bumper
+        var chromeBrush = new LinearGradientBrush(Color.FromRgb(250, 252, 255), Color.FromRgb(195, 205, 215), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(chromeBrush, new Pen(new SolidColorBrush(Color.FromRgb(140, 150, 160)), 1 * scale), new Rect(cabX + cabW - (3 * scale), cabY + (cabH * 0.78), 7 * scale, 9 * scale), 2 * scale, 2 * scale);
+
+        // 5. Wheels & Mud Flaps
+        double wheelR = (IsMiniMode ? 6.5 : 10.5) * scale;
+        double wheelY = groundY - wheelR + (2 * scale);
+        double wheel1X = x + (bedW * 0.35);
+        double wheel2X = cabX + (cabW * 0.65);
+
+        // Rear Wheel
+        DrawVanWheel(dc, wheel1X, wheelY, wheelR, scale);
+        // Front Wheel
+        DrawVanWheel(dc, wheel2X, wheelY, wheelR, scale);
+
+        // 6. Exhaust Pipe with animated smoke puffs when Goal reached
+        double exhaustX = x - (2 * scale);
+        double exhaustY = groundY - (8 * scale);
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(80, 85, 90)), null, new Rect(exhaustX - (4 * scale), exhaustY, 6 * scale, 3 * scale));
+
+        if (isGoal)
+        {
+            // Animated smoke clouds drifting back
+            for (int p = 0; p < 3; p++)
+            {
+                double smokeShift = ((frameTick * 1.5) + (p * 18)) % 55;
+                double sx = exhaustX - (smokeShift * scale);
+                double sy = exhaustY - ((smokeShift * 0.35) * scale) - (p * (2 * scale));
+                double sr = (4 + (smokeShift * 0.15)) * scale;
+                byte sAlpha = (byte)Math.Clamp(180 - (smokeShift * 3.2), 0, 180);
+                dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(sAlpha, 235, 240, 245)), null, new Point(sx, sy), sr, sr * 0.85);
+            }
+        }
+    }
+
+    private void DrawVanWheel(DrawingContext dc, double x, double y, double r, double scale)
+    {
+        // Rubber Tire (Dark charcoal)
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(42, 45, 48)), new Pen(new SolidColorBrush(Color.FromRgb(22, 24, 26)), 1 * scale), new Point(x, y), r, r);
+        // Chrome Hubcap
+        var hubBrush = new LinearGradientBrush(Color.FromRgb(240, 245, 250), Color.FromRgb(165, 175, 185), new Point(0, 0), new Point(1, 1));
+        dc.DrawEllipse(hubBrush, new Pen(new SolidColorBrush(Color.FromRgb(110, 120, 130)), 0.8 * scale), new Point(x, y), r * 0.52, r * 0.52);
+        // Center Bolt
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(55, 60, 65)), null, new Point(x, y), r * 0.2, r * 0.2);
+    }
+
+    private void DrawLumberjackCampfireRest(DrawingContext dc, double w, double h, double groundY, double scale, int frameTick)
+    {
+        // 1. Twilight / Night Starry Sky
+        var nightBrush = new LinearGradientBrush(Color.FromRgb(18, 22, 45), Color.FromRgb(45, 30, 55), new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(nightBrush, null, new Rect(0, 0, w, groundY));
+
+        // Twinkling stars & crescent moon
+        for (int s = 0; s < (IsMiniMode ? 6 : 14); s++)
+        {
+            double sx = (w * 0.08) + (s * (w * 0.84 / (IsMiniMode ? 6 : 14)));
+            double sy = (h * 0.10) + (Math.Sin((frameTick * 0.08) + s) * (h * 0.15));
+            double starAlpha = 140 + (Math.Sin((frameTick * 0.15) + s) * 90);
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)starAlpha, 255, 245, 190)), null, new Point(sx, sy), 1.5 * scale, 1.5 * scale);
+        }
+
+        // Crescent Moon
+        double moonX = w * 0.88;
+        double moonY = h * 0.18;
+        double moonR = (IsMiniMode ? 10 : 16) * scale;
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 240, 180)), null, new Point(moonX, moonY), moonR, moonR);
+        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(22, 24, 48)), null, new Point(moonX - (moonR * 0.4), moonY - (moonR * 0.2)), moonR * 0.9, moonR * 0.9);
+
+        // 2. Forest Floor
+        var groundBrush = new LinearGradientBrush(Color.FromRgb(65, 42, 28), Color.FromRgb(40, 25, 16), new Point(0, 0), new Point(0, 1));
+        dc.DrawRectangle(groundBrush, null, new Rect(0, groundY, w, h - groundY));
+
+        // 3. Campfire Glow on Ground
+        double fireX = w * 0.42;
+        double fireY = groundY;
+        var fireGlow = new RadialGradientBrush(Color.FromArgb(180, 255, 180, 60), Color.FromArgb(0, 255, 120, 30));
+        dc.DrawEllipse(fireGlow, null, new Point(fireX, fireY), 45 * scale, 18 * scale);
+
+        // Stone circle around fire
+        for (int stone = 0; stone < 6; stone++)
+        {
+            double stoneX = fireX - (16 * scale) + (stone * (6 * scale));
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(115, 120, 125)), null, new Point(stoneX, fireY + (1 * scale)), 3.5 * scale, 2.5 * scale);
+        }
+
+        // Fire logs (Criss-crossed)
+        var fireLogBrush = new SolidColorBrush(Color.FromRgb(85, 48, 22));
+        dc.DrawRectangle(fireLogBrush, null, new Rect(fireX - (10 * scale), fireY - (4 * scale), 20 * scale, 4 * scale));
+
+        // Animated Campfire Flames (Flashing red, orange, golden yellow)
+        double flameFlicker = Math.Sin(frameTick * 0.4) * (2 * scale);
+        var flameGeom = new PathGeometry();
+        var ff = new PathFigure { StartPoint = new Point(fireX - (8 * scale), fireY - (2 * scale)) };
+        ff.Segments.Add(new QuadraticBezierSegment(new Point(fireX - (4 * scale), fireY - (18 * scale) - flameFlicker), new Point(fireX, fireY - (24 * scale) - flameFlicker), true));
+        ff.Segments.Add(new QuadraticBezierSegment(new Point(fireX + (4 * scale), fireY - (18 * scale) - flameFlicker), new Point(fireX + (8 * scale), fireY - (2 * scale)), true));
+        ff.IsClosed = true;
+        flameGeom.Figures.Add(ff);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(255, 95, 35)), null, flameGeom);
+
+        // Inner golden flame
+        var innerFlame = new PathGeometry();
+        var iff = new PathFigure { StartPoint = new Point(fireX - (4 * scale), fireY - (2 * scale)) };
+        iff.Segments.Add(new QuadraticBezierSegment(new Point(fireX - (2 * scale), fireY - (12 * scale)), new Point(fireX, fireY - (16 * scale)), true));
+        iff.Segments.Add(new QuadraticBezierSegment(new Point(fireX + (2 * scale), fireY - (12 * scale)), new Point(fireX + (4 * scale), fireY - (2 * scale)), true));
+        innerFlame.Figures.Add(iff);
+        dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(255, 225, 75)), null, innerFlame);
+
+        // 4. Seated Lumberjack Relaxing by the Fire
+        double jackX = w * 0.26;
+        DrawTreeStump(dc, jackX, groundY, scale);
+        DrawLumberjack(dc, jackX, groundY - (6 * scale), scale, isTracking: false, isGoal: false, frameTick);
+
+        // Marshmallow on a stick extending toward the campfire
+        var stickPen = new Pen(new SolidColorBrush(Color.FromRgb(165, 115, 65)), 1.5 * scale);
+        double stickStartX = jackX + (10 * scale);
+        double stickStartY = groundY - (26 * scale);
+        double stickEndX = fireX - (4 * scale);
+        double stickEndY = fireY - (14 * scale);
+        dc.DrawLine(stickPen, new Point(stickStartX, stickStartY), new Point(stickEndX, stickEndY));
+        // Golden-brown toasted marshmallow
+        dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(250, 235, 205)), new Pen(new SolidColorBrush(Color.FromRgb(185, 125, 60)), 0.8 * scale), new Rect(stickEndX - (3 * scale), stickEndY - (3 * scale), 6 * scale, 6 * scale), 1.5 * scale, 1.5 * scale);
+
+        // 5. Van in background
+        double vanX = w * 0.64;
+        DrawTimberVan(dc, vanX, groundY, scale * 0.9, 0.4, isGoal: false, frameTick);
+
+        // Rest Banner Badge
+        string restMsg = IsMiniMode ? "☕ REST BREAK - WARM BY THE FIRE 🔥" : "☕ REST BREAK • WARM BY THE CRACKLING CAMPFIRE 🔥";
+        var badgeFt = CreateText(restMsg, IsMiniMode ? 9.5 : 11.5, Brushes.White, FontWeights.Bold);
+        double badgeW = badgeFt.Width + 18;
+        double badgeH = IsMiniMode ? 18 : 23;
+        double bx = (w * 0.5) - (badgeW * 0.5);
+        double by = h * 0.08;
+        var badgeBg = new LinearGradientBrush(Color.FromRgb(65, 35, 55), Color.FromRgb(35, 20, 30), new Point(0, 0), new Point(0, 1));
+        dc.DrawRoundedRectangle(badgeBg, new Pen(new SolidColorBrush(Color.FromRgb(255, 180, 80)), 1.2), new Rect(bx, by, badgeW, badgeH), 5, 5);
+        dc.DrawText(badgeFt, new Point(bx + 9, by + ((badgeH - badgeFt.Height) * 0.5)));
+    }
+
+    private void DrawWoodChipsParticleBurst(DrawingContext dc, double x, double y, double scale, int frameTick)
+    {
+        var chipColors = new[]
+        {
+            Color.FromRgb(240, 205, 145), // Light pine heartwood
+            Color.FromRgb(215, 165, 105), // Mid wood chip
+            Color.FromRgb(165, 110, 55),  // Bark wood chip
+            Color.FromRgb(255, 230, 120)  // Golden sawdust spark
+        };
+
+        for (int i = 0; i < 6; i++)
+        {
+            double progress = ((frameTick * 2.2) + (i * 12)) % 25;
+            double t = progress / 25.0;
+            double vx = (Math.Cos((i * 0.6) - 0.4) * 26.0) * scale;
+            double vy = (-Math.Sin((i * 0.5) + 0.3) * 22.0) * scale;
+            double cx = x + (vx * t);
+            double cy = y + (vy * t) + (0.5 * 35.0 * t * t * scale);
+
+            byte alpha = (byte)Math.Clamp(255 - (t * 220), 0, 255);
+            var color = chipColors[i % chipColors.Length];
+            var chipBrush = new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B));
+
+            double chipSize = (2.0 + (i % 2)) * scale;
+            dc.PushTransform(new RotateTransform((frameTick * 12) + (i * 45), cx, cy));
+            dc.DrawRectangle(chipBrush, null, new Rect(cx - (chipSize * 0.5), cy - (chipSize * 0.3), chipSize, chipSize * 0.6));
+            dc.Pop();
+        }
+    }
+
+    private void DrawForestDetails(DrawingContext dc, double w, double groundY)
+    {
+        // Forest Pebbles
+        var pebbleBrush = new SolidColorBrush(Color.FromRgb(110, 85, 65));
+        dc.DrawEllipse(pebbleBrush, null, new Point(w * 0.05, groundY + 8), 3.5, 2.0);
+        dc.DrawEllipse(pebbleBrush, null, new Point(w * 0.32, groundY + 12), 4.5, 2.5);
+        dc.DrawEllipse(pebbleBrush, null, new Point(w * 0.55, groundY + 7), 3.0, 1.8);
+        dc.DrawEllipse(pebbleBrush, null, new Point(w * 0.82, groundY + 10), 4.0, 2.2);
+
+        // Red Forest Toadstools / Mushrooms
+        for (int m = 0; m < 3; m++)
+        {
+            double mx = (w * 0.12) + (m * (w * 0.30));
+            double my = groundY + 3;
+            // White stalk
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(245, 240, 230)), null, new Rect(mx - 1.2, my - 5, 2.4, 5));
+            // Red cap
+            dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(225, 55, 55)), null, new Point(mx, my - 5), 4.5, 3.0);
+            // White dots
+            dc.DrawEllipse(Brushes.White, null, new Point(mx - 2, my - 6), 0.8, 0.8);
+            dc.DrawEllipse(Brushes.White, null, new Point(mx + 1.8, my - 5.5), 0.8, 0.8);
+        }
     }
 
     #endregion

@@ -976,6 +976,57 @@ public static class SoundEffectManager
                 new(1567.98, 60, 0, Amplitude: 0.90, Harmonic2: 0.40, AttackMs: 2, DecayExponent: 4.5),
                 new(2093.00, 180, 60, Amplitude: 1.00, Harmonic2: 0.40, Harmonic3: 0.15, AttackMs: 3, DecayExponent: 3.2)
             }
+        },
+
+        // --- 10. Lumberjack Wood Chopping ("lumberjack") ---
+        new()
+        {
+            Id = "cheer_lumberjack_chop",
+            Name = "Axe Strike & Wood Splinter",
+            Icon = "🪓",
+            EventType = SoundEffectType.Cheer,
+            SceneId = "lumberjack",
+            Description = "Crisp woody axe strike impact & timber splinter (E3 + A4 + E5)",
+            Notes = new AudioNote[]
+            {
+                new(164.81, 120, 0, Amplitude: 0.90, Harmonic2: 0.20, AttackMs: 2, DecayExponent: 3.0),
+                new(440.00, 140, 20, Amplitude: 0.85, Harmonic2: 0.25, AttackMs: 3, DecayExponent: 3.2),
+                new(659.25, 180, 40, Amplitude: 0.95, Harmonic2: 0.35, AttackMs: 2, DecayExponent: 3.5),
+                new(1318.51, 200, 70, Amplitude: 1.00, Harmonic2: 0.30, AttackMs: 3, DecayExponent: 3.0)
+            }
+        },
+        new()
+        {
+            Id = "cheer_lumberjack_timber",
+            Name = "'Timber!' Forest Echo",
+            Icon = "🌲",
+            EventType = SoundEffectType.Cheer,
+            SceneId = "lumberjack",
+            Description = "Resonant timber call & forest cascade chime (G5 → E5 → C5 → G4 → C4)",
+            Notes = new AudioNote[]
+            {
+                new(783.99, 70, 0, Amplitude: 0.85, Harmonic2: 0.20, AttackMs: 4, DecayExponent: 3.5),
+                new(659.25, 75, 55, Amplitude: 0.88, Harmonic2: 0.20, AttackMs: 4, DecayExponent: 3.5),
+                new(523.25, 80, 115, Amplitude: 0.92, Harmonic2: 0.20, AttackMs: 4, DecayExponent: 3.2),
+                new(392.00, 90, 180, Amplitude: 0.95, Harmonic2: 0.20, AttackMs: 5, DecayExponent: 3.0),
+                new(261.63, 340, 250, Amplitude: 1.00, Harmonic2: 0.25, Harmonic3: 0.08, AttackMs: 8, DecayExponent: 2.2)
+            }
+        },
+        new()
+        {
+            Id = "cheer_lumberjack_van",
+            Name = "Timber Van Horn & Rev",
+            Icon = "🚚",
+            EventType = SoundEffectType.Cheer,
+            SceneId = "lumberjack",
+            Description = "Friendly vintage van dual horn beep (F4 → A4 + C5 → F5)",
+            Notes = new AudioNote[]
+            {
+                new(349.23, 90, 0, Amplitude: 0.85, Harmonic2: 0.35, AttackMs: 4, DecayExponent: 3.5),
+                new(440.00, 90, 0, Amplitude: 0.85, Harmonic2: 0.35, AttackMs: 4, DecayExponent: 3.5),
+                new(523.25, 260, 95, Amplitude: 0.95, Harmonic2: 0.35, AttackMs: 4, DecayExponent: 2.8),
+                new(698.46, 260, 95, Amplitude: 1.00, Harmonic2: 0.35, Harmonic3: 0.12, AttackMs: 4, DecayExponent: 2.8)
+            }
         }
     };
 

@@ -35,6 +35,7 @@ public class ArtSceneOption : IEquatable<ArtSceneOption>
         new() { Id = "cat", Name = "Playful Focus Kitty", Icon = "🐱", Description = "Kawaii fluffy kitten plays with yarn and scampers towards delicious fish treats." },
         new() { Id = "rocket", Name = "Space Rocket Launch", Icon = "🚀", Description = "Chunky cute rocket blasts off through pastel stars to land on the Moon." },
         new() { Id = "runner", Name = "Chibi Marathon Runner", Icon = "🏃", Description = "Cute energetic runner with flying sneakers sprinting to the golden trophy finish line." },
-        new() { Id = "tamagotchi", Name = "Focus Pet Tamagotchi", Icon = "👾", Description = "Kawaii virtual pocket pet that gains XP and smiles with glittering eyes as you focus." }
+        new() { Id = "tamagotchi", Name = "Focus Pet Tamagotchi", Icon = "👾", Description = "Kawaii virtual pocket pet that gains XP and smiles with glittering eyes as you focus." },
+        new() { Id = "lumberjack", Name = "Lumberjack Wood Chopping", Icon = "🪓", Description = "Hardworking lumberjack chops down a dense forest tree by tree, packing his van full of timber logs to take home!" }
     };
 }

@@ -260,6 +260,7 @@ public partial class AsciiCompanionControl : UserControl
             "cat" => "🐱 'Purrrrr! (=^･ω･^=) Kitty loves your focus!' 💖",
             "runner" => "🏃 'Keep the pace! Gold medal focus sprint!' 🥇",
             "tamagotchi" => "👾 'Yay! Pet happiness +10%! Let's conquer this quest!' 💖",
+            "lumberjack" => "🪓 'Chop chop! Timber down, van packing up nicely!' 🌲",
             _ => "✨ Cheering you on! Fantastic focus energy!"
         };
 

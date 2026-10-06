@@ -63,6 +63,7 @@
   - 🚀 **Space Rocket Launch**: Blasting off through starry galaxies towards the Moon.
   - 🏃 **Chibi Marathon Runner**: Sprinting along the track toward the victory cup.
   - 👾 **Focus Pet Tamagotchi**: Virtual pocket companion that levels up and glitters as you focus.
+  - 🪓 **Lumberjack Wood Chopping**: Hardworking lumberjack chops down a dense forest tree by tree, packing his van full of timber logs to take home.
 - **ASCII Engine Mode**: Switch any scene to retro terminal-style ASCII character rendering.
 
 ### 📊 Analytics & Reporting

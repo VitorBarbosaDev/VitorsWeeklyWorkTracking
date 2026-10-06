@@ -212,6 +212,10 @@ public partial class WorkRestSettingsDialog : Window
         SetVariationCheckState(Var_cheer_pet_levelup, "cheer_pet_levelup");
         SetVariationCheckState(Var_cheer_pet_heart, "cheer_pet_heart");
 
+        SetVariationCheckState(Var_cheer_lumberjack_chop, "cheer_lumberjack_chop");
+        SetVariationCheckState(Var_cheer_lumberjack_timber, "cheer_lumberjack_timber");
+        SetVariationCheckState(Var_cheer_lumberjack_van, "cheer_lumberjack_van");
+
         UpdateSoundControlsState();
 
         // Floating Mini Timer & Display Monitor
@@ -512,6 +516,10 @@ public partial class WorkRestSettingsDialog : Window
         ReadVariationCheckState(Var_cheer_pet_happy, "cheer_pet_happy");
         ReadVariationCheckState(Var_cheer_pet_levelup, "cheer_pet_levelup");
         ReadVariationCheckState(Var_cheer_pet_heart, "cheer_pet_heart");
+
+        ReadVariationCheckState(Var_cheer_lumberjack_chop, "cheer_lumberjack_chop");
+        ReadVariationCheckState(Var_cheer_lumberjack_timber, "cheer_lumberjack_timber");
+        ReadVariationCheckState(Var_cheer_lumberjack_van, "cheer_lumberjack_van");
 
         Settings.AutoAdvancePhases = AutoAdvanceCheckBox.IsChecked ?? false;
         Settings.CompanionVisible = CompanionVisibleCheckBox.IsChecked ?? true;

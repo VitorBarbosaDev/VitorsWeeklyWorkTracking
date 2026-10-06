@@ -46,7 +46,8 @@ public class WorkRestSettings
         "cheer_cat_meow", "cheer_cat_purr", "cheer_cat_bounce",
         "cheer_rocket_laser", "cheer_rocket_beacon", "cheer_rocket_warp",
         "cheer_runner_whistle", "cheer_runner_horn", "cheer_runner_squeak",
-        "cheer_pet_happy", "cheer_pet_levelup", "cheer_pet_heart"
+        "cheer_pet_happy", "cheer_pet_levelup", "cheer_pet_heart",
+        "cheer_lumberjack_chop", "cheer_lumberjack_timber", "cheer_lumberjack_van"
     };
     public bool AutoAdvancePhases { get; set; } = false;
     public string SelectedSceneId { get; set; } = "cycling";

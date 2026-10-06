@@ -36,6 +36,7 @@ public static class AsciiArtEngine
             "cat" => RenderCatScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             "runner" => RenderRunnerScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             "tamagotchi" => RenderTamagotchiScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails, focusXp, petHappiness),
+            "lumberjack" => RenderLumberjackScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails),
             _ => RenderCyclingScene(frameTick, progressFraction, isTracking, isGoalReached, isRestPhase, contextDetails)
         };
     }
@@ -898,6 +899,148 @@ public static class AsciiArtEngine
             StoryText = story,
             BadgeText = badge,
             MiniLine = $"[👾 Pet Lvl {level} • 💖 {happiness}% • {pct}%]"
+        };
+    }
+
+    #endregion
+
+    #region Scene 7: 🪓 Lumberjack Wood Chopping
+
+    private static RenderedArtScene RenderLumberjackScene(
+        int frameTick,
+        double progress,
+        bool isTracking,
+        bool isGoalReached,
+        bool isRestPhase,
+        string context)
+    {
+        var sb = new StringBuilder();
+        int f = frameTick % 4;
+
+        if (isRestPhase)
+        {
+            sb.AppendLine("      (☁️)             🔥             🚐");
+            sb.AppendLine("    .-~~~~-.         ( ) )          [===]o-o");
+            sb.AppendLine("   (  ~~~~  )       (_____)         ||   Cozy Campfire!");
+            sb.AppendLine("    _o  ☕           _|_            ||   Rest & warm up");
+            sb.AppendLine(" ─────────────────────────────────────────────");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "☕ Lumberjack is relaxing by the warm campfire sipping hot coffee. Rest and recharge!",
+                BadgeText = "☕ CAMPFIRE REST",
+                MiniLine = "[🔥 ☕ Lumberjack Rest by Campfire]"
+            };
+        }
+
+        if (isGoalReached)
+        {
+            string sparkles = (f % 2 == 0) ? "✨ 🌲 TIMBER! FOREST CLEARED! 🌲 ✨" : "🌟 🌲 TIMBER! VAN PACKED! 🌲 🌟";
+            sb.AppendLine($" {sparkles}");
+            sb.AppendLine("  _|_   _|_   _|_   _|_   _|_   [========] 💨");
+            sb.AppendLine("  (o)   (o)   (o)   (o)   (o)   [======] 🚐");
+            sb.AppendLine("  \\o/  All trees chopped!        o---o-o  Ready home!");
+            sb.AppendLine("  /|\\  Van packed full of timber!");
+            sb.AppendLine(" ─────────────────────────────────────────────");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🚚 TIMBER! All trees chopped down! Van packed to the roof with firewood ready to drive home! 🎉",
+                BadgeText = "🚚 VAN FULL PACKED!",
+                MiniLine = "[🪓 Cleared Forest! Van Packed Full of Wood! 🎉]"
+            };
+        }
+
+        if (!isTracking)
+        {
+            sb.AppendLine("   /|\\   /|\\   /|\\   /|\\   /|\\       [___]");
+            sb.AppendLine("   /|\\   /|\\   /|\\   /|\\   /|\\       [   ] 🚐");
+            sb.AppendLine("   ||    ||    ||    ||    ||        o-o-o");
+            sb.AppendLine("  _o/🪓 Full forest to chop...     Van empty & ready!");
+            sb.AppendLine("  /|\\  Start timer to swing the axe!");
+            sb.AppendLine(" ─────────────────────────────────────────────");
+
+            return new RenderedArtScene
+            {
+                AsciiArt = sb.ToString(),
+                StoryText = "🪓 Lumberjack stands ready in the dense pine forest. Start the timer to begin chopping wood!",
+                BadgeText = "🪓 READY TO CHOP",
+                MiniLine = "[🪓 Full Forest ---> 🚐 Timber Van]"
+            };
+        }
+
+        // Active tracking: Trees getting chopped down (0 to 5)
+        int totalTrees = 5;
+        int choppedCount = Math.Clamp((int)(progress * totalTrees), 0, totalTrees);
+
+        string vanLoadTop = choppedCount switch
+        {
+            0 => " [___]  ",
+            1 => " [=__]  ",
+            2 => " [==_]  ",
+            3 => " [===]  ",
+            4 => " [====] ",
+            _ => " [=====]"
+        };
+
+        string vanLoadBottom = choppedCount switch
+        {
+            0 => " [   ] 🚐",
+            1 => " [=  ] 🚐",
+            2 => " [== ] 🚐",
+            3 => " [===] 🚐",
+            4 => " [====]🚐",
+            _ => " [=====]🚐"
+        };
+
+        // Lumberjack axe swing frames
+        string[] axeFrames0 = { "  _o/🪓 ", "  /|\\   ", "  / \\   " };
+        string[] axeFrames1 = { "  _o|🪓 ", "  /|    ", "  / \\   " };
+        string[] axeFrames2 = { "  _o\\🪓*", "  /|    ", "  / \\   " };
+
+        string[] jackFrame = (f % 3) switch
+        {
+            0 => axeFrames0,
+            1 => axeFrames1,
+            _ => axeFrames2
+        };
+
+        // Render trees and stumps
+        var treeLine1 = new StringBuilder();
+        var treeLine2 = new StringBuilder();
+        var treeLine3 = new StringBuilder();
+
+        for (int i = 0; i < totalTrees; i++)
+        {
+            if (i < choppedCount)
+            {
+                treeLine1.Append("     ");
+                treeLine2.Append(" _|_ ");
+                treeLine3.Append(" (o) ");
+            }
+            else
+            {
+                treeLine1.Append(" /|\\ ");
+                treeLine2.Append(" /|\\ ");
+                treeLine3.Append(" ||  ");
+            }
+        }
+
+        sb.AppendLine($"{treeLine1}{vanLoadTop}");
+        sb.AppendLine($"{treeLine2}{vanLoadBottom}");
+        sb.AppendLine($"{treeLine3}  o-o-o");
+        sb.AppendLine($"{jackFrame[0]} Wood chips flying! ({choppedCount}/5 trees down)");
+        sb.AppendLine(" ─────────────────────────────────────────────");
+
+        int pct = (int)(progress * 100);
+        return new RenderedArtScene
+        {
+            AsciiArt = sb.ToString(),
+            StoryText = $"🪓 Chopping forest • {choppedCount}/5 trees chopped down • Van {pct}% loaded with firewood!",
+            BadgeText = $"🪓 {pct}% CHOPPING",
+            MiniLine = $"[🪓 {choppedCount}/5 Trees Cut • 🚐 Van {pct}% Full]"
         };
     }
 
