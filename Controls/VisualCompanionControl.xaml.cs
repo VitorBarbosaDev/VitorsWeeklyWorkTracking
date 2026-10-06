@@ -1401,10 +1401,19 @@ public partial class VisualCompanionControl : UserControl
         string text = isMini ? "★ HOME! ★" : "🎉 WELCOME HOME! 🏡✨";
         var ft = CreateText(text, isMini ? 18 : 25, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
         
-        var boyTextWidth = isMini ? (ft.Width * 1) : (ft.Width * .8);
-        dc.DrawText(ft, new Point(boyTextWidth, boyPos.Y - (30 * scale)));
+        Point center = CenterText(isMini,boyPos.X, boyPos.Y);
+        
+        var boyTextWidth = isMini ? (ft.Width * 1) :  center.X - (ft.Width * 0.5);
+        dc.DrawText(ft, new Point(boyTextWidth, boyPos.Y - (30 * scale) + (isMini ? -5 : -20)));
     }
 
+    private Point CenterText(bool isMini, double x, double y)
+    {
+        double centerX = isMini ? (x * 0.38) : Math.Max(x * 0.36, (x * 0.48));
+        Point center = new Point(centerX, y * 0.46);
+        return center;
+    }
+    
     private void DrawRestPicnic(DrawingContext dc, double x, double groundY, bool isMini)
     {
         double scale = isMini ? 0.72 : 1.0;
@@ -1920,8 +1929,10 @@ public partial class VisualCompanionControl : UserControl
 
     private void DrawCuteMoonLanding(DrawingContext dc, double x, double y, bool isMini)
     {
+        
         double scale = isMini ? 0.72 : 1.0;
 
+        
         DrawChunkyChibiRocket(dc, x - (12 * scale), y, isMini, false);
 
         // Planted Flagpole
@@ -1934,8 +1945,8 @@ public partial class VisualCompanionControl : UserControl
 
         string text = isMini ? "★ MOON BASE! ★" : "🚀 MISSION ACCOMPLISHED! 🌕✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 230, 80)), FontWeights.Bold);
-
-        var celebrationTextPlacementWidth = isMini ? (ft.Width * 0.5) : (ft.Width * .8);
+        Point center = CenterText(isMini, x, y);
+        var celebrationTextPlacementWidth = isMini ? (ft.Width * 0.5) : center.X - (ft.Width * 0.5);
         dc.DrawText(ft, new Point(celebrationTextPlacementWidth, y - (36 * scale)));
     }
 
@@ -6336,7 +6347,8 @@ public partial class VisualCompanionControl : UserControl
 
         string text = isMini ? "🏆 FINISH! 🏆" : "🏆 CHAMPION! FINISH LINE CROSSED! 🥇✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(255, 220, 60)), FontWeights.Bold);
-        var runnerCelebrationTextPlacementWidth = isMini ? (ft.Width * 0.8) : (ft.Width * .5);
+        Point center = CenterText(isMini, x, trackY);
+        var runnerCelebrationTextPlacementWidth = isMini ? (ft.Width * 0.8) :  center.X - (ft.Width * 0.5);
         dc.DrawText(ft, new Point(runnerCelebrationTextPlacementWidth, trackY - (48 * scale)));
     }
 
@@ -6353,7 +6365,9 @@ public partial class VisualCompanionControl : UserControl
 
         string text = isMini ? "💧 Hydrate" : "💧 Hydrate & Cool Down! 🧃✨";
         var ft = CreateText(text, isMini ? 15 : 20, new SolidColorBrush(Color.FromRgb(110, 215, 255)), FontWeights.Bold);
-        var runnerRestTextPlacementWidth = isMini ? (ft.Width * 1.1) : (ft.Width * .8);
+        Point center = CenterText(isMini, x*2, trackY);
+       
+        var runnerRestTextPlacementWidth = isMini ? (ft.Width * 1.1) : center.X - (ft.Width * 0.5);
         dc.DrawText(ft, new Point(runnerRestTextPlacementWidth, trackY - (36 * scale) - (isMini ? 20: 35)));
     }
 
