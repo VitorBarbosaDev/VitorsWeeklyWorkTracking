@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking.Models;
 
@@ -12,9 +13,9 @@ public class DailyGoalSummary
     public double PlannedHours { get; set; }
     public double ActualHours { get; set; }
     public TimeSpan ActualDuration => TimeSpan.FromHours(ActualHours);
-    public string FormattedPlannedHours => PlannedHours > 0 ? $"{PlannedHours:F1} hrs" : "—";
+    public string FormattedPlannedHours => TimeFormatHelper.FormatHoursWithUnit(PlannedHours, "—");
     public string FormattedActualDuration => $"{(int)ActualDuration.TotalHours}h {ActualDuration.Minutes:D2}m {ActualDuration.Seconds:D2}s";
-    public string FormattedActualHours => $"{ActualHours:F2} hrs";
+    public string FormattedActualHours => TimeFormatHelper.FormatHoursWithUnit(ActualHours, "0 mins");
     
     public double VarianceHours => ActualHours - PlannedHours;
     public string FormattedVariance
@@ -49,7 +50,7 @@ public class DailyGoalSummary
             if (PlannedHours <= 0 && ActualHours <= 0)
                 return "💤 Rest Day";
             if (PlannedHours <= 0 && ActualHours > 0)
-                return $"✨ +{ActualHours:F1}h Unplanned";
+                return $"✨ +{TimeFormatHelper.FormatHours(ActualHours)} Unplanned";
             if (ActualHours >= PlannedHours)
                 return $"🎯 Goal Met ({CompletionPercentage:F0}%)";
             if (ActualHours > 0)
@@ -63,6 +64,9 @@ public class DailyGoalSummary
     public string ActivitiesSummary { get; set; } = string.Empty;
     public string TasksSummary { get; set; } = string.Empty;
     public List<PlannedWorkItem> PlannedItems { get; set; } = new();
+
+    public string ShortDateFormatted => Date.ToString("dd MMM");
+    public string DayStatusEmoji => IsGoalMet ? "✅" : (PlannedHours <= 0 && ActualHours <= 0 ? "💤" : (ActualHours > 0 ? "⏳" : "—"));
 }
 
 public class WeeklyGoalSummary
@@ -73,15 +77,15 @@ public class WeeklyGoalSummary
     public double TotalPlannedHours { get; set; }
     public double TotalActualHours { get; set; }
     public TimeSpan TotalActualDuration => TimeSpan.FromHours(TotalActualHours);
-    public string FormattedPlannedHours => $"{TotalPlannedHours:F1} hrs";
+    public string FormattedPlannedHours => TimeFormatHelper.FormatHoursWithUnit(TotalPlannedHours, "—");
     public string FormattedActualDuration => $"{(int)TotalActualDuration.TotalHours}h {TotalActualDuration.Minutes:D2}m {TotalActualDuration.Seconds:D2}s";
-    public string FormattedActualHours => $"{TotalActualHours:F2} hrs";
+    public string FormattedActualHours => TimeFormatHelper.FormatHoursWithUnit(TotalActualHours, "0 mins");
 
     public double VarianceHours => TotalActualHours - TotalPlannedHours;
     public string FormattedVariance => VarianceHours >= 0 ? $"+{VarianceHours:F2} hrs" : $"{VarianceHours:F2} hrs";
     
     public double RemainingHours => Math.Max(0, TotalPlannedHours - TotalActualHours);
-    public string FormattedRemainingHours => $"{RemainingHours:F1} hrs left";
+    public string FormattedRemainingHours => TimeFormatHelper.FormatRemainingHours(RemainingHours);
 
     public double CompletionPercentage
     {
@@ -101,10 +105,10 @@ public class WeeklyGoalSummary
         get
         {
             if (TotalPlannedHours <= 0)
-                return TotalActualHours > 0 ? $"✨ Worked {TotalActualHours:F1} hrs (No target set)" : "No weekly goal scheduled yet";
+                return TotalActualHours > 0 ? $"✨ Worked {TimeFormatHelper.FormatHoursWithUnit(TotalActualHours)} (No target set)" : "No weekly goal scheduled yet";
             if (IsGoalMet)
-                return $"🎉 Weekly Goal Achieved! ({TotalActualHours:F1}h / {TotalPlannedHours:F1}h)";
-            return $"🎯 {TotalActualHours:F1}h / {TotalPlannedHours:F1}h ({CompletionPercentage:F0}%) • {RemainingHours:F1}h remaining";
+                return $"🎉 Weekly Goal Achieved! ({TimeFormatHelper.FormatHours(TotalActualHours)} / {TimeFormatHelper.FormatHours(TotalPlannedHours)})";
+            return $"🎯 {TimeFormatHelper.FormatHours(TotalActualHours)} / {TimeFormatHelper.FormatHours(TotalPlannedHours)} ({CompletionPercentage:F0}%) • {TimeFormatHelper.FormatRemainingHours(RemainingHours)}";
         }
     }
 
@@ -117,9 +121,10 @@ public class ProjectGoalComparison
     public string ProjectName { get; set; } = string.Empty;
     public double PlannedHours { get; set; }
     public double ActualHours { get; set; }
+    public string RewardIcon { get; set; } = "⭐";
     public TimeSpan ActualDuration => TimeSpan.FromHours(ActualHours);
-    public string FormattedPlanned => PlannedHours > 0 ? $"{PlannedHours:F1}h" : "0h";
-    public string FormattedActual => $"{(int)ActualDuration.TotalHours}h {ActualDuration.Minutes:D2}m";
+    public string FormattedPlanned => TimeFormatHelper.FormatHours(PlannedHours);
+    public string FormattedActual => TimeFormatHelper.FormatHours(ActualHours);
     public double CompletionPercentage
     {
         get
@@ -132,4 +137,67 @@ public class ProjectGoalComparison
     public string FormattedPercentage => $"{CompletionPercentage:F1}%";
     public double VarianceHours => ActualHours - PlannedHours;
     public bool IsGoalMet => PlannedHours > 0 && ActualHours >= PlannedHours;
+    public string FormattedProjectWithReward => IsGoalMet ? $"{RewardIcon} {ProjectName}" : ProjectName;
+    public string StatusText => IsGoalMet ? $"{RewardIcon} Target Reached ({FormattedPercentage})" : (ActualHours > 0 ? $"⏳ In Progress ({FormattedPercentage})" : "⚪ Not Started");
+}
+
+public class PlannedTaskItemViewModel
+{
+    public PlannedWorkItem Plan { get; set; } = new();
+    public string ProjectName => Plan.ProjectName;
+    public string Activity => Plan.Activity;
+    public string Note => Plan.Note;
+    public double PlannedHours => Plan.PlannedHours;
+    public double ActualHours { get; set; }
+    public string RewardIcon { get; set; } = "⭐";
+    public double CompletionPercentage => PlannedHours > 0 ? (ActualHours / PlannedHours) * 100.0 : (ActualHours > 0 ? 100.0 : 0.0);
+    public string FormattedPercentage => $"{CompletionPercentage:F0}%";
+    public bool IsCompleted => PlannedHours > 0 && ActualHours >= PlannedHours;
+    public string FormattedActual => TimeFormatHelper.FormatHours(ActualHours);
+    public string FormattedPlanned => Plan.FormattedHours;
+    public string StatusText => IsCompleted 
+        ? $"{RewardIcon} Completed ({FormattedPercentage})" 
+        : (ActualHours > 0 ? $"⏳ {FormattedActual} / {FormattedPlanned} ({FormattedPercentage})" : $"⚪ {FormattedPlanned}");
+}
+
+public class ProjectGoalSummary
+{
+    public string ProjectName { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
+    public bool IsWeekly { get; set; } = false;
+    public double PlannedHours { get; set; }
+    public double ActualHours { get; set; }
+    public TimeSpan ActualDuration => TimeSpan.FromHours(ActualHours);
+    public string FormattedPlannedHours => TimeFormatHelper.FormatHoursWithUnit(PlannedHours, "—");
+    public string FormattedActualDuration => $"{(int)ActualDuration.TotalHours}h {ActualDuration.Minutes:D2}m {ActualDuration.Seconds:D2}s";
+    public string FormattedActualHours => TimeFormatHelper.FormatHoursWithUnit(ActualHours, "0 mins");
+
+    public double VarianceHours => ActualHours - PlannedHours;
+    public string FormattedVariance
+    {
+        get
+        {
+            if (PlannedHours <= 0 && ActualHours <= 0) return "—";
+            if (VarianceHours >= 0)
+                return $"+{VarianceHours:F2} hrs";
+            return $"{VarianceHours:F2} hrs";
+        }
+    }
+
+    public double CompletionPercentage
+    {
+        get
+        {
+            if (PlannedHours <= 0)
+                return ActualHours > 0 ? 100.0 : 0.0;
+            return (ActualHours / PlannedHours) * 100.0;
+        }
+    }
+
+    public string FormattedCompletionPercentage => PlannedHours > 0 ? $"{CompletionPercentage:F0}%" : (ActualHours > 0 ? "100%" : "—");
+    public bool IsGoalMet => PlannedHours > 0 && ActualHours >= PlannedHours;
+    public List<PlannedWorkItem> PlannedItems { get; set; } = new();
+    public string ActivitiesSummary { get; set; } = string.Empty;
+    public string TasksSummary { get; set; } = string.Empty;
+    public string FormattedDate => IsWeekly ? $"{Date:ddd, dd MMM} (Weekly Goal)" : Date.ToString("dddd, dd MMMM yyyy");
 }

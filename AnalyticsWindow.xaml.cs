@@ -489,18 +489,18 @@ public partial class AnalyticsWindow : Window
         double remainingHours = Math.Max(0, totalPlannedHours - totalDuration.TotalHours);
 
         PlannedGoalTextBlock.Text = totalPlannedHours > 0
-            ? $"{totalPlannedHours:F1}h ({goalProgressPercentage:F0}%)"
-            : (totalDuration.TotalHours > 0 ? "No plan set" : "0.0 hrs");
+            ? $"{TimeFormatHelper.FormatHours(totalPlannedHours)} ({goalProgressPercentage:F0}%)"
+            : (totalDuration.TotalHours > 0 ? "No plan set" : "0m");
 
         // Goal Tab Headline & Progress Bar
         if (totalPlannedHours > 0)
         {
-            GoalTabHeadlineText.Text = $"{totalPlannedHours:F1}h planned • {totalDuration.TotalHours:F1}h worked ({goalProgressPercentage:F1}%) • {remainingHours:F1}h remaining";
+            GoalTabHeadlineText.Text = $"{TimeFormatHelper.FormatHours(totalPlannedHours)} planned • {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} worked ({goalProgressPercentage:F1}%) • {TimeFormatHelper.FormatHours(remainingHours)} remaining";
         }
         else
         {
             GoalTabHeadlineText.Text = totalDuration.TotalHours > 0
-                ? $"Worked {totalDuration.TotalHours:F1}h in this period (No planned target set)"
+                ? $"Worked {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} in this period (No planned target set)"
                 : "No planned sessions scheduled for this period";
         }
         GoalTabProgressBar.Value = Math.Min(100, goalProgressPercentage);

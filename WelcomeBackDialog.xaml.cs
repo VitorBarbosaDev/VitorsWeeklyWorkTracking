@@ -16,7 +16,7 @@ public partial class WelcomeBackDialog : Window
         public string ProjectName { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
         public double PlannedHours { get; set; }
-        public string FormattedDuration => PlannedHours >= 1.0 ? $"{PlannedHours:F1} hrs" : $"{PlannedHours * 60:F0} min";
+        public string FormattedDuration => TimeFormatHelper.FormatHoursWithUnit(PlannedHours);
         public Visibility HasNoteVisibility => string.IsNullOrWhiteSpace(Note) ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -65,7 +65,7 @@ public partial class WelcomeBackDialog : Window
             GoalsItemsControl.ItemsSource = items;
 
             double totalHours = todayGoals.Sum(g => g.PlannedHours);
-            TotalPlannedTextBlock.Text = $"Total: {totalHours:F1} hrs ({todayGoals.Count} task{(todayGoals.Count == 1 ? "" : "s")})";
+            TotalPlannedTextBlock.Text = $"Total: {TimeFormatHelper.FormatHoursWithUnit(totalHours, "0 mins")} ({todayGoals.Count} task{(todayGoals.Count == 1 ? "" : "s")})";
 
             string[] motivationalQuotes = new[]
             {

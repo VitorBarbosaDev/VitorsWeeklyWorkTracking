@@ -1,3 +1,5 @@
+using VitorsWeeklyWorkTracking.Services;
+
 namespace VitorsWeeklyWorkTracking.Models;
 
 public class ProjectAnalyticsItem
@@ -50,7 +52,7 @@ public class DailyAnalyticsItem
 
     // Calendar Planned Work & Goal tracking properties
     public double PlannedHours { get; set; }
-    public string FormattedPlannedHours => PlannedHours > 0 ? $"{PlannedHours:F1} hrs" : "—";
+    public string FormattedPlannedHours => TimeFormatHelper.FormatHoursWithUnit(PlannedHours, "—");
     public double VarianceHours => TotalHours - PlannedHours;
     public string FormattedVariance
     {
@@ -76,7 +78,7 @@ public class DailyAnalyticsItem
         get
         {
             if (PlannedHours <= 0 && TotalHours <= 0) return "💤 Rest Day";
-            if (PlannedHours <= 0 && TotalHours > 0) return $"✨ +{TotalHours:F1}h Unplanned";
+            if (PlannedHours <= 0 && TotalHours > 0) return $"✨ +{TimeFormatHelper.FormatHours(TotalHours)} Unplanned";
             if (TotalHours >= PlannedHours) return $"🎯 Goal Met ({CompletionPercentage:F0}%)";
             if (TotalHours > 0) return $"⏳ In Progress ({CompletionPercentage:F0}%)";
             return "⚠️ Not Started";

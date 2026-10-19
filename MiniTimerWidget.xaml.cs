@@ -420,12 +420,12 @@ public partial class MiniTimerWidget : Window
     {
         if (weekly.TotalPlannedHours > 0)
         {
-            MiniWeeklyGoalLabel.Text = $"🎯 Week: {weekly.TotalActualHours:0.#}h/{weekly.TotalPlannedHours:0.#}h ({weekly.FormattedCompletionPercentage})";
+            MiniWeeklyGoalLabel.Text = $"🎯 Week: {TimeFormatHelper.FormatHours(weekly.TotalActualHours)}/{TimeFormatHelper.FormatHours(weekly.TotalPlannedHours)} ({weekly.FormattedCompletionPercentage})";
         }
         else
         {
             MiniWeeklyGoalLabel.Text = weekly.TotalActualHours > 0
-                ? $"🎯 Week: {weekly.TotalActualHours:0.#}h worked"
+                ? $"🎯 Week: {TimeFormatHelper.FormatHours(weekly.TotalActualHours)} worked"
                 : "🎯 Week: No plan set";
         }
 
@@ -433,13 +433,13 @@ public partial class MiniTimerWidget : Window
 
         if (today.PlannedHours > 0)
         {
-            MiniTodayGoalLabel.Text = $"📅 Today: {today.ActualHours:0.#}h/{today.PlannedHours:0.#}h ({today.FormattedCompletionPercentage})";
+            MiniTodayGoalLabel.Text = $"📅 Today: {TimeFormatHelper.FormatHours(today.ActualHours)}/{TimeFormatHelper.FormatHours(today.PlannedHours)} ({today.FormattedCompletionPercentage})";
         }
         else
         {
             MiniTodayGoalLabel.Text = today.ActualHours > 0
-                ? $"📅 Today: {today.ActualHours:0.#}h"
-                : "📅 Today: 0.0h";
+                ? $"📅 Today: {TimeFormatHelper.FormatHours(today.ActualHours)}"
+                : "📅 Today: 0m";
         }
     }
 

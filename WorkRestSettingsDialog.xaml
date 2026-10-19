@@ -75,9 +75,172 @@
                         </Grid>
 
                         <CheckBox x:Name="WelcomePopupEnabledCheckBox"
-                                  Content="👋 Show Welcome Back popup with scheduled daily goals on first launch of the day"
                                   IsChecked="True"
-                                  Margin="0,0,0,0"/>
+                                  Margin="0,0,0,0">
+                            <TextBlock Text="👋 Show Welcome Back popup with scheduled daily goals on first launch of the day" TextWrapping="Wrap"/>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- Goal Milestone Rewards & Notification Preferences Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🎯 Goal Milestone Rewards &amp; Notification Settings" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Choose your celebratory reward symbol, highlight colors, and popup notifications."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Reward Icon Selector Row -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Completion Reward Icon:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                <TextBlock Text="Shows beside completed goals" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="RewardIconComboBox"
+                                      Grid.Column="1"
+                                      Height="28"
+                                      VerticalContentAlignment="Center"
+                                      SelectionChanged="RewardIconComboBox_SelectionChanged"/>
+                        </Grid>
+
+                        <!-- Completed Goal Color Row -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Completed Goal Color:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                <TextBlock Text="Highlight color for finished goals" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="RewardColorComboBox"
+                                      Grid.Column="1"
+                                      Height="28"
+                                      VerticalContentAlignment="Center"
+                                      SelectionChanged="RewardColorComboBox_SelectionChanged"/>
+                        </Grid>
+
+                        <!-- Reward Preview Banner -->
+                        <Border x:Name="RewardPreviewBorder"
+                                Background="{DynamicResource Theme.StatCard2Bg}"
+                                BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10,6"
+                                Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="RewardIconPreviewEmoji" Text="⭐" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="RewardIconPreviewText" Text="Preview: Goal Reached! (100% Completed)" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Notification Master Switch -->
+                        <CheckBox x:Name="GoalNotificationsEnabledCheckBox"
+                                  FontWeight="Bold"
+                                  FontSize="12"
+                                  Foreground="{DynamicResource Theme.Primary}"
+                                  IsChecked="True"
+                                  Margin="0,0,0,2"
+                                  Checked="GoalNotificationsEnabledCheckBox_CheckedChanged"
+                                  Unchecked="GoalNotificationsEnabledCheckBox_CheckedChanged">
+                            <TextBlock Text="🔔 Enable Goal Milestone Popup Notifications" TextWrapping="Wrap"/>
+                        </CheckBox>
+                        <TextBlock Text="Shows celebratory popups when reaching daily, weekly, or project targets."
+                                   FontSize="10.5"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="24,0,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Granular Notification Toggles (Indented) -->
+                        <StackPanel x:Name="GranularNotificationsPanel" Margin="24,0,0,2">
+                            <CheckBox x:Name="DailyGoalNotificationCheckBox"
+                                      FontSize="11"
+                                      Margin="0,0,0,6"
+                                      IsChecked="True">
+                                <StackPanel Margin="0,-1,0,0">
+                                    <TextBlock Text="📅 Daily Goal Reached" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Popup when today's planned time is reached" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox x:Name="WeeklyGoalNotificationCheckBox"
+                                      FontSize="11"
+                                      Margin="0,0,0,6"
+                                      IsChecked="True">
+                                <StackPanel Margin="0,-1,0,0">
+                                    <TextBlock Text="🏆 Weekly Goal Passed" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Popup when weekly planned time is passed" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox x:Name="ProjectGoalNotificationCheckBox"
+                                      FontSize="11"
+                                      Margin="0,0,0,2"
+                                      IsChecked="True">
+                                <StackPanel Margin="0,-1,0,0">
+                                    <TextBlock Text="🎯 Project Goal Reached" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Popup when a project's planned target is reached" FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+
+                        <!-- Goal Milestone Notification Sound Volume Control -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10,8"
+                                Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="45"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <TextBlock Text="🔊 Fanfare Volume:" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Goal milestone notification sound" FontSize="9.5" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                </StackPanel>
+                                <Slider x:Name="GoalMilestoneVolumeSlider"
+                                        Grid.Column="1"
+                                        Minimum="0"
+                                        Maximum="100"
+                                        SmallChange="5"
+                                        LargeChange="10"
+                                        TickFrequency="10"
+                                        IsSnapToTickEnabled="False"
+                                        VerticalAlignment="Center"
+                                        ValueChanged="GoalMilestoneVolumeSlider_ValueChanged"/>
+                                <TextBlock x:Name="GoalMilestoneVolumeValueText"
+                                           Grid.Column="2"
+                                           Text="75%"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           FontWeight="Bold"
+                                           FontSize="11.5"
+                                           Foreground="{DynamicResource Theme.Foreground}"/>
+                                <Button x:Name="TestGoalMilestoneVolumeButton"
+                                        Grid.Column="3"
+                                        Content="▶ Test Fanfare"
+                                        Style="{StaticResource GhostButton}"
+                                        Padding="8,2"
+                                        Margin="8,0,0,0"
+                                        Height="24"
+                                        FontSize="11"
+                                        ToolTip="Preview goal milestone notification fanfare sound at this volume"
+                                        Click="TestGoalMilestoneVolumeButton_Click"/>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -211,17 +374,34 @@
                                 Margin="0,10,0,0">
                             <StackPanel>
                                 <!-- Master Volume Slider -->
-                                <Grid Margin="0,0,0,10">
+                                <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="140"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="45"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="🔊 Volume:" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                    <TextBlock Text="🔊 Master Volume:" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                     <Slider x:Name="VolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" SmallChange="5" LargeChange="10" TickFrequency="10" IsSnapToTickEnabled="False" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
                                     <TextBlock x:Name="VolumeValueText" Grid.Column="2" Text="75%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}"/>
-                                    <Button x:Name="TestVolumeButton" Grid.Column="3" Content="▶ Test" Style="{StaticResource GhostButton}" Padding="8,2" Margin="8,0,0,0" Height="24" FontSize="11" ToolTip="Test audio volume" Click="TestVolumeButton_Click"/>
+                                    <Button x:Name="TestVolumeButton" Grid.Column="3" Content="▶ Test" Style="{StaticResource GhostButton}" Padding="8,2" Margin="8,0,0,0" Height="24" FontSize="11" ToolTip="Test master audio volume" Click="TestVolumeButton_Click"/>
+                                </Grid>
+
+                                <!-- Goal Milestone Volume Slider -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="45"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🎯 Milestone Fanfare:" VerticalAlignment="Center" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Goal reached sound" FontSize="9.5" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                    </StackPanel>
+                                    <Slider x:Name="AudioTabGoalVolumeSlider" Grid.Column="1" Minimum="0" Maximum="100" SmallChange="5" LargeChange="10" TickFrequency="10" IsSnapToTickEnabled="False" VerticalAlignment="Center" ValueChanged="AudioTabGoalVolumeSlider_ValueChanged"/>
+                                    <TextBlock x:Name="AudioTabGoalVolumeValueText" Grid.Column="2" Text="75%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <Button x:Name="AudioTabTestGoalVolumeButton" Grid.Column="3" Content="▶ Test Fanfare" Style="{StaticResource GhostButton}" Padding="8,2" Margin="8,0,0,0" Height="24" FontSize="11" ToolTip="Test goal milestone celebration volume" Click="TestGoalMilestoneVolumeButton_Click"/>
                                 </Grid>
 
                                 <Separator Background="{DynamicResource Theme.CardBorder}" Margin="0,2,0,8"/>

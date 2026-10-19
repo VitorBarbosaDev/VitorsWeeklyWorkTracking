@@ -1181,11 +1181,47 @@ public static class SoundEffectManager
         PlayWavBytes(bytes);
     }
 
+    public static int GetEffectiveVolume(SoundEffectType type, WorkRestSettings settings)
+    {
+        if (!settings.SoundAlertEnabled) return 0;
+        bool isGoalMilestone = type is SoundEffectType.GoalAchieved or SoundEffectType.DailyGoalAchieved or SoundEffectType.WeeklyGoalAchieved;
+        return isGoalMilestone
+            ? Math.Clamp(settings.GoalMilestoneSoundVolume, 0, 100)
+            : Math.Clamp(settings.SoundVolume, 0, 100);
+    }
+
+    public static void PlayGoalMilestonePreview(int volume = 75)
+    {
+        var clampedVolume = Math.Clamp(volume, 0, 100);
+        if (clampedVolume <= 0) return;
+        PlayPreview(SoundEffectType.DailyGoalAchieved, clampedVolume);
+    }
+
+    public static byte[] GenerateWavBytesForVariation(string variationId, int volumePercent)
+    {
+        var variation = Variations.FirstOrDefault(v => v.Id == variationId);
+        if (variation == null) return Array.Empty<byte>();
+        return GenerateWavBytesForNotes(variation.Notes, volumePercent);
+    }
+
+    internal static byte[] GenerateWavBytesForNotesInternal(IReadOnlyList<AudioNote> notes, int volumePercent)
+    {
+        return GenerateWavBytesForNotes(notes, volumePercent);
+    }
+
     public static void PlaySound(SoundEffectType type, WorkRestSettings? settings = null)
     {
         settings ??= FocusCompanionStorage.Load();
 
-        if (!settings.SoundAlertEnabled || settings.SoundVolume <= 0)
+        if (!settings.SoundAlertEnabled)
+            return;
+
+        bool isGoalMilestone = type is SoundEffectType.GoalAchieved or SoundEffectType.DailyGoalAchieved or SoundEffectType.WeeklyGoalAchieved;
+        int volume = isGoalMilestone
+            ? Math.Clamp(settings.GoalMilestoneSoundVolume, 0, 100)
+            : Math.Clamp(settings.SoundVolume, 0, 100);
+
+        if (volume <= 0)
             return;
 
         // Check master event toggle
@@ -1204,8 +1240,6 @@ public static class SoundEffectManager
 
         if (!isEventEnabled)
             return;
-
-        var volume = Math.Clamp(settings.SoundVolume, 0, 100);
 
         if (type == SoundEffectType.Cheer)
         {

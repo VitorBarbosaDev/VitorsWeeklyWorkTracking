@@ -1,0 +1,239 @@
+<Window x:Class="VitorsWeeklyWorkTracking.DailyGoalAchievedDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🎯 Daily Goal Achieved!"
+        Icon="VitorWeeklyWorkTracking.ico"
+        Width="520"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Theme.WindowBackground}"
+        Foreground="{DynamicResource Theme.Foreground}">
+    <Border Padding="20">
+        <Grid>
+            <Grid.RowDefinitions>
+                <!-- 0: Header Banner -->
+                <RowDefinition Height="Auto"/>
+                <!-- 1: Stats summary row -->
+                <RowDefinition Height="Auto"/>
+                <!-- 2: Planned activities / tasks section -->
+                <RowDefinition Height="*"/>
+                <!-- 3: Action Buttons Footer -->
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 0. Header Banner -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource Theme.StatCard2Bg}"
+                    BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="16"
+                    Margin="0,0,0,14">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Border Background="{DynamicResource Theme.Success}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="🎯 GOAL COMPLETED"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource Theme.SuccessForeground}"/>
+                            </Border>
+                            <TextBlock x:Name="DateTextBlock"
+                                       Text="Monday, 19 October 2026"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Theme.StatCard2Title}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="TotalTimeTextBlock"
+                                   Text="🎯 Daily Target: 0.0 hrs"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource Theme.StatCard2Text}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,2"/>
+
+                        <TextBlock x:Name="GoalReachedTextBlock"
+                                   Text="🎯 Daily Target Matched!"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Theme.StatCard2Title}"
+                                   TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Great job! You have reached your planned work time for today."
+                                   FontSize="12"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0,4,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1"
+                               Text="🎉"
+                               FontSize="36"
+                               VerticalAlignment="Center"
+                               Margin="12,0,0,0"/>
+                </Grid>
+            </Border>
+
+            <!-- 1. Stats Summary Row -->
+            <Grid Grid.Row="1" Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Planned Card -->
+                <Border Grid.Column="0"
+                        Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,0,4,0">
+                    <StackPanel>
+                        <TextBlock Text="🎯 Planned" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                        <TextBlock x:Name="PlannedHoursTextBlock" Text="0.0 hrs" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tracked Card -->
+                <Border Grid.Column="1"
+                        Background="{DynamicResource Theme.StatCard2Bg}"
+                        BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="4,0,4,0">
+                    <StackPanel>
+                        <TextBlock Text="⏱️ Tracked" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
+                        <TextBlock x:Name="TrackedHoursTextBlock" Text="0.0 hrs" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Completion Card -->
+                <Border Grid.Column="2"
+                        Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="4,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="📈 Completion" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                        <TextBlock x:Name="CompletionTextBlock" Text="100%" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Success}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 2. Planned Activities / Tasks Section -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource Theme.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="0,0,0,16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="📋 Today's Planned Activities"
+                               FontWeight="Bold"
+                               FontSize="12"
+                               Foreground="{DynamicResource Theme.Foreground}"
+                               Margin="0,0,0,8"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="PlannedItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                            BorderBrush="{DynamicResource Theme.CardBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="10,8"
+                                            Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📁 " FontSize="11"/>
+                                                    <TextBlock Text="{Binding ProjectName}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}"/>
+                                                    <TextBlock Text=" • " Foreground="{DynamicResource Theme.ForegroundMuted}" Visibility="{Binding HasActivityVisibility}"/>
+                                                    <TextBlock Text="{Binding Activity}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Theme.Primary}" Visibility="{Binding HasActivityVisibility}"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0,3,0,0" Visibility="{Binding HasNoteVisibility}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1"
+                                                    Background="{DynamicResource Theme.CardBackground}"
+                                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="6,2"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FormattedDuration}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Theme.Foreground}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- 3. Action Buttons Footer -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        Content="📅 View Planner"
+                        Height="34"
+                        Padding="14,0"
+                        Click="OpenPlannerButton_Click"/>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0">
+                    <TextBlock x:Name="AutoDismissTextBlock"
+                               Text="⏱️ Fading out in 25s"
+                               FontSize="11"
+                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Tracking continues in background"
+                               FontSize="10"
+                               Foreground="{DynamicResource Theme.ForegroundSubtle}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <Button x:Name="KeepWorkingButton"
+                        Grid.Column="2"
+                        Content="⚡ Keep Working"
+                        Style="{DynamicResource PrimaryButton}"
+                        Height="34"
+                        Padding="18,0"
+                        Click="KeepWorkingButton_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -9,13 +9,29 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class CalendarPlanStorage
 {
-    private static readonly string FilePath = StoragePathHelper.GetFilePath("calendar-plans.json");
+    private readonly string _filePath;
     private static CalendarPlanStorage? _instance;
     public static CalendarPlanStorage Instance => _instance ??= new CalendarPlanStorage();
 
     public event Action? PlansChanged;
     private readonly object _lock = new();
     private List<PlannedWorkItem>? _cachedPlans;
+
+    public CalendarPlanStorage(string? filePath = null)
+    {
+        _filePath = filePath ?? StoragePathHelper.GetFilePath("calendar-plans.json");
+    }
+
+    public static void SanitizePlanItem(PlannedWorkItem? plan)
+    {
+        if (plan == null) return;
+        if (plan.PlannedHours > 0)
+        {
+            double mins = Math.Round(plan.PlannedHours * 60.0);
+            if (mins < 1.0) mins = 1.0;
+            plan.PlannedHours = mins / 60.0;
+        }
+    }
 
     public List<PlannedWorkItem> Load()
     {
@@ -28,14 +44,18 @@ public class CalendarPlanStorage
 
             try
             {
-                if (!File.Exists(FilePath))
+                if (!File.Exists(_filePath))
                 {
                     _cachedPlans = new List<PlannedWorkItem>();
                     return new List<PlannedWorkItem>(_cachedPlans);
                 }
 
-                string json = File.ReadAllText(FilePath);
+                string json = File.ReadAllText(_filePath);
                 var items = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json) ?? new List<PlannedWorkItem>();
+                foreach (var item in items)
+                {
+                    SanitizePlanItem(item);
+                }
                 _cachedPlans = items;
                 return new List<PlannedWorkItem>(_cachedPlans);
             }
@@ -52,6 +72,10 @@ public class CalendarPlanStorage
     {
         lock (_lock)
         {
+            foreach (var p in plans)
+            {
+                SanitizePlanItem(p);
+            }
             _cachedPlans = new List<PlannedWorkItem>(plans);
             try
             {
@@ -60,13 +84,13 @@ public class CalendarPlanStorage
                     WriteIndented = true
                 });
 
-                var dir = Path.GetDirectoryName(FilePath);
+                var dir = Path.GetDirectoryName(_filePath);
                 if (!string.IsNullOrEmpty(dir))
                 {
                     StoragePathHelper.EnsureDirectoryExists(dir);
                 }
 
-                File.WriteAllText(FilePath, json);
+                File.WriteAllText(_filePath, json);
                 PlansChanged?.Invoke();
             }
             catch (Exception ex)
@@ -78,6 +102,7 @@ public class CalendarPlanStorage
 
     public void AddOrUpdatePlan(PlannedWorkItem plan)
     {
+        SanitizePlanItem(plan);
         var plans = Load();
         int existingIndex = plans.FindIndex(p => p.Id == plan.Id);
         if (existingIndex >= 0)
@@ -254,6 +279,158 @@ public class CalendarPlanStorage
             TotalActualHours = totalActualHours,
             DailySummaries = dailySummaries,
             ProjectComparisons = projectComparisons
+        };
+    }
+
+    public List<string> GetAllPlannedProjectsForDate(DateTime date)
+    {
+        return GetPlansForDate(date)
+            .Select(p => p.ProjectName)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    public List<string> GetAllPlannedProjectsForWeek(DateTime dateInWeek)
+    {
+        var (monday, sunday) = GetWeekBounds(dateInWeek);
+        return GetPlansForRange(monday, sunday)
+            .Select(p => p.ProjectName)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    public int GetPlannedDaysCountForWeek(DateTime dateInWeek)
+    {
+        var (monday, sunday) = GetWeekBounds(dateInWeek);
+        return GetPlansForRange(monday, sunday)
+            .Where(p => p.PlannedHours > 0)
+            .Select(p => p.Date.Date)
+            .Distinct()
+            .Count();
+    }
+
+    public int GetPlannedDaysCountForProjectInWeek(string projectName, DateTime dateInWeek)
+    {
+        var (monday, sunday) = GetWeekBounds(dateInWeek);
+        return GetPlansForRange(monday, sunday)
+            .Where(p => p.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase) && p.PlannedHours > 0)
+            .Select(p => p.Date.Date)
+            .Distinct()
+            .Count();
+    }
+
+    public double CalculatePlanItemActualHours(PlannedWorkItem plan, List<TimeEntry> allEntries)
+    {
+        if (plan == null) return 0;
+        var dateOnly = plan.Date.Date;
+
+        var matchingEntries = allEntries
+            .Where(e => e.StartTime.Date == dateOnly && e.ProjectName.Equals(plan.ProjectName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(plan.Activity))
+        {
+            var activityEntries = matchingEntries
+                .Where(e => e.Activity.Equals(plan.Activity, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (activityEntries.Count > 0)
+            {
+                return TimeSpan.FromTicks(activityEntries.Sum(e => e.Duration.Ticks)).TotalHours;
+            }
+        }
+
+        return TimeSpan.FromTicks(matchingEntries.Sum(e => e.Duration.Ticks)).TotalHours;
+    }
+
+    public bool IsPlanItemCompleted(PlannedWorkItem plan, List<TimeEntry> allEntries)
+    {
+        if (plan == null || plan.PlannedHours <= 0) return false;
+        double actualHours = CalculatePlanItemActualHours(plan, allEntries);
+        return actualHours >= plan.PlannedHours;
+    }
+
+    public ProjectGoalSummary CalculateProjectDailySummary(string projectName, DateTime date, List<TimeEntry> allEntries)
+    {
+        var dateOnly = date.Date;
+        var dayPlans = GetPlansForDate(dateOnly)
+            .Where(p => p.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        double plannedHours = dayPlans.Sum(p => p.PlannedHours);
+
+        var dayEntries = allEntries
+            .Where(e => e.StartTime.Date == dateOnly && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var totalDuration = TimeSpan.FromTicks(dayEntries.Sum(e => e.Duration.Ticks));
+        double actualHours = totalDuration.TotalHours;
+
+        var activities = dayEntries
+            .Select(e => e.Activity)
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Distinct()
+            .ToList();
+
+        var tasks = dayEntries
+            .Select(e => e.Description)
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Distinct()
+            .ToList();
+
+        return new ProjectGoalSummary
+        {
+            ProjectName = projectName,
+            Date = dateOnly,
+            IsWeekly = false,
+            PlannedHours = plannedHours,
+            ActualHours = actualHours,
+            PlannedItems = dayPlans,
+            ActivitiesSummary = activities.Count > 0 ? string.Join(", ", activities) : (dayPlans.Count > 0 && dayPlans.Any(p => !string.IsNullOrWhiteSpace(p.Activity)) ? string.Join(", ", dayPlans.Where(p => !string.IsNullOrWhiteSpace(p.Activity)).Select(p => p.Activity).Distinct()) : "None"),
+            TasksSummary = tasks.Count > 0 ? string.Join(", ", tasks) : (dayPlans.Count > 0 && dayPlans.Any(p => !string.IsNullOrWhiteSpace(p.Note)) ? string.Join("; ", dayPlans.Where(p => !string.IsNullOrWhiteSpace(p.Note)).Select(p => p.Note)) : "None")
+        };
+    }
+
+    public ProjectGoalSummary CalculateProjectWeeklySummary(string projectName, DateTime dateInWeek, List<TimeEntry> allEntries)
+    {
+        var (monday, sunday) = GetWeekBounds(dateInWeek);
+        var weekPlans = GetPlansForRange(monday, sunday)
+            .Where(p => p.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        double plannedHours = weekPlans.Sum(p => p.PlannedHours);
+
+        var weekEntries = allEntries
+            .Where(e => e.StartTime.Date >= monday && e.StartTime.Date <= sunday && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var totalDuration = TimeSpan.FromTicks(weekEntries.Sum(e => e.Duration.Ticks));
+        double actualHours = totalDuration.TotalHours;
+
+        var activities = weekEntries
+            .Select(e => e.Activity)
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Distinct()
+            .ToList();
+
+        var tasks = weekEntries
+            .Select(e => e.Description)
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Distinct()
+            .ToList();
+
+        return new ProjectGoalSummary
+        {
+            ProjectName = projectName,
+            Date = monday,
+            IsWeekly = true,
+            PlannedHours = plannedHours,
+            ActualHours = actualHours,
+            PlannedItems = weekPlans,
+            ActivitiesSummary = activities.Count > 0 ? string.Join(", ", activities) : (weekPlans.Count > 0 && weekPlans.Any(p => !string.IsNullOrWhiteSpace(p.Activity)) ? string.Join(", ", weekPlans.Where(p => !string.IsNullOrWhiteSpace(p.Activity)).Select(p => p.Activity).Distinct()) : "None"),
+            TasksSummary = tasks.Count > 0 ? string.Join(", ", tasks) : (weekPlans.Count > 0 && weekPlans.Any(p => !string.IsNullOrWhiteSpace(p.Note)) ? string.Join("; ", weekPlans.Where(p => !string.IsNullOrWhiteSpace(p.Note)).Select(p => p.Note)) : "None")
         };
     }
 }

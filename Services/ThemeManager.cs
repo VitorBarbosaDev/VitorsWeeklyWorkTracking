@@ -61,19 +61,22 @@ public static class ThemeManager
     public static void ApplyTheme(AppTheme theme, bool save = true)
     {
         _currentTheme = theme;
-        var dict = Application.Current.Resources;
+        var dict = Application.Current?.Resources;
 
-        var palette = GetPalette(theme);
-        if (palette.TryGetValue("Theme.ForegroundSubtle", out var subtleHex) && !palette.ContainsKey("Theme.SecondaryText"))
+        if (dict != null)
         {
-            palette["Theme.SecondaryText"] = subtleHex;
-        }
+            var palette = GetPalette(theme);
+            if (palette.TryGetValue("Theme.ForegroundSubtle", out var subtleHex) && !palette.ContainsKey("Theme.SecondaryText"))
+            {
+                palette["Theme.SecondaryText"] = subtleHex;
+            }
 
-        foreach (var (key, colorHex) in palette)
-        {
-            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
-            brush.Freeze();
-            dict[key] = brush;
+            foreach (var (key, colorHex) in palette)
+            {
+                var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
+                brush.Freeze();
+                dict[key] = brush;
+            }
         }
 
         if (save)

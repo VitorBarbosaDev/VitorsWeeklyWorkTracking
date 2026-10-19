@@ -217,15 +217,17 @@
                             <TextBlock Text="Activity:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
                             <ComboBox x:Name="PlanActivityComboBox" Width="110" Margin="0 0 8 0"/>
 
-                            <TextBlock Text="Planned Hours:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
-                            <TextBox x:Name="PlanHoursTextBox" Width="44" Margin="0 0 4 0" Text="4.0" Padding="4 2" TextAlignment="Center"/>
+                            <TextBlock Text="Duration:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Planned duration (e.g. 1m, 30m, 1h, 1.5, 4h)"/>
+                            <TextBox x:Name="PlanHoursTextBox" Width="52" Margin="0 0 4 0" Text="4h" Padding="4 2" TextAlignment="Center" ToolTip="Enter duration e.g. 1m, 30m, 1h, 1.5, 4h"/>
 
                             <!-- Quick Hours presets -->
-                            <Button Content="15m" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="0.25"/>
-                            <Button Content="1h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="1.0"/>
-                            <Button Content="2h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="2.0"/>
-                            <Button Content="4h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="4.0"/>
-                            <Button Content="8h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="8.0"/>
+                            <Button Content="15m" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="15m" ToolTip="15 minutes"/>
+                            <Button Content="30m" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="30m" ToolTip="30 minutes"/>
+                            <Button Content="45m" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="45m" ToolTip="45 minute"/>
+                            <Button Content="1h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="1h" ToolTip="1 hour"/>
+                            <Button Content="2h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="2h" ToolTip="2 hours"/>
+                            <Button Content="4h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="4h" ToolTip="4 hours"/>
+                            <Button Content="8h" Style="{StaticResource GhostButton}" Height="24" Width="26" Padding="0" Margin="0 0 2 0" Click="HoursPreset_Click" Tag="8h" ToolTip="8 hours"/>
 
                             <TextBlock Text="Notes:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
                             <TextBox x:Name="PlanNoteTextBox" Width="120" Margin="0 0 8 0" Padding="4 2"/>
@@ -524,7 +526,7 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="100"/>
                                     <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="95"/>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160">
+                                    <DataGridTextColumn Header="Project" Binding="{Binding FormattedProjectWithReward}" Width="160">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
@@ -532,7 +534,7 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="130">
+                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="120">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
@@ -540,7 +542,8 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="Planned Hours" Binding="{Binding PlannedHours, StringFormat=\{0:F1\} hrs}" Width="105"/>
+                                    <DataGridTextColumn Header="Planned Time" Binding="{Binding FormattedHours}" Width="100"/>
+                                    <DataGridTextColumn Header="Status" Binding="{Binding CompletionStatusText}" Width="110"/>
                                     <DataGridTextColumn Header="Notes / Description" Binding="{Binding Note}" Width="*">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
@@ -613,7 +616,7 @@
                                       IsReadOnly="True"
                                       BorderThickness="0">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="180"/>
+                                    <DataGridTextColumn Header="Project" Binding="{Binding FormattedProjectWithReward}" Width="180"/>
                                     <DataGridTextColumn Header="Planned Goal" Binding="{Binding FormattedPlanned}" Width="110"/>
                                     <DataGridTextColumn Header="Actual Worked" Binding="{Binding FormattedActual}" Width="110"/>
                                     <DataGridTextColumn Header="Variance" Binding="{Binding VarianceHours, StringFormat=\{0:+0.0;-0.0;0.0\} hrs}" Width="95"/>

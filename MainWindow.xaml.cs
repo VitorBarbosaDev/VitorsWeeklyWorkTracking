@@ -51,8 +51,8 @@ public partial class MainWindow : Window
     private bool _miniTimerEnabled = true;
     private bool _isCountDownMode = false;
     private bool _hasPlayedGoalAchievedSound = false;
-    private bool _hasPlayedDailyGoalSound = false;
-    private bool _hasPlayedWeeklyGoalSound = false;
+    private readonly GoalMilestoneTracker _goalMilestoneTracker = new();
+    private bool _isShowingGoalNotification = false;
     private DateTime _lastGoalCheckDate = DateTime.Today;
     private GoalOption? _selectedGoal;
     private List<GoalOption> _goalOptions = new();
@@ -89,11 +89,26 @@ public partial class MainWindow : Window
         _projects = _projectStorage.Load();
         _activities = _activityStorage.Load();
 
-        var initToday = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
-        _hasPlayedDailyGoalSound = initToday.PlannedHours > 0 && initToday.ActualHours >= initToday.PlannedHours;
-
-        var initWeek = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
-        _hasPlayedWeeklyGoalSound = initWeek.TotalPlannedHours > 0 && initWeek.TotalActualHours >= initWeek.TotalPlannedHours;
+        _goalMilestoneTracker.Settings = _workRestSettings;
+        _goalMilestoneTracker.DailyGoalAchieved += (dailySummary, activeHours) =>
+        {
+            if (_isShowingGoalNotification) return;
+            SoundEffectManager.PlayDailyGoalAchievedSound(_workRestSettings);
+            ShowDailyGoalNotification(dailySummary, activeHours);
+        };
+        _goalMilestoneTracker.WeeklyGoalAchieved += (weeklySummary, activeHours) =>
+        {
+            if (_isShowingGoalNotification) return;
+            SoundEffectManager.PlayWeeklyGoalAchievedSound(_workRestSettings);
+            ShowWeeklyGoalNotification(weeklySummary, activeHours);
+        };
+        _goalMilestoneTracker.ProjectGoalAchieved += (projectSummary, activeHours) =>
+        {
+            if (_isShowingGoalNotification) return;
+            SoundEffectManager.PlayDailyGoalAchievedSound(_workRestSettings);
+            ShowProjectGoalNotification(projectSummary, activeHours);
+        };
+        _goalMilestoneTracker.Initialize(DateTime.Today, _entries);
 
         InitializeThemeSelector();
         InitializeGoalOptions();
@@ -370,6 +385,7 @@ public partial class MainWindow : Window
         {
             _workRestSettings = dialog.Settings;
             FocusCompanionStorage.Save(_workRestSettings);
+            _goalMilestoneTracker.Settings = _workRestSettings;
             _intervalManager.UpdateSettings(_workRestSettings);
             CompanionControl.Initialize(_intervalManager);
             CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -394,6 +410,7 @@ public partial class MainWindow : Window
             }
 
             UpdatePomodoroButtonStates();
+            UpdateGoalProgressCard();
             UpdateStatus();
         }
     }
@@ -896,6 +913,7 @@ public partial class MainWindow : Window
         if (ThemeComboBox.SelectedItem is ThemeOption option)
         {
             ThemeManager.ApplyTheme(option.Theme);
+            UpdateGoalProgressCard();
             UpdateStatus();
         }
     }
@@ -1100,19 +1118,7 @@ public partial class MainWindow : Window
         _entries.Add(entry);
         _storage.Save(_entries);
 
-        var postToday = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
-        if (!_hasPlayedDailyGoalSound && postToday.PlannedHours > 0 && postToday.ActualHours >= postToday.PlannedHours)
-        {
-            _hasPlayedDailyGoalSound = true;
-            SoundEffectManager.PlayDailyGoalAchievedSound(_workRestSettings);
-        }
-
-        var postWeek = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
-        if (!_hasPlayedWeeklyGoalSound && postWeek.TotalPlannedHours > 0 && postWeek.TotalActualHours >= postWeek.TotalPlannedHours)
-        {
-            _hasPlayedWeeklyGoalSound = true;
-            SoundEffectManager.PlayWeeklyGoalAchievedSound(_workRestSettings);
-        }
+        _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, TimeSpan.Zero, projectName);
 
         RefreshFilterProjectsDropdown();
         RefreshFilterActivitiesDropdown();
@@ -1151,11 +1157,6 @@ public partial class MainWindow : Window
         if (DateTime.Today != _lastGoalCheckDate)
         {
             _lastGoalCheckDate = DateTime.Today;
-            _hasPlayedDailyGoalSound = false;
-            if (DateTime.Today.DayOfWeek == DayOfWeek.Monday)
-            {
-                _hasPlayedWeeklyGoalSound = false;
-            }
         }
 
         if (!_intervalManager.IsAlertPending && IntervalAlertBanner.Visibility == Visibility.Visible)
@@ -1366,29 +1367,7 @@ public partial class MainWindow : Window
             TimerDisplayTextBlock.Text = displayTime;
 
             // Check Daily and Weekly Goals achievement during active tracking
-            var todayGoalSummary = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
-            var weeklyGoalSummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
-
-            double activeTodayHours = todayGoalSummary.ActualHours + elapsed.TotalHours;
-            double activeWeeklyHours = weeklyGoalSummary.TotalActualHours + elapsed.TotalHours;
-
-            if (todayGoalSummary.PlannedHours > 0 && activeTodayHours >= todayGoalSummary.PlannedHours)
-            {
-                if (!_hasPlayedDailyGoalSound)
-                {
-                    _hasPlayedDailyGoalSound = true;
-                    SoundEffectManager.PlayDailyGoalAchievedSound(_workRestSettings);
-                }
-            }
-
-            if (weeklyGoalSummary.TotalPlannedHours > 0 && activeWeeklyHours >= weeklyGoalSummary.TotalPlannedHours)
-            {
-                if (!_hasPlayedWeeklyGoalSound)
-                {
-                    _hasPlayedWeeklyGoalSound = true;
-                    SoundEffectManager.PlayWeeklyGoalAchievedSound(_workRestSettings);
-                }
-            }
+            _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, elapsed, projectName);
 
             // Determine companion animation progress:
             // When Pomodoro mode is ON: animation tracks the Pomodoro focus/break interval progress.
@@ -1698,15 +1677,19 @@ public partial class MainWindow : Window
     {
         var weeklySummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(DateTime.Today, _entries);
         var todaySummary = CalendarPlanStorage.Instance.CalculateDailySummary(DateTime.Today, _entries);
+        var rewardIcon = RewardIconHelper.GetIconEmoji(_workRestSettings.CompletionRewardIcon);
 
         double activeElapsedHours = 0;
+        string? activeProj = null;
         if (_currentStartTime != null)
         {
             activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
+            activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
+            activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
         }
 
         if (activeElapsedHours > 0)
@@ -1720,49 +1703,37 @@ public partial class MainWindow : Window
             }
         }
 
-        if (todaySummary.ActualHours < todaySummary.PlannedHours)
-        {
-            _hasPlayedDailyGoalSound = false;
-        }
-        else if (todaySummary.PlannedHours > 0 && todaySummary.ActualHours >= todaySummary.PlannedHours)
-        {
-            _hasPlayedDailyGoalSound = true;
-        }
-
-        if (weeklySummary.TotalActualHours < weeklySummary.TotalPlannedHours)
-        {
-            _hasPlayedWeeklyGoalSound = false;
-        }
-        else if (weeklySummary.TotalPlannedHours > 0 && weeklySummary.TotalActualHours >= weeklySummary.TotalPlannedHours)
-        {
-            _hasPlayedWeeklyGoalSound = true;
-        }
+        _goalMilestoneTracker.ResetIfPlansOrEntriesDecreased(todaySummary, weeklySummary, _entries, TimeSpan.FromHours(activeElapsedHours), activeProj);
 
         // Weekly goal text
         if (weeklySummary.TotalPlannedHours > 0)
         {
-            GoalSummaryHeadlineText.Text = $"{weeklySummary.TotalPlannedHours:F1}h planned • {weeklySummary.TotalActualHours:F1}h worked ({weeklySummary.FormattedCompletionPercentage}) • {weeklySummary.FormattedRemainingHours}";
+            GoalSummaryHeadlineText.Text = weeklySummary.IsGoalMet
+                ? $"{rewardIcon} {TimeFormatHelper.FormatHours(weeklySummary.TotalPlannedHours)} planned • {TimeFormatHelper.FormatHours(weeklySummary.TotalActualHours)} worked ({weeklySummary.FormattedCompletionPercentage}) • Target Crushed! 🎉"
+                : $"{TimeFormatHelper.FormatHours(weeklySummary.TotalPlannedHours)} planned • {TimeFormatHelper.FormatHours(weeklySummary.TotalActualHours)} worked ({weeklySummary.FormattedCompletionPercentage}) • {weeklySummary.FormattedRemainingHours}";
         }
         else
         {
             GoalSummaryHeadlineText.Text = weeklySummary.TotalActualHours > 0 
-                ? $"Worked {weeklySummary.TotalActualHours:F1}h this week (No weekly plan set)" 
+                ? $"Worked {TimeFormatHelper.FormatHours(weeklySummary.TotalActualHours)} this week (No weekly plan set)" 
                 : "No weekly plan scheduled yet (Click Planner to set goals)";
         }
 
         GoalWeeklyProgressBar.Value = Math.Min(100, weeklySummary.CompletionPercentage);
-        GoalWeeklyProgressPctText.Text = weeklySummary.FormattedCompletionPercentage;
+        GoalWeeklyProgressPctText.Text = weeklySummary.IsGoalMet ? $"{rewardIcon} {weeklySummary.FormattedCompletionPercentage}" : weeklySummary.FormattedCompletionPercentage;
 
         // Today's badge text
         if (todaySummary.PlannedHours > 0)
         {
-            GoalTodayBadgeText.Text = $"📅 Today: {todaySummary.PlannedHours:F1}h plan • {todaySummary.ActualHours:F1}h act ({todaySummary.FormattedCompletionPercentage})";
+            GoalTodayBadgeText.Text = todaySummary.IsGoalMet
+                ? $"{rewardIcon} Today: {TimeFormatHelper.FormatHours(todaySummary.PlannedHours)} plan • {TimeFormatHelper.FormatHours(todaySummary.ActualHours)} act ({todaySummary.FormattedCompletionPercentage}) ✓"
+                : $"📅 Today: {TimeFormatHelper.FormatHours(todaySummary.PlannedHours)} plan • {TimeFormatHelper.FormatHours(todaySummary.ActualHours)} act ({todaySummary.FormattedCompletionPercentage})";
         }
         else
         {
             GoalTodayBadgeText.Text = todaySummary.ActualHours > 0
-                ? $"📅 Today: {todaySummary.ActualHours:F1}h worked (No goal)"
-                : "📅 Today: 0.0h (No plan)";
+                ? $"📅 Today: {TimeFormatHelper.FormatHours(todaySummary.ActualHours)} worked (No goal)"
+                : "📅 Today: 0m (No plan)";
         }
 
         // Mini 7-day indicators (Mon to Sun)
@@ -1775,32 +1746,345 @@ public partial class MainWindow : Window
             var daySummary = weeklySummary.DailySummaries[i];
             bool isToday = daySummary.Date.Date == DateTime.Today;
 
-            string planStr = daySummary.PlannedHours > 0 ? $"{daySummary.PlannedHours:0.#}h" : "0h";
-            string actStr = daySummary.ActualHours > 0 ? $"{daySummary.ActualHours:0.#}h" : "0h";
-            miniTexts[i].Text = $"{dayShortNames[i]}: {actStr}/{planStr}";
+            string planStr = TimeFormatHelper.FormatHours(daySummary.PlannedHours);
+            string actStr = TimeFormatHelper.FormatHours(daySummary.ActualHours);
 
             if (isToday)
             {
+                miniTexts[i].Text = daySummary.IsGoalMet ? $"{rewardIcon} {dayShortNames[i]}: {actStr}/{planStr}" : $"{dayShortNames[i]}: {actStr}/{planStr}";
                 miniBorders[i].BorderBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
                 miniBorders[i].BorderThickness = new Thickness(1.5);
-                miniTexts[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+                miniBorders[i].Background = daySummary.IsGoalMet
+                    ? (TryFindResource("Theme.StatCard2Bg") as Brush ?? Brushes.MintCream)
+                    : (TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.WhiteSmoke);
+                miniTexts[i].Foreground = TryFindResource(daySummary.IsGoalMet ? "Theme.StatCard2Text" : "Theme.Primary") as Brush ?? Brushes.DodgerBlue;
             }
             else if (daySummary.IsGoalMet)
             {
-                miniBorders[i].BorderBrush = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+                miniTexts[i].Text = $"{rewardIcon} {dayShortNames[i]}: {actStr}/{planStr}";
+                miniBorders[i].BorderBrush = TryFindResource("Theme.StatCard2Border") as Brush ?? Brushes.LightGreen;
                 miniBorders[i].BorderThickness = new Thickness(1);
-                miniTexts[i].Foreground = TryFindResource("Theme.Success") as Brush ?? Brushes.LimeGreen;
+                miniBorders[i].Background = TryFindResource("Theme.StatCard2Bg") as Brush ?? Brushes.MintCream;
+                miniTexts[i].Foreground = TryFindResource("Theme.StatCard2Text") as Brush ?? Brushes.DarkGreen;
             }
             else
             {
+                miniTexts[i].Text = $"{dayShortNames[i]}: {actStr}/{planStr}";
                 miniBorders[i].BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray;
                 miniBorders[i].BorderThickness = new Thickness(1);
+                miniBorders[i].Background = TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.WhiteSmoke;
                 miniTexts[i].Foreground = TryFindResource(i < 5 ? "Theme.ForegroundMuted" : "Theme.ForegroundSubtle") as Brush ?? Brushes.Gray;
             }
         }
 
+        // Update Today's Planned Tasks Section
+        UpdateTodayPlansSection();
+
         // Sync with floating mini timer widget
         _miniWidget?.UpdateWeeklyAndDailyGoals(weeklySummary, todaySummary);
+    }
+
+    private void UpdateTodayPlansSection()
+    {
+        var today = DateTime.Today;
+        var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(today);
+        var rewardIcon = RewardIconHelper.GetIconEmoji(_workRestSettings.CompletionRewardIcon);
+
+        double activeElapsedHours = 0;
+        string? activeProj = null;
+        string? activeAct = null;
+        if (_currentStartTime != null)
+        {
+            activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
+            activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+        }
+        else if (_pendingStartTime != null && _pendingEndTime != null)
+        {
+            activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
+            activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+        }
+
+        TodayPlansContainer.Children.Clear();
+
+        if (todayPlans.Count == 0)
+        {
+            TodayPlansCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TodayPlansCard.Visibility = Visibility.Visible;
+
+        int completedCount = 0;
+        double totalPlannedHours = 0;
+        double totalActualHours = 0;
+
+        foreach (var plan in todayPlans)
+        {
+            totalPlannedHours += plan.PlannedHours;
+            double planActualHours = CalendarPlanStorage.Instance.CalculatePlanItemActualHours(plan, _entries);
+
+            // Add active elapsed tracking if active session matches this plan
+            if (activeElapsedHours > 0 && !string.IsNullOrWhiteSpace(activeProj) &&
+                plan.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(plan.Activity) ||
+                    plan.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase))
+                {
+                    planActualHours += activeElapsedHours;
+                }
+            }
+
+            totalActualHours += planActualHours;
+            bool isCompleted = plan.PlannedHours > 0 && planActualHours >= plan.PlannedHours;
+            if (isCompleted) completedCount++;
+
+            var taskCard = CreateTodayPlanCardElement(plan, planActualHours, isCompleted, rewardIcon);
+            TodayPlansContainer.Children.Add(taskCard);
+        }
+
+        TodayPlansSummaryText.Text = $"{todayPlans.Count} task{(todayPlans.Count > 1 ? "s" : "")} scheduled";
+
+        bool allCompleted = completedCount == todayPlans.Count && todayPlans.Count > 0;
+        double overallPct = totalPlannedHours > 0 ? (totalActualHours / totalPlannedHours) * 100.0 : 0.0;
+
+        TodayPlansBadgeText.Text = allCompleted
+            ? $"{rewardIcon} All {completedCount} Completed! • {TimeFormatHelper.FormatHours(totalActualHours)} / {TimeFormatHelper.FormatHours(totalPlannedHours)} ({Math.Min(100, overallPct):F0}%)"
+            : $"{rewardIcon} {completedCount} of {todayPlans.Count} Completed • {TimeFormatHelper.FormatHours(totalActualHours)} / {TimeFormatHelper.FormatHours(totalPlannedHours)} ({overallPct:F0}%)";
+
+        var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_workRestSettings.CompletionRewardColor, this);
+
+        if (allCompleted)
+        {
+            TodayPlansProgressBadge.Background = rewardBg;
+            TodayPlansProgressBadge.BorderBrush = rewardBorder;
+            TodayPlansBadgeText.Foreground = rewardText;
+        }
+        else
+        {
+            TodayPlansProgressBadge.Background = TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.WhiteSmoke;
+            TodayPlansProgressBadge.BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray;
+            TodayPlansBadgeText.Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black;
+        }
+    }
+
+    private Border CreateTodayPlanCardElement(PlannedWorkItem plan, double actualHours, bool isCompleted, string rewardIcon)
+    {
+        var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_workRestSettings.CompletionRewardColor, this);
+
+        var card = new Border
+        {
+            Width = 195,
+            MinHeight = 115,
+            Background = isCompleted 
+                ? rewardBg
+                : (TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.WhiteSmoke),
+            BorderBrush = isCompleted
+                ? rewardBorder
+                : (TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray),
+            BorderThickness = new Thickness(isCompleted ? 1.5 : 1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10, 8, 10, 8),
+            Margin = new Thickness(0, 0, 10, 8)
+        };
+
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 0: Top Header (Icon + Status/Duration Badge)
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 1: Project Name & Activity & Note
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 2: Progress & Stats
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 3: Action Button
+
+        // 0. Top Header
+        var headerGrid = new Grid();
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var iconText = new TextBlock
+        {
+            Text = isCompleted ? rewardIcon : (actualHours > 0 ? "⏳" : "⚪"),
+            FontSize = 13,
+            FontWeight = FontWeights.Bold,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = isCompleted
+                ? rewardText
+                : (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black)
+        };
+        Grid.SetColumn(iconText, 0);
+        headerGrid.Children.Add(iconText);
+
+        var durationBadge = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Background = isCompleted
+                ? (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White)
+                : (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White),
+            BorderBrush = isCompleted
+                ? rewardBorder
+                : (TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(6, 1, 6, 1)
+        };
+        var durationText = new TextBlock
+        {
+            Text = isCompleted ? $"{rewardIcon} Met" : TimeFormatHelper.FormatHours(plan.PlannedHours),
+            FontSize = 9.5,
+            FontWeight = FontWeights.Bold,
+            Foreground = isCompleted
+                ? rewardText
+                : (TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray)
+        };
+        durationBadge.Child = durationText;
+        Grid.SetColumn(durationBadge, 1);
+        headerGrid.Children.Add(durationBadge);
+
+        Grid.SetRow(headerGrid, 0);
+        grid.Children.Add(headerGrid);
+
+        // 1. Project Name & Activity & Note
+        var titlePanel = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
+        var projNameText = new TextBlock
+        {
+            Text = plan.ProjectName,
+            FontWeight = FontWeights.Bold,
+            FontSize = 11.5,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            ToolTip = plan.ProjectName,
+            Foreground = isCompleted
+                ? rewardText
+                : (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black)
+        };
+        titlePanel.Children.Add(projNameText);
+
+        if (!string.IsNullOrWhiteSpace(plan.Activity))
+        {
+            var actBadge = new Border
+            {
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Background = TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White,
+                BorderBrush = isCompleted 
+                    ? rewardBorder
+                    : (TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(4, 1, 4, 1),
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+            var actText = new TextBlock
+            {
+                Text = $"🏷️ {plan.Activity}",
+                FontSize = 9,
+                FontWeight = FontWeights.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 170,
+                ToolTip = plan.Activity,
+                Foreground = isCompleted
+                    ? rewardText
+                    : (TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray)
+            };
+            actBadge.Child = actText;
+            titlePanel.Children.Add(actBadge);
+        }
+
+        if (!string.IsNullOrWhiteSpace(plan.Note))
+        {
+            var noteText = new TextBlock
+            {
+                Text = plan.Note,
+                FontSize = 8.5,
+                FontStyle = FontStyles.Italic,
+                Foreground = TryFindResource("Theme.ForegroundSubtle") as Brush ?? Brushes.Gray,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                ToolTip = plan.Note,
+                Margin = new Thickness(0, 2, 0, 0),
+                MaxWidth = 175
+            };
+            titlePanel.Children.Add(noteText);
+        }
+        Grid.SetRow(titlePanel, 1);
+        grid.Children.Add(titlePanel);
+
+        // 2. Progress Bar & Stats
+        var progressPanel = new StackPanel { Margin = new Thickness(0, 2, 0, 6) };
+        double pct = plan.PlannedHours > 0 ? (actualHours / plan.PlannedHours) * 100.0 : (actualHours > 0 ? 100.0 : 0.0);
+        var statsText = new TextBlock
+        {
+            Text = isCompleted 
+                ? $"{rewardIcon} {TimeFormatHelper.FormatHours(actualHours)} / {TimeFormatHelper.FormatHours(plan.PlannedHours)} ({pct:F0}%)"
+                : $"{TimeFormatHelper.FormatHours(actualHours)} / {TimeFormatHelper.FormatHours(plan.PlannedHours)} ({pct:F0}%)",
+            FontSize = 9.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = isCompleted
+                ? rewardText
+                : (TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray),
+            Margin = new Thickness(0, 0, 0, 2)
+        };
+        var pBar = new ProgressBar
+        {
+            Height = 4,
+            Maximum = 100,
+            Value = Math.Min(100, pct),
+            Foreground = isCompleted
+                ? rewardBorder
+                : (TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue)
+        };
+        progressPanel.Children.Add(statsText);
+        progressPanel.Children.Add(pBar);
+        Grid.SetRow(progressPanel, 2);
+        grid.Children.Add(progressPanel);
+
+        // 3. Quick Track Button
+        var trackBtn = new Button
+        {
+            Content = isCompleted ? $"{rewardIcon} Track More" : "▶ Track",
+            ToolTip = $"Load '{plan.ProjectName}' into active tracker",
+            Style = TryFindResource(isCompleted ? "GhostButton" : "PrimaryButton") as Style,
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Height = 22,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(6, 0, 6, 0)
+        };
+        trackBtn.Click += (s, e) => SelectPlanForTracking(plan);
+        Grid.SetRow(trackBtn, 3);
+        grid.Children.Add(trackBtn);
+
+        card.Child = grid;
+        return card;
+    }
+
+    private void SelectPlanForTracking(PlannedWorkItem plan)
+    {
+        var matchedProj = _projects.FirstOrDefault(p => p.Name.Equals(plan.ProjectName, StringComparison.OrdinalIgnoreCase));
+        if (matchedProj != null)
+        {
+            ProjectComboBox.SelectedItem = matchedProj;
+        }
+        else
+        {
+            ProjectComboBox.Text = plan.ProjectName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(plan.Activity))
+        {
+            var matchedAct = _activities.FirstOrDefault(a => a.Name.Equals(plan.Activity, StringComparison.OrdinalIgnoreCase));
+            if (matchedAct != null)
+            {
+                ActivityComboBox.SelectedItem = matchedAct;
+            }
+            else
+            {
+                ActivityComboBox.Text = plan.Activity;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(plan.Note) && string.IsNullOrWhiteSpace(DescriptionTextBox.Text))
+        {
+            DescriptionTextBox.Text = plan.Note;
+        }
+
+        StartButton.Focus();
     }
 
     private void OpenCalendarPlanner_Click(object sender, RoutedEventArgs e)
@@ -1813,6 +2097,152 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
         UpdateGoalProgressCard();
         RefreshGrid();
+    }
+
+    private void ShowDailyGoalNotification(DailyGoalSummary dailySummary, double activeTodayHours)
+    {
+        if (_isShowingGoalNotification) return;
+        _isShowingGoalNotification = true;
+        try
+        {
+            var summaryToDisplay = new DailyGoalSummary
+            {
+                Date = dailySummary.Date,
+                PlannedHours = dailySummary.PlannedHours,
+                ActualHours = Math.Max(dailySummary.ActualHours, activeTodayHours),
+                EntryCount = dailySummary.EntryCount,
+                ProjectsSummary = dailySummary.ProjectsSummary,
+                ActivitiesSummary = dailySummary.ActivitiesSummary,
+                TasksSummary = dailySummary.TasksSummary,
+                PlannedItems = dailySummary.PlannedItems
+            };
+
+            var dialog = new DailyGoalAchievedDialog(summaryToDisplay);
+            if (this.IsVisible && this.WindowState != WindowState.Minimized)
+            {
+                dialog.Owner = this;
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            else
+            {
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                dialog.Topmost = true;
+            }
+
+            dialog.Closed += (s, e) =>
+            {
+                _isShowingGoalNotification = false;
+                if (dialog.RequestOpenPlanner)
+                {
+                    Dispatcher.Invoke(() => OpenCalendarPlanner_Click(this, new RoutedEventArgs()));
+                }
+            };
+
+            dialog.Show();
+        }
+        catch (Exception ex)
+        {
+            _isShowingGoalNotification = false;
+            System.Diagnostics.Debug.WriteLine($"Error showing daily goal notification: {ex.Message}");
+        }
+    }
+
+    private void ShowWeeklyGoalNotification(WeeklyGoalSummary weeklySummary, double activeWeeklyHours)
+    {
+        if (_isShowingGoalNotification) return;
+        _isShowingGoalNotification = true;
+        try
+        {
+            var summaryToDisplay = new WeeklyGoalSummary
+            {
+                WeekStartDate = weeklySummary.WeekStartDate,
+                WeekEndDate = weeklySummary.WeekEndDate,
+                TotalPlannedHours = weeklySummary.TotalPlannedHours,
+                TotalActualHours = Math.Max(weeklySummary.TotalActualHours, activeWeeklyHours),
+                DailySummaries = weeklySummary.DailySummaries,
+                ProjectComparisons = weeklySummary.ProjectComparisons
+            };
+
+            var dialog = new WeeklyGoalAchievedDialog(summaryToDisplay);
+            if (this.IsVisible && this.WindowState != WindowState.Minimized)
+            {
+                dialog.Owner = this;
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            else
+            {
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                dialog.Topmost = true;
+            }
+
+            dialog.Closed += (s, e) =>
+            {
+                _isShowingGoalNotification = false;
+                if (dialog.RequestOpenPlanner)
+                {
+                    Dispatcher.Invoke(() => OpenCalendarPlanner_Click(this, new RoutedEventArgs()));
+                }
+                else if (dialog.RequestOpenAnalytics)
+                {
+                    Dispatcher.Invoke(() => AnalyticsButton_Click(this, new RoutedEventArgs()));
+                }
+            };
+
+            dialog.Show();
+        }
+        catch (Exception ex)
+        {
+            _isShowingGoalNotification = false;
+            System.Diagnostics.Debug.WriteLine($"Error showing weekly goal notification: {ex.Message}");
+        }
+    }
+
+    private void ShowProjectGoalNotification(ProjectGoalSummary projectSummary, double activeHours)
+    {
+        if (_isShowingGoalNotification) return;
+        _isShowingGoalNotification = true;
+        try
+        {
+            var summaryToDisplay = new ProjectGoalSummary
+            {
+                ProjectName = projectSummary.ProjectName,
+                Date = projectSummary.Date,
+                IsWeekly = projectSummary.IsWeekly,
+                PlannedHours = projectSummary.PlannedHours,
+                ActualHours = Math.Max(projectSummary.ActualHours, activeHours),
+                PlannedItems = projectSummary.PlannedItems,
+                ActivitiesSummary = projectSummary.ActivitiesSummary,
+                TasksSummary = projectSummary.TasksSummary
+            };
+
+            var dialog = new ProjectGoalAchievedDialog(summaryToDisplay);
+            if (this.IsVisible && this.WindowState != WindowState.Minimized)
+            {
+                dialog.Owner = this;
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            else
+            {
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                dialog.Topmost = true;
+            }
+
+            dialog.Closed += (s, e) =>
+            {
+                _isShowingGoalNotification = false;
+                if (dialog.RequestOpenPlanner)
+                {
+                    Dispatcher.Invoke(() => OpenCalendarPlanner_Click(this, new RoutedEventArgs()));
+                }
+            };
+
+            dialog.Show();
+        }
+        catch (Exception ex)
+        {
+            _isShowingGoalNotification = false;
+            System.Diagnostics.Debug.WriteLine($"Error showing project goal notification: {ex.Message}");
+        }
     }
 
     private void UpdateSummaryStats()

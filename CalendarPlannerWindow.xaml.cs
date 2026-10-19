@@ -14,6 +14,7 @@ public partial class CalendarPlannerWindow : Window
     private readonly List<TimeEntry> _allEntries;
     private readonly List<Project> _allProjects;
     private readonly List<ActivityItem> _allActivities;
+    private readonly WorkRestSettings _settings;
 
     private DateTime _currentMonday;
     private DateTime _selectedPlanDate;
@@ -29,6 +30,7 @@ public partial class CalendarPlannerWindow : Window
         InitializeComponent();
         WindowTitleBarHelper.ApplyThemeTitleBar(this);
 
+        _settings = FocusCompanionStorage.Load();
         _allEntries = entries ?? new List<TimeEntry>();
         _allProjects = projects ?? new List<Project>();
         _allActivities = activities ?? new List<ActivityItem>();
@@ -97,10 +99,12 @@ public partial class CalendarPlannerWindow : Window
         WeekDatePicker.SelectedDate = _currentMonday;
 
         var weeklySummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(_currentMonday, _allEntries);
+        var rewardIcon = RewardIconHelper.GetIconEmoji(_settings.CompletionRewardIcon);
+        var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_settings.CompletionRewardColor, this);
 
-        WeeklyPlannedHoursText.Text = $"{weeklySummary.TotalPlannedHours:F1} hrs";
-        WeeklyActualHoursText.Text = $"{weeklySummary.TotalActualHours:F2} hrs";
-        WeeklyProgressPctText.Text = weeklySummary.FormattedCompletionPercentage;
+        WeeklyPlannedHoursText.Text = TimeFormatHelper.FormatHoursWithUnit(weeklySummary.TotalPlannedHours, "0 mins");
+        WeeklyActualHoursText.Text = TimeFormatHelper.FormatHoursWithUnit(weeklySummary.TotalActualHours, "0 mins");
+        WeeklyProgressPctText.Text = weeklySummary.IsGoalMet ? $"{rewardIcon} {weeklySummary.FormattedCompletionPercentage}" : weeklySummary.FormattedCompletionPercentage;
         WeeklyRemainingText.Text = weeklySummary.FormattedRemainingHours;
         WeeklyProgressBar.Value = Math.Min(100, weeklySummary.CompletionPercentage);
 
@@ -120,7 +124,21 @@ public partial class CalendarPlannerWindow : Window
 
             bool isToday = dayDate.Date == DateTime.Today;
 
-            dayNameTexts[i].Text = dayDate.ToString("dddd").ToUpperInvariant();
+            if (daySummary.IsGoalMet)
+            {
+                dayNameTexts[i].Text = $"{rewardIcon} {dayDate.ToString("dddd").ToUpperInvariant()}";
+                dayStatsTexts[i].Text = $"{rewardIcon} Goal Met! ({TimeFormatHelper.FormatHours(daySummary.ActualHours)}/{TimeFormatHelper.FormatHours(daySummary.PlannedHours)})";
+                dayStatsTexts[i].Foreground = rewardText;
+                dayProgressBars[i].Foreground = rewardBorder;
+            }
+            else
+            {
+                dayNameTexts[i].Text = dayDate.ToString("dddd").ToUpperInvariant();
+                dayStatsTexts[i].Text = $"Plan: {TimeFormatHelper.FormatHours(daySummary.PlannedHours)} • Act: {TimeFormatHelper.FormatHours(daySummary.ActualHours)}";
+                dayStatsTexts[i].Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black;
+                dayProgressBars[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+            }
+
             dayDateTexts[i].Text = dayDate.ToString("dd MMM yyyy") + (isToday ? " • TODAY" : "");
             
             if (isToday)
@@ -129,6 +147,13 @@ public partial class CalendarPlannerWindow : Window
                 dayBorders[i].BorderThickness = new Thickness(2);
                 dayNameTexts[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
                 dayDateTexts[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+            }
+            else if (daySummary.IsGoalMet)
+            {
+                dayBorders[i].BorderBrush = rewardBorder;
+                dayBorders[i].BorderThickness = new Thickness(1);
+                dayNameTexts[i].Foreground = rewardText;
+                dayDateTexts[i].Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
             }
             else
             {
@@ -140,7 +165,6 @@ public partial class CalendarPlannerWindow : Window
                 dayDateTexts[i].Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
             }
 
-            dayStatsTexts[i].Text = $"Plan: {daySummary.PlannedHours:F1}h • Act: {daySummary.ActualHours:F1}h";
             dayProgressBars[i].Value = Math.Min(100, daySummary.CompletionPercentage);
 
             // Populate day plans panel
@@ -171,12 +195,21 @@ public partial class CalendarPlannerWindow : Window
 
         // Update All Plans DataGrid (week plans)
         var weekPlans = CalendarPlanStorage.Instance.GetPlansForRange(_currentMonday, sunday);
+        foreach (var p in weekPlans)
+        {
+            p.RewardIcon = rewardIcon;
+            p.IsCompleted = CalendarPlanStorage.Instance.IsPlanItemCompleted(p, _allEntries);
+        }
         AllPlansDataGrid.ItemsSource = null;
         AllPlansDataGrid.ItemsSource = weekPlans;
         AllPlansEmptyStatePanel.Visibility = weekPlans.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // Update Project Goals DataGrid
         var projectComparisons = weeklySummary.ProjectComparisons ?? new List<ProjectGoalComparison>();
+        foreach (var pc in projectComparisons)
+        {
+            pc.RewardIcon = rewardIcon;
+        }
         ProjectGoalsDataGrid.ItemsSource = null;
         ProjectGoalsDataGrid.ItemsSource = projectComparisons;
         ProjectGoalsEmptyStatePanel.Visibility = projectComparisons.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -203,9 +236,13 @@ public partial class CalendarPlannerWindow : Window
             EditorHeaderLabel.Text = $"➕ Plan Session for: {selectedDate:dddd, dd MMM}";
         }
 
+        var weeklySummary = CalendarPlanStorage.Instance.CalculateWeeklySummary(_currentMonday, _allEntries);
+        var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_settings.CompletionRewardColor, this);
+
         for (int i = 0; i < 7; i++)
         {
             var dayDate = _currentMonday.AddDays(i);
+            var daySummary = weeklySummary.DailySummaries[i];
             bool isToday = dayDate.Date == DateTime.Today;
             bool isSelected = dayDate.Date == selectedDate;
 
@@ -224,7 +261,9 @@ public partial class CalendarPlannerWindow : Window
             {
                 dayBorders[i].BorderBrush = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
                 dayBorders[i].BorderThickness = new Thickness(1.5);
-                dayBorders[i].Background = TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White;
+                dayBorders[i].Background = daySummary.IsGoalMet
+                    ? rewardBg
+                    : (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White);
                 daySelectedBadges[i].Visibility = Visibility.Collapsed;
                 dayButtons[i].Content = "➕ Add Plan";
                 dayButtons[i].Style = (Style)FindResource("GhostButton");
@@ -233,14 +272,18 @@ public partial class CalendarPlannerWindow : Window
             }
             else
             {
-                dayBorders[i].BorderBrush = TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray;
+                dayBorders[i].BorderBrush = daySummary.IsGoalMet
+                    ? rewardBorder
+                    : (TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray);
                 dayBorders[i].BorderThickness = new Thickness(1);
-                dayBorders[i].Background = TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White;
+                dayBorders[i].Background = daySummary.IsGoalMet
+                    ? rewardBg
+                    : (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White);
                 daySelectedBadges[i].Visibility = Visibility.Collapsed;
                 dayButtons[i].Content = "➕ Add Plan";
                 dayButtons[i].Style = (Style)FindResource("GhostButton");
                 dayNameTexts[i].Foreground = i < 5 
-                    ? (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black) 
+                    ? (daySummary.IsGoalMet ? rewardText : (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black)) 
                     : (TryFindResource("Theme.ForegroundSubtle") as Brush ?? Brushes.Gray);
                 dayDateTexts[i].Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray;
             }
@@ -249,10 +292,19 @@ public partial class CalendarPlannerWindow : Window
 
     private UIElement CreatePlanCardElement(PlannedWorkItem plan)
     {
+        double planActualHours = CalendarPlanStorage.Instance.CalculatePlanItemActualHours(plan, _allEntries);
+        bool isPlanCompleted = plan.PlannedHours > 0 && planActualHours >= plan.PlannedHours;
+        var rewardIcon = RewardIconHelper.GetIconEmoji(_settings.CompletionRewardIcon);
+        var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_settings.CompletionRewardColor, this);
+
         var card = new Border
         {
-            Background = (Brush)FindResource("Theme.CardBackgroundAlt"),
-            BorderBrush = (Brush)FindResource("Theme.CardBorder"),
+            Background = isPlanCompleted
+                ? rewardBg
+                : (Brush)FindResource("Theme.CardBackgroundAlt"),
+            BorderBrush = isPlanCompleted
+                ? rewardBorder
+                : (Brush)FindResource("Theme.CardBorder"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(6, 5, 6, 5),
@@ -271,7 +323,9 @@ public partial class CalendarPlannerWindow : Window
             Text = plan.ProjectName,
             FontWeight = FontWeights.Bold,
             FontSize = 10,
-            Foreground = (Brush)FindResource("Theme.Foreground"),
+            Foreground = isPlanCompleted
+                ? rewardText
+                : (Brush)FindResource("Theme.Foreground"),
             TextTrimming = TextTrimming.CharacterEllipsis
         };
         Grid.SetColumn(projText, 0);
@@ -279,18 +333,24 @@ public partial class CalendarPlannerWindow : Window
 
         var hoursBadge = new Border
         {
-            Background = (Brush)FindResource("Theme.CardBackground"),
-            BorderBrush = (Brush)FindResource("Theme.Primary"),
+            Background = isPlanCompleted
+                ? (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White)
+                : (Brush)FindResource("Theme.CardBackground"),
+            BorderBrush = isPlanCompleted
+                ? rewardBorder
+                : (Brush)FindResource("Theme.Primary"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(3),
             Padding = new Thickness(4, 1, 4, 1)
         };
         var hoursText = new TextBlock
         {
-            Text = plan.FormattedHours,
+            Text = isPlanCompleted ? $"{rewardIcon} {plan.FormattedHours} ✓" : plan.FormattedHours,
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = (Brush)FindResource("Theme.Primary")
+            Foreground = isPlanCompleted
+                ? rewardText
+                : (Brush)FindResource("Theme.Primary")
         };
         hoursBadge.Child = hoursText;
         Grid.SetColumn(hoursBadge, 1);
@@ -543,7 +603,7 @@ public partial class CalendarPlannerWindow : Window
             PlanActivityComboBox.SelectedItem = plan.Activity;
         }
 
-        PlanHoursTextBox.Text = plan.PlannedHours.ToString("0.##");
+        PlanHoursTextBox.Text = plan.PlannedHours < 1.0 ? TimeFormatHelper.FormatHours(plan.PlannedHours) : plan.PlannedHours.ToString("0.##");
         PlanNoteTextBox.Text = plan.Note;
 
         SavePlanButton.Content = "💾 Update Plan";
@@ -567,7 +627,7 @@ public partial class CalendarPlannerWindow : Window
         {
             PlanNoteTextBox.Text = string.Empty;
         }
-        PlanHoursTextBox.Text = "4.0";
+        PlanHoursTextBox.Text = "4h";
         SavePlanButton.Content = "💾 Save Plan";
         CancelEditButton.Visibility = Visibility.Collapsed;
         UpdateDaySelectionUI();
@@ -586,9 +646,9 @@ public partial class CalendarPlannerWindow : Window
             return;
         }
 
-        if (!double.TryParse(PlanHoursTextBox.Text.Trim(), out double hours) || hours <= 0 || hours > 24)
+        if (!TimeFormatHelper.TryParseDurationHours(PlanHoursTextBox.Text.Trim(), out double hours) || hours <= 0 || hours > 24)
         {
-            ThemedMessageBox.ShowWarning(this, "Please enter a valid planned hours amount between 0.1 and 24 hours.", "Invalid Hours");
+            ThemedMessageBox.ShowWarning(this, "Please enter a valid planned duration (e.g. 1m, 30m, 1h, 1.5, 4h).", "Invalid Duration");
             return;
         }
 
@@ -598,7 +658,7 @@ public partial class CalendarPlannerWindow : Window
             Date = date.Date,
             ProjectName = project,
             Activity = activity,
-            PlannedHours = Math.Round(hours, 2),
+            PlannedHours = hours,
             Note = note,
             CreatedAt = DateTime.Now
         };

@@ -21,6 +21,7 @@ public class WorkRestSettings
     public int CyclesBeforeLongBreak { get; set; } = 4;
     public bool SoundAlertEnabled { get; set; } = true;
     public int SoundVolume { get; set; } = 75;
+    public int GoalMilestoneSoundVolume { get; set; } = 75; // Fanfare volume (0-100) specifically for goal milestone sounds
     public bool SoundOnStartEnabled { get; set; } = true;
     public bool SoundOnEndEnabled { get; set; } = true;
     public bool SoundOnGoalAchievedEnabled { get; set; } = true;
@@ -65,6 +66,17 @@ public class WorkRestSettings
     public int FocusStreak { get; set; } = 0;
     public int TotalSessionsCompleted { get; set; } = 0;
 
+    // Goal Milestone Rewards & Notification Settings
+    public string CompletionRewardIcon { get; set; } = "Star"; // "Star", "Dinosaur", "Brontosaurus", "Trophy", "Medal", "Rocket", "Target", "Crown", "Checkmark"
+    public string CompletionRewardColor { get; set; } = "ThemeDefault"; // "ThemeDefault", "Gold", "Emerald", "Coral", "Violet", "Ocean", "Rose"
+    public bool GoalNotificationsEnabled { get; set; } = true; // Master toggle for all goal achievement popups
+    public bool DailyGoalNotificationEnabled { get; set; } = true;
+    public bool WeeklyGoalNotificationEnabled { get; set; } = true;
+    public bool ProjectGoalNotificationEnabled { get; set; } = true;
+
+    [JsonIgnore]
+    public string RewardIconEmoji => RewardIconHelper.GetIconEmoji(CompletionRewardIcon);
+
     [JsonIgnore]
     public int FocusLevel => Math.Max(1, (FocusXp / 100) + 1);
 
@@ -102,4 +114,46 @@ public class IntervalPreset
     public int CyclesBeforeLongBreak { get; set; }
 
     public override string ToString() => Name;
+}
+
+public class RewardIconOption
+{
+    public string Key { get; set; } = "Star";
+    public string DisplayName { get; set; } = "⭐ Gold Star";
+    public string Emoji { get; set; } = "⭐";
+
+    public override string ToString() => DisplayName;
+}
+
+public static class RewardIconHelper
+{
+    public static readonly IReadOnlyList<RewardIconOption> AvailableIcons = new List<RewardIconOption>
+    {
+        new() { Key = "Star", DisplayName = "⭐ Gold Star", Emoji = "⭐" },
+        new() { Key = "Dinosaur", DisplayName = "🦖 T-Rex Dinosaur", Emoji = "🦖" },
+        new() { Key = "Brontosaurus", DisplayName = "🦕 Brontosaurus Dinosaur", Emoji = "🦕" },
+        new() { Key = "Trophy", DisplayName = "🏆 Victory Trophy", Emoji = "🏆" },
+        new() { Key = "Medal", DisplayName = "🏅 Gold Medal", Emoji = "🏅" },
+        new() { Key = "Rocket", DisplayName = "🚀 Rocket", Emoji = "🚀" },
+        new() { Key = "Target", DisplayName = "🎯 Target Bullseye", Emoji = "🎯" },
+        new() { Key = "Crown", DisplayName = "👑 Royal Crown", Emoji = "👑" },
+        new() { Key = "Checkmark", DisplayName = "✅ Classic Checkmark", Emoji = "✅" }
+    };
+
+    public static string GetIconEmoji(string? iconKey)
+    {
+        return (iconKey ?? "Star").Trim().ToLowerInvariant() switch
+        {
+            "dinosaur" or "trex" or "dino" => "🦖",
+            "brontosaurus" or "sauropod" or "green_dino" => "🦕",
+            "trophy" => "🏆",
+            "medal" => "🏅",
+            "rocket" => "🚀",
+            "target" or "bullseye" => "🎯",
+            "crown" => "👑",
+            "checkmark" or "check" => "✅",
+            "fire" or "flame" => "🔥",
+            "star" or _ => "⭐"
+        };
+    }
 }

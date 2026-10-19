@@ -37,7 +37,7 @@ public partial class CopyToOtherDaysDialog : Window
     private void PopulateSourceTask()
     {
         ProjectNameText.Text = string.IsNullOrWhiteSpace(_sourcePlan.ProjectName) ? "General" : _sourcePlan.ProjectName;
-        PlannedHoursText.Text = $"{_sourcePlan.PlannedHours:0.0} hrs/day";
+        PlannedHoursText.Text = $"{_sourcePlan.FormattedHours}/day";
         SourceDateText.Text = $"📅 {_sourcePlan.Date:dddd, dd MMM yyyy}";
 
         if (!string.IsNullOrWhiteSpace(_sourcePlan.Activity))
@@ -90,13 +90,13 @@ public partial class CopyToOtherDaysDialog : Window
 
             TargetDatesText.Text = sb.ToString().TrimEnd();
             double totalHours = _sourcePlan.PlannedHours * days;
-            SummaryTotalText.Text = $"Total planned hours added: {totalHours:0.0} hrs ({days} × {_sourcePlan.PlannedHours:0.0}h)";
+            SummaryTotalText.Text = $"Total planned hours added: {TimeFormatHelper.FormatHoursWithUnit(totalHours, "0 mins")} ({days} × {_sourcePlan.FormattedHours})";
         }
         else
         {
             CopySubmitButton.IsEnabled = false;
             TargetDatesText.Text = "Please enter a valid positive number of days (at least 1).";
-            SummaryTotalText.Text = "Total planned hours added: 0.0 hrs";
+            SummaryTotalText.Text = "Total planned hours added: 0 mins";
         }
     }
 

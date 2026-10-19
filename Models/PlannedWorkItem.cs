@@ -1,3 +1,5 @@
+using VitorsWeeklyWorkTracking.Services;
+
 namespace VitorsWeeklyWorkTracking.Models;
 
 public class PlannedWorkItem
@@ -10,21 +12,14 @@ public class PlannedWorkItem
     public string Note { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    public string FormattedHours
-    {
-        get
-        {
-            int hours = (int)PlannedHours;
-            int minutes = (int)Math.Round((PlannedHours - hours) * 60);
-            if (minutes == 0)
-                return $"{hours}h";
-            if (hours == 0)
-                return $"{minutes}m";
-            return $"{hours}h {minutes}m";
-        }
-    }
+    public string FormattedHours => TimeFormatHelper.FormatHours(PlannedHours);
 
     public string FormattedDate => Date.ToString("yyyy-MM-dd");
     public string DayOfWeekName => Date.ToString("dddd");
     public string ShortDayDate => Date.ToString("ddd, dd MMM");
+
+    public bool IsCompleted { get; set; } = false;
+    public string RewardIcon { get; set; } = "⭐";
+    public string FormattedProjectWithReward => ProjectName;
+    public string CompletionStatusText => IsCompleted ? $"{RewardIcon} Goal Met" : "In Progress";
 }
