@@ -13,6 +13,16 @@ public class CalendarPlanStorage
     private static CalendarPlanStorage? _instance;
     public static CalendarPlanStorage Instance => _instance ??= new CalendarPlanStorage();
 
+    public static void SetInstanceForTesting(CalendarPlanStorage? instance)
+    {
+        _instance = instance;
+    }
+
+    public static void ResetInstance()
+    {
+        _instance = null;
+    }
+
     public event Action? PlansChanged;
     private readonly object _lock = new();
     private List<PlannedWorkItem>? _cachedPlans;
@@ -242,6 +252,11 @@ public class CalendarPlanStorage
     {
         var dateOnly = date.Date;
         var dayPlans = GetPlansForDate(dateOnly);
+        foreach (var p in dayPlans)
+        {
+            p.ActualHours = CalculatePlanItemActualHours(p, allEntries);
+            p.IsCompleted = IsPlanItemCompleted(p, allEntries);
+        }
         double plannedHours = dayPlans.Sum(p => p.PlannedHours);
 
         var dayEntries = allEntries
@@ -418,6 +433,11 @@ public class CalendarPlanStorage
         var dayPlans = GetPlansForDate(dateOnly)
             .Where(p => p.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
             .ToList();
+        foreach (var p in dayPlans)
+        {
+            p.ActualHours = CalculatePlanItemActualHours(p, allEntries);
+            p.IsCompleted = IsPlanItemCompleted(p, allEntries);
+        }
         double plannedHours = dayPlans.Sum(p => p.PlannedHours);
 
         var dayEntries = allEntries
@@ -458,6 +478,11 @@ public class CalendarPlanStorage
         var weekPlans = GetPlansForRange(monday, sunday)
             .Where(p => p.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
             .ToList();
+        foreach (var p in weekPlans)
+        {
+            p.ActualHours = CalculatePlanItemActualHours(p, allEntries);
+            p.IsCompleted = IsPlanItemCompleted(p, allEntries);
+        }
         double plannedHours = weekPlans.Sum(p => p.PlannedHours);
 
         var weekEntries = allEntries

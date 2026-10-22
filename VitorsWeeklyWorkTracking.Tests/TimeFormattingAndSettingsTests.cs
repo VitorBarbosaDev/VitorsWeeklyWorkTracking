@@ -238,22 +238,77 @@ public class TimeFormattingAndSettingsTests
     [Fact]
     public void PlannedWorkItem_RewardAndStatusProperties_FormatCorrectly()
     {
-        var plan = new PlannedWorkItem
+        var planToday = new PlannedWorkItem
         {
+            Date = DateTime.Today,
             ProjectName = "Alpha",
             PlannedHours = 1.0,
+            ActualHours = 0.0,
             IsCompleted = false
         };
 
-        Assert.Equal("Alpha", plan.FormattedProjectWithReward);
-        Assert.Equal("In Progress", plan.CompletionStatusText);
+        Assert.Equal("Alpha", planToday.FormattedProjectWithReward);
+        Assert.Equal("⚪ Not Started Yet", planToday.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.NotStarted, planToday.StatusCategory);
 
-        plan.IsCompleted = true;
-        plan.RewardIcon = "🦖";
+        var planFuture = new PlannedWorkItem
+        {
+            Date = DateTime.Today.AddDays(2),
+            ProjectName = "Alpha",
+            PlannedHours = 2.0,
+            ActualHours = 0.0,
+            IsCompleted = false
+        };
+        Assert.Equal("⚪ Not Started Yet", planFuture.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.NotStarted, planFuture.StatusCategory);
+
+        var planPastUnstarted = new PlannedWorkItem
+        {
+            Date = DateTime.Today.AddDays(-2),
+            ProjectName = "Alpha",
+            PlannedHours = 2.0,
+            ActualHours = 0.0,
+            IsCompleted = false
+        };
+        Assert.Equal("❌ Goal Not Met", planPastUnstarted.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, planPastUnstarted.StatusCategory);
+
+        var planPastPartial = new PlannedWorkItem
+        {
+            Date = DateTime.Today.AddDays(-1),
+            ProjectName = "Alpha",
+            PlannedHours = 2.0,
+            ActualHours = 1.0,
+            IsCompleted = false
+        };
+        Assert.Equal("❌ Goal Not Met (50%)", planPastPartial.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, planPastPartial.StatusCategory);
+
+        var planTodayInProgress = new PlannedWorkItem
+        {
+            Date = DateTime.Today,
+            ProjectName = "Alpha",
+            PlannedHours = 2.0,
+            ActualHours = 1.0,
+            IsCompleted = false
+        };
+        Assert.Equal("⏳ In Progress (50%)", planTodayInProgress.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.InProgress, planTodayInProgress.StatusCategory);
+
+        var planCompleted = new PlannedWorkItem
+        {
+            Date = DateTime.Today,
+            ProjectName = "Alpha",
+            PlannedHours = 1.0,
+            ActualHours = 1.0,
+            IsCompleted = true,
+            RewardIcon = "🦖"
+        };
 
         // Completed planned tasks do not prefix an emoji to their project title, but include it in their status text
-        Assert.Equal("Alpha", plan.FormattedProjectWithReward);
-        Assert.Equal("🦖 Goal Met", plan.CompletionStatusText);
+        Assert.Equal("Alpha", planCompleted.FormattedProjectWithReward);
+        Assert.Equal("🦖 Goal Met", planCompleted.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalMet, planCompleted.StatusCategory);
     }
 
     [Fact]

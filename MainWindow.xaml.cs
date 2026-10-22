@@ -855,7 +855,10 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
         CleanupAndCloseApplication();
-        Application.Current?.Shutdown();
+        if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
+        {
+            Application.Current.Shutdown();
+        }
     }
 
     private void CleanupAndCloseApplication()
@@ -874,7 +877,7 @@ public partial class MainWindow : Window
                 _miniWidget = null;
             }
 
-            if (Application.Current != null)
+            if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
             {
                 foreach (var win in Application.Current.Windows.OfType<Window>().ToArray())
                 {
@@ -1101,6 +1104,22 @@ public partial class MainWindow : Window
         var projectName = selectedProject?.Name ?? ProjectComboBox.Text?.Trim() ?? string.Empty;
         var selectedActivity = ActivityComboBox.SelectedItem as ActivityItem;
         var activity = selectedActivity?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(projectName) && !_projects.Any(p => p.Name.Equals(projectName, StringComparison.OrdinalIgnoreCase)))
+        {
+            var newProj = new Project { Name = projectName, IsActive = true, ColorHex = null };
+            _projects.Add(newProj);
+            _projectStorage.Save(_projects);
+            RefreshProjectsDropdown(projectName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(activity) && !_activities.Any(a => a.Name.Equals(activity, StringComparison.OrdinalIgnoreCase)))
+        {
+            var newAct = new ActivityItem { Name = activity, IsActive = true, ColorHex = null };
+            _activities.Add(newAct);
+            _activityStorage.Save(_activities);
+            RefreshActivitiesDropdown(activity);
+        }
 
         var entry = new TimeEntry
         {

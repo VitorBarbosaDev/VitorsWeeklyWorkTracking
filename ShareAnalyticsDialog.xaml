@@ -212,7 +212,11 @@
                             </Grid>
                         </Border>
 
-                        <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" Background="Transparent" ShowsPreview="False"/>
+                        <GridSplitter Grid.Row="1"
+                                      Height="10"
+                                      HorizontalAlignment="Stretch"
+                                      Style="{StaticResource ModernHorizontalGridSplitter}"
+                                      ToolTip="Drag to resize breakdown tables"/>
 
                         <!-- Secondary Sub-Breakdown -->
                         <Border Grid.Row="2"

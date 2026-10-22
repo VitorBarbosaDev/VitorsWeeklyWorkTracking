@@ -294,19 +294,25 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel VerticalAlignment="Center" Margin="0,0,6,0">
-                    <TextBlock x:Name="MiniProjectText"
-                               Text="Unassigned Project"
-                               FontWeight="SemiBold"
-                               FontSize="11"
-                               Foreground="{DynamicResource Theme.Foreground}"
-                               TextTrimming="CharacterEllipsis"
-                               MaxWidth="170"/>
-                    <TextBlock x:Name="MiniActivityText"
-                               Text="No Activity"
-                               FontSize="10"
-                               Foreground="{DynamicResource Theme.ForegroundMuted}"
-                               TextTrimming="CharacterEllipsis"
-                               MaxWidth="170"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="MiniProjectBullet" Width="7" Height="7" CornerRadius="3.5" Background="{DynamicResource Theme.Primary}" Margin="0 0 5 0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="MiniProjectText"
+                                   Text="Unassigned Project"
+                                   FontWeight="SemiBold"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.Foreground}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="160"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0 1 0 0">
+                        <Border x:Name="MiniActivityBullet" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource Theme.Accent}" Margin="0 0 5 0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="MiniActivityText"
+                                   Text="No Activity"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="160"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

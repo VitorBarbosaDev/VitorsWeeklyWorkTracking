@@ -1,3 +1,8 @@
+using System;
+using System.Text.Json.Serialization;
+using System.Windows.Media;
+using VitorsWeeklyWorkTracking.Services;
+
 namespace VitorsWeeklyWorkTracking.Models;
 
 public class TimeEntry
@@ -10,4 +15,10 @@ public class TimeEntry
     public DateTime EndTime { get; set; }
 
     public TimeSpan Duration => EndTime - StartTime;
+
+    [JsonIgnore]
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
+
+    [JsonIgnore]
+    public SolidColorBrush ActivityBrush => ActivityColorHelper.GetActivityBrush(Activity);
 }

@@ -293,7 +293,9 @@ public partial class MiniTimerWidget : Window
         MiniStatusText.Foreground = statusColor;
 
         MiniProjectText.Text = string.IsNullOrWhiteSpace(projectName) ? "Unassigned Project" : projectName;
+        MiniProjectBullet.Background = ProjectColorHelper.GetProjectBrush(projectName);
         MiniActivityText.Text = string.IsNullOrWhiteSpace(activity) ? "No Activity" : activity;
+        MiniActivityBullet.Background = ActivityColorHelper.GetActivityBrush(activity);
 
         MiniTimerModeButton.Content = isCountDownMode ? "⏳ DOWN" : "⏱ UP";
 

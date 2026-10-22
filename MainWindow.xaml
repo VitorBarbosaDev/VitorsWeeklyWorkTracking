@@ -420,12 +420,22 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <ComboBox x:Name="ProjectComboBox"
-                                          DisplayMemberPath="Name"
-                                          HorizontalAlignment="Stretch"/>
+                                          IsEditable="False"
+                                          TextSearch.TextPath="Name"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Width="10" Height="10" CornerRadius="5" Background="{Binding Brush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                                 <Button x:Name="AddProjectQuickButton"
                                         Grid.Column="1"
                                         Content="+"
-                                        ToolTip="Add / Manage Projects"
+                                        ToolTip="Add / Manage Projects &amp; Colors"
                                         FontWeight="Bold"
                                         FontSize="13"
                                         Width="28"
@@ -449,13 +459,22 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <ComboBox x:Name="ActivityComboBox"
-                                          DisplayMemberPath="Name"
-                                          IsEditable="True"
-                                          HorizontalAlignment="Stretch"/>
+                                          IsEditable="False"
+                                          TextSearch.TextPath="Name"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Border Width="10" Height="10" CornerRadius="5" Background="{Binding Brush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                                 <Button x:Name="AddActivityQuickButton"
                                         Grid.Column="1"
                                         Content="+"
-                                        ToolTip="Add / Manage Activities"
+                                        ToolTip="Add / Manage Activities &amp; Colors"
                                         FontWeight="Bold"
                                         FontSize="13"
                                         Width="28"
@@ -785,8 +804,26 @@
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="135"/>
-                        <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="120"/>
+                        <DataGridTemplateColumn Header="Project" Width="135" SortMemberPath="ProjectName">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ProjectBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding ProjectName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Activity" Width="120" SortMemberPath="Activity">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ActivityBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Activity}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Description / Task" Binding="{Binding Description}" Width="*"/>
                         <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="78"/>
                         <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="78"/>

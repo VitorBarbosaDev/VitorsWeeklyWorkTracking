@@ -674,6 +674,187 @@ public partial class ThemedMessageBox : Window
         Show(owner, message, title, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
+    /// <summary>
+    /// Displays a themed input prompt dialog and returns the entered string, or null if cancelled.
+    /// </summary>
+    public static string? Prompt(
+        Window? owner,
+        string message,
+        string title = "Input",
+        string defaultValue = "",
+        string okButtonText = "OK",
+        string cancelButtonText = "Cancel",
+        string? subtitle = null,
+        Func<string, string?>? validator = null)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 440,
+            MinWidth = 360,
+            MaxWidth = 520,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+            SnapsToDevicePixels = true,
+            UseLayoutRounding = true
+        };
+        dialog.SetResourceReference(Window.BackgroundProperty, "Theme.WindowBackground");
+        dialog.SetResourceReference(Window.ForegroundProperty, "Theme.Foreground");
+        WindowTitleBarHelper.ApplyThemeTitleBar(dialog);
+        SetOwner(dialog, owner);
+
+        try
+        {
+            var iconUri = new Uri("pack://application:,,,/VitorWeeklyWorkTracking.ico", UriKind.RelativeOrAbsolute);
+            dialog.Icon = BitmapFrame.Create(iconUri);
+        }
+        catch { }
+
+        var outerBorder = new Border { Padding = new Thickness(16) };
+        var cardBorder = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(18, 16, 18, 16)
+        };
+        cardBorder.SetResourceReference(Border.BackgroundProperty, "Theme.CardBackground");
+        cardBorder.SetResourceReference(Border.BorderBrushProperty, "Theme.CardBorder");
+
+        var mainStack = new StackPanel();
+
+        var titleBlock = new TextBlock
+        {
+            Text = title,
+            FontSize = 14,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 4)
+        };
+        titleBlock.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Foreground");
+        mainStack.Children.Add(titleBlock);
+
+        if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            var subBlock = new TextBlock
+            {
+                Text = subtitle,
+                FontSize = 11,
+                Margin = new Thickness(0, 0, 0, 8),
+                TextWrapping = TextWrapping.Wrap
+            };
+            subBlock.SetResourceReference(TextBlock.ForegroundProperty, "Theme.ForegroundMuted");
+            mainStack.Children.Add(subBlock);
+        }
+
+        var messageBlock = new TextBlock
+        {
+            Text = message,
+            FontSize = 12.5,
+            Margin = new Thickness(0, 0, 0, 10),
+            TextWrapping = TextWrapping.Wrap
+        };
+        messageBlock.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Foreground");
+        mainStack.Children.Add(messageBlock);
+
+        var textBox = new TextBox
+        {
+            Text = defaultValue,
+            FontSize = 13,
+            Padding = new Thickness(8, 6, 8, 6),
+            Margin = new Thickness(0, 0, 0, 4)
+        };
+        textBox.SelectAll();
+        mainStack.Children.Add(textBox);
+
+        var errorBlock = new TextBlock
+        {
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(0, 0, 0, 10),
+            Visibility = Visibility.Collapsed,
+            TextWrapping = TextWrapping.Wrap
+        };
+        errorBlock.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Danger");
+        mainStack.Children.Add(errorBlock);
+
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+
+        var cancelBtn = new Button
+        {
+            Content = cancelButtonText,
+            Padding = new Thickness(14, 5, 14, 5),
+            Height = 30,
+            Margin = new Thickness(0, 0, 8, 0),
+            IsCancel = true
+        };
+        cancelBtn.SetResourceReference(FrameworkElement.StyleProperty, "GhostButton");
+
+        var okBtn = new Button
+        {
+            Content = okButtonText,
+            Padding = new Thickness(16, 5, 16, 5),
+            Height = 30,
+            IsDefault = true
+        };
+        okBtn.SetResourceReference(FrameworkElement.StyleProperty, "PrimaryButton");
+
+        string? result = null;
+
+        void TrySubmit()
+        {
+            var text = textBox.Text;
+            if (validator != null)
+            {
+                var err = validator(text);
+                if (!string.IsNullOrEmpty(err))
+                {
+                    errorBlock.Text = err;
+                    errorBlock.Visibility = Visibility.Visible;
+                    textBox.Focus();
+                    return;
+                }
+            }
+            result = text;
+            dialog.DialogResult = true;
+            dialog.Close();
+        }
+
+        okBtn.Click += (_, _) => TrySubmit();
+        cancelBtn.Click += (_, _) =>
+        {
+            dialog.DialogResult = false;
+            dialog.Close();
+        };
+
+        textBox.KeyDown += (s, e) =>
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                TrySubmit();
+            }
+        };
+
+        buttonPanel.Children.Add(cancelBtn);
+        buttonPanel.Children.Add(okBtn);
+        mainStack.Children.Add(buttonPanel);
+
+        cardBorder.Child = mainStack;
+        outerBorder.Child = cardBorder;
+        dialog.Content = outerBorder;
+
+        dialog.Loaded += (_, _) => textBox.Focus();
+
+        var showResult = dialog.ShowDialog();
+        return showResult == true ? result : null;
+    }
+
     private static void SetOwner(Window dialog, Window? owner)
     {
         try

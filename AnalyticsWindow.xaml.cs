@@ -373,7 +373,8 @@ public partial class AnalyticsWindow : Window
             Label = p.ProjectName,
             Value = p.TotalDuration.TotalSeconds,
             FormattedValue = p.FormattedDuration,
-            Percentage = p.Percentage
+            Percentage = p.Percentage,
+            Color = ProjectColorHelper.GetProjectBrush(p.ProjectName)
         }).ToList();
 
         ProjectPieChart.SetData(projectPieSlices, "Project Breakdown");
@@ -420,7 +421,8 @@ public partial class AnalyticsWindow : Window
             Label = a.Activity,
             Value = a.TotalDuration.TotalSeconds,
             FormattedValue = a.FormattedDuration,
-            Percentage = a.Percentage
+            Percentage = a.Percentage,
+            Color = ActivityColorHelper.GetActivityBrush(a.Activity)
         }).ToList();
 
         ActivityPieChart.SetData(activityPieSlices, "Activity Breakdown");

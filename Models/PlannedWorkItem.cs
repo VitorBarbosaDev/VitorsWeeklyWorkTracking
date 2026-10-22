@@ -29,11 +29,51 @@ public class PlannedWorkItem
     public double CompletionPercentage => PlannedHours > 0 ? (ActualHours / PlannedHours) * 100.0 : (ActualHours > 0 ? 100.0 : 0.0);
     public string FormattedCompletionPercentage => $"{CompletionPercentage:F0}%";
 
-    public string CompletionStatusText => IsCompleted ? $"{RewardIcon} Goal Met" : (ActualHours > 0 ? $"⏳ In Progress ({FormattedCompletionPercentage})" : "In Progress");
+    public GoalStatusCategory StatusCategory
+    {
+        get
+        {
+            if (IsCompleted || (PlannedHours > 0 && ActualHours >= PlannedHours))
+                return GoalStatusCategory.GoalMet;
 
-    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Background;
-    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Border;
-    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Foreground;
+            if (Date.Date < DateTime.Today)
+                return GoalStatusCategory.GoalNotMet;
+
+            if (ActualHours > 0)
+                return GoalStatusCategory.InProgress;
+
+            return GoalStatusCategory.NotStarted;
+        }
+    }
+
+    public string CompletionStatusText
+    {
+        get
+        {
+            if (IsCompleted || (PlannedHours > 0 && ActualHours >= PlannedHours))
+                return $"{RewardIcon} Goal Met";
+
+            if (Date.Date < DateTime.Today)
+            {
+                if (ActualHours > 0)
+                    return $"❌ Goal Not Met ({FormattedCompletionPercentage})";
+                return "❌ Goal Not Met";
+            }
+
+            if (ActualHours > 0)
+                return $"⏳ In Progress ({FormattedCompletionPercentage})";
+
+            return "⚪ Not Started Yet";
+        }
+    }
+
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Foreground;
     public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
-    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsCompleted);
+    public SolidColorBrush ActivityBrush => ActivityColorHelper.GetActivityBrush(Activity);
+    public SolidColorBrush ActivityBadgeBackground => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Background;
+    public SolidColorBrush ActivityBadgeBorder => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Border;
+    public SolidColorBrush ActivityBadgeForeground => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Foreground;
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsCompleted || (PlannedHours > 0 && ActualHours >= PlannedHours));
 }

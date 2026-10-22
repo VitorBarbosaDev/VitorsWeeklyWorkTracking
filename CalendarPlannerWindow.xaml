@@ -212,10 +212,36 @@
                             <DatePicker x:Name="PlanDatePicker" Width="110" Margin="0 0 8 0" SelectedDateChanged="PlanDatePicker_SelectedDateChanged"/>
 
                             <TextBlock Text="Project:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
-                            <ComboBox x:Name="PlanProjectComboBox" Width="125" Margin="0 0 8 0"/>
+                            <ComboBox x:Name="PlanProjectComboBox"
+                                      Width="135"
+                                      Margin="0 0 8 0"
+                                      IsEditable="False"
+                                      TextSearch.TextPath="Name">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="9" Height="9" CornerRadius="4.5" Background="{Binding Brush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
 
                             <TextBlock Text="Activity:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
-                            <ComboBox x:Name="PlanActivityComboBox" Width="110" Margin="0 0 8 0"/>
+                            <ComboBox x:Name="PlanActivityComboBox"
+                                      Width="120"
+                                      Margin="0 0 8 0"
+                                      IsEditable="False"
+                                      TextSearch.TextPath="Name">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="9" Height="9" CornerRadius="4.5" Background="{Binding Brush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
 
                             <TextBlock Text="Duration:" VerticalAlignment="Center" Margin="0 0 4 0" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Planned duration (e.g. 1m, 30m, 1h, 1.5, 4h)"/>
                             <TextBox x:Name="PlanHoursTextBox" Width="52" Margin="0 0 4 0" Text="4h" Padding="4 2" TextAlignment="Center" ToolTip="Enter duration e.g. 1m, 30m, 1h, 1.5, 4h"/>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using VitorsWeeklyWorkTracking.Models;
 using VitorsWeeklyWorkTracking.Services;
@@ -7,8 +8,30 @@ using Xunit;
 
 namespace VitorsWeeklyWorkTracking.Tests;
 
-public class CalendarPlanCopyTests
+public class CalendarPlanCopyTests : IDisposable
 {
+    private readonly string _tempPlanFilePath;
+    private readonly CalendarPlanStorage _testStorage;
+
+    public CalendarPlanCopyTests()
+    {
+        _tempPlanFilePath = Path.Combine(Path.GetTempPath(), $"calendar-plans-test-{Guid.NewGuid():N}.json");
+        _testStorage = new CalendarPlanStorage(_tempPlanFilePath);
+        CalendarPlanStorage.SetInstanceForTesting(_testStorage);
+    }
+
+    public void Dispose()
+    {
+        CalendarPlanStorage.ResetInstance();
+        try
+        {
+            if (File.Exists(_tempPlanFilePath))
+            {
+                File.Delete(_tempPlanFilePath);
+            }
+        }
+        catch { }
+    }
     [Fact]
     public void CopyPlanToSubsequentDays_WithSingleDay_CreatesOneCopyOnNextDay()
     {
@@ -22,7 +45,7 @@ public class CalendarPlanCopyTests
             Note = "Implement copy feature"
         };
 
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, 1);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, 1);
 
         Assert.NotNull(created);
         Assert.Single(created);
@@ -36,7 +59,7 @@ public class CalendarPlanCopyTests
         Assert.Equal(sourcePlan.Note, copy.Note);
 
         // Cleanup
-        CalendarPlanStorage.Instance.DeletePlan(copy.Id);
+        _testStorage.DeletePlan(copy.Id);
     }
 
     [Fact]
@@ -53,7 +76,7 @@ public class CalendarPlanCopyTests
         };
 
         const int daysToExtend = 5;
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, daysToExtend);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, daysToExtend);
 
         Assert.NotNull(created);
         Assert.Equal(daysToExtend, created.Count);
@@ -77,7 +100,7 @@ public class CalendarPlanCopyTests
         // Cleanup
         foreach (var c in created)
         {
-            CalendarPlanStorage.Instance.DeletePlan(c.Id);
+            _testStorage.DeletePlan(c.Id);
         }
     }
 
@@ -94,7 +117,7 @@ public class CalendarPlanCopyTests
             Note = "Closing year tasks"
         };
 
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, 4);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, 4);
 
         Assert.Equal(4, created.Count);
         Assert.Equal(new DateTime(2026, 12, 31), created[0].Date);
@@ -105,7 +128,7 @@ public class CalendarPlanCopyTests
         // Cleanup
         foreach (var c in created)
         {
-            CalendarPlanStorage.Instance.DeletePlan(c.Id);
+            _testStorage.DeletePlan(c.Id);
         }
     }
 
@@ -123,7 +146,7 @@ public class CalendarPlanCopyTests
             PlannedHours = 2.0
         };
 
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, invalidDays);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, invalidDays);
 
         Assert.NotNull(created);
         Assert.Empty(created);
@@ -132,7 +155,7 @@ public class CalendarPlanCopyTests
     [Fact]
     public void CopyPlanToSubsequentDays_WithNullPlan_ReturnsEmptyList()
     {
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(null!, 3);
+        var created = _testStorage.CopyPlanToSubsequentDays(null!, 3);
 
         Assert.NotNull(created);
         Assert.Empty(created);
@@ -152,24 +175,24 @@ public class CalendarPlanCopyTests
             Note = "Check query retrieval"
         };
 
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, 2);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, 2);
 
         // Query by date
-        var day1Plans = CalendarPlanStorage.Instance.GetPlansForDate(testDate.AddDays(1));
+        var day1Plans = _testStorage.GetPlansForDate(testDate.AddDays(1));
         Assert.Contains(day1Plans, p => p.Id == created[0].Id);
 
-        var day2Plans = CalendarPlanStorage.Instance.GetPlansForDate(testDate.AddDays(2));
+        var day2Plans = _testStorage.GetPlansForDate(testDate.AddDays(2));
         Assert.Contains(day2Plans, p => p.Id == created[1].Id);
 
         // Query by range
-        var rangePlans = CalendarPlanStorage.Instance.GetPlansForRange(testDate, testDate.AddDays(2));
+        var rangePlans = _testStorage.GetPlansForRange(testDate, testDate.AddDays(2));
         Assert.Contains(rangePlans, p => p.Id == created[0].Id);
         Assert.Contains(rangePlans, p => p.Id == created[1].Id);
 
         // Cleanup
         foreach (var c in created)
         {
-            CalendarPlanStorage.Instance.DeletePlan(c.Id);
+            _testStorage.DeletePlan(c.Id);
         }
     }
 
@@ -186,7 +209,7 @@ public class CalendarPlanCopyTests
             Note = ""
         };
 
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, 3);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, 3);
 
         Assert.Equal(3, created.Count);
         foreach (var copy in created)
@@ -201,7 +224,7 @@ public class CalendarPlanCopyTests
         // Cleanup
         foreach (var c in created)
         {
-            CalendarPlanStorage.Instance.DeletePlan(c.Id);
+            _testStorage.DeletePlan(c.Id);
         }
     }
 
@@ -219,7 +242,7 @@ public class CalendarPlanCopyTests
         };
 
         const int daysCount = 30;
-        var created = CalendarPlanStorage.Instance.CopyPlanToSubsequentDays(sourcePlan, daysCount);
+        var created = _testStorage.CopyPlanToSubsequentDays(sourcePlan, daysCount);
 
         Assert.Equal(daysCount, created.Count);
         Assert.Equal(new DateTime(2026, 3, 2), created.First().Date);
@@ -231,7 +254,7 @@ public class CalendarPlanCopyTests
         // Cleanup
         foreach (var c in created)
         {
-            CalendarPlanStorage.Instance.DeletePlan(c.Id);
+            _testStorage.DeletePlan(c.Id);
         }
     }
 }

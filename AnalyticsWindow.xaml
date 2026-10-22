@@ -310,11 +310,12 @@
                         </Grid>
                     </Border>
 
-                    <!-- Split Grid: Left (Day-by-Day Goal Comparison), Right (Project Goal Comparison) -->
+                    <!-- Split Grid: Left (Day-by-Day Goal Comparison), Center (Draggable Barrier / Splitter), Right (Project Goal Comparison) -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="460"/>
+                            <ColumnDefinition Width="1.3*" MinWidth="240"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="1*" MinWidth="240"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Left: Daily Goal Accomplishment Table -->
@@ -324,7 +325,7 @@
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 ClipToBounds="True"
-                                Margin="0 0 6 0">
+                                Margin="0 0 2 0">
                             <Grid>
                                 <DataGrid x:Name="GoalsDailyDataGrid"
                                           AutoGenerateColumns="False"
@@ -436,14 +437,25 @@
                             </Grid>
                         </Border>
 
+                        <!-- Draggable Barrier / Splitter between Daily and Project Goal Tables -->
+                        <GridSplitter x:Name="GoalsTableGridSplitter"
+                                      Grid.Column="1"
+                                      Width="10"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Stretch"
+                                      ResizeBehavior="PreviousAndNext"
+                                      ResizeDirection="Columns"
+                                      Style="{StaticResource ModernVerticalGridSplitter}"
+                                      ToolTip="Drag barrier to resize tables"/>
+
                         <!-- Right: Project Goals Table -->
-                        <Border Grid.Column="1"
+                        <Border Grid.Column="2"
                                 Background="{DynamicResource Theme.CardBackground}"
                                 BorderBrush="{DynamicResource Theme.CardBorder}"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 ClipToBounds="True"
-                                Margin="6 0 0 0">
+                                Margin="2 0 0 0">
                             <Grid>
                                 <DataGrid x:Name="GoalsProjectDataGrid"
                                           AutoGenerateColumns="False"
@@ -525,15 +537,17 @@
             <TabItem Header="📁 Project Breakdown">
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="290"/>
+                        <ColumnDefinition Width="3*" MinWidth="320"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="1*" MinWidth="220"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
-                            ClipToBounds="True">
+                            ClipToBounds="True"
+                            Margin="0 0 2 0">
                         <Grid>
                             <DataGrid x:Name="ProjectsDataGrid"
                                       AutoGenerateColumns="False"
@@ -546,7 +560,16 @@
                                     </ContextMenu>
                                 </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Project" Width="160" SortMemberPath="ProjectName">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="10" Height="10" CornerRadius="5" Background="{Binding ProjectBrush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
                                     <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
                                     <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
@@ -576,31 +599,41 @@
                             </Border>
                         </Grid>
                     </Border>
-                    <Border Grid.Column="1"
+                    <GridSplitter Grid.Column="1"
+                                  Width="10"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Stretch"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ResizeDirection="Columns"
+                                  Style="{StaticResource ModernVerticalGridSplitter}"
+                                  ToolTip="Drag to resize table and pie chart"/>
+                    <Border Grid.Column="2"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="8"
-                            Margin="8 0 0 0">
+                            Margin="2 0 0 0">
                         <controls:PieChartControl x:Name="ProjectPieChart"/>
                     </Border>
                 </Grid>
             </TabItem>
 
-            <!-- Tab 3: Activity Breakdown -->
+            <!-- Tab 4: Activity Breakdown -->
             <TabItem Header="🏷️ Activity Breakdown">
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="290"/>
+                        <ColumnDefinition Width="3*" MinWidth="320"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="1*" MinWidth="220"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
-                            ClipToBounds="True">
+                            ClipToBounds="True"
+                            Margin="0 0 2 0">
                         <Grid>
                             <DataGrid x:Name="ActivitiesDataGrid"
                                       AutoGenerateColumns="False"
@@ -613,7 +646,16 @@
                                     </ContextMenu>
                                 </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="160"/>
+                                    <DataGridTemplateColumn Header="Activity" Width="160" SortMemberPath="Activity">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="10" Height="10" CornerRadius="5" Background="{Binding ActivityBrush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Activity}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
                                     <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="85"/>
                                     <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
@@ -643,31 +685,41 @@
                             </Border>
                         </Grid>
                     </Border>
-                    <Border Grid.Column="1"
+                    <GridSplitter Grid.Column="1"
+                                  Width="10"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Stretch"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ResizeDirection="Columns"
+                                  Style="{StaticResource ModernVerticalGridSplitter}"
+                                  ToolTip="Drag to resize table and pie chart"/>
+                    <Border Grid.Column="2"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="8"
-                            Margin="8 0 0 0">
+                            Margin="2 0 0 0">
                         <controls:PieChartControl x:Name="ActivityPieChart"/>
                     </Border>
                 </Grid>
             </TabItem>
 
-            <!-- Tab 4: Task Breakdown -->
+            <!-- Tab 5: Task Breakdown -->
             <TabItem Header="📝 Task Breakdown">
                 <Grid Margin="6">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="290"/>
+                        <ColumnDefinition Width="3*" MinWidth="320"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="1*" MinWidth="220"/>
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
                             Background="{DynamicResource Theme.CardBackground}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
-                            ClipToBounds="True">
+                            ClipToBounds="True"
+                            Margin="0 0 2 0">
                         <Grid>
                             <DataGrid x:Name="TasksDataGrid"
                                       AutoGenerateColumns="False"
@@ -681,8 +733,26 @@
                                 </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="120"/>
-                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="110"/>
+                                    <DataGridTemplateColumn Header="Project" Width="130" SortMemberPath="ProjectName">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ProjectBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding ProjectName}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Activity" Width="130" SortMemberPath="Activity">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ActivityBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Activity}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="100"/>
                                     <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=\{0:F2\} hrs}" Width="80"/>
                                     <DataGridTextColumn Header="Sessions" Binding="{Binding EntryCount}" Width="65"/>
@@ -712,13 +782,21 @@
                             </Border>
                         </Grid>
                     </Border>
-                    <Border Grid.Column="1"
+                    <GridSplitter Grid.Column="1"
+                                  Width="10"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Stretch"
+                                  ResizeBehavior="PreviousAndNext"
+                                  ResizeDirection="Columns"
+                                  Style="{StaticResource ModernVerticalGridSplitter}"
+                                  ToolTip="Drag to resize table and pie chart"/>
+                    <Border Grid.Column="2"
                             Background="{DynamicResource Theme.CardBackgroundAlt}"
                             BorderBrush="{DynamicResource Theme.CardBorder}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="8"
-                            Margin="8 0 0 0">
+                            Margin="2 0 0 0">
                         <controls:PieChartControl x:Name="TaskPieChart"/>
                     </Border>
                 </Grid>
@@ -854,8 +932,26 @@
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Date" Binding="{Binding StartTime, StringFormat=\{0:yyyy-MM-dd\}}" Width="95"/>
-                                    <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="135"/>
-                                    <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="120"/>
+                                    <DataGridTemplateColumn Header="Project" Width="135" SortMemberPath="ProjectName">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ProjectBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding ProjectName}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Activity" Width="120" SortMemberPath="Activity">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ActivityBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Activity}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
                                     <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>
                                     <DataGridTextColumn Header="End" Binding="{Binding EndTime, StringFormat=\{0:HH:mm:ss\}}" Width="75"/>

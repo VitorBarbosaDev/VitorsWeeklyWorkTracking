@@ -27,8 +27,8 @@ public class GoalAndCalendarColorTests
         string hexNull = ProjectColorHelper.GetProjectColorHex(null);
         string hexEmpty = ProjectColorHelper.GetProjectColorHex("   ");
 
-        Assert.Equal("#94A3B8", hexNull);
-        Assert.Equal("#94A3B8", hexEmpty);
+        Assert.Equal(ProjectColorHelper.DefaultProjectColorHex, hexNull);
+        Assert.Equal(ProjectColorHelper.DefaultProjectColorHex, hexEmpty);
 
         var brush = ProjectColorHelper.GetProjectBrush(null);
         Assert.NotNull(brush);
@@ -54,6 +54,7 @@ public class GoalAndCalendarColorTests
     [InlineData(GoalStatusCategory.Unplanned)]
     [InlineData(GoalStatusCategory.NotStarted)]
     [InlineData(GoalStatusCategory.RestDay)]
+    [InlineData(GoalStatusCategory.GoalNotMet)]
     public void GoalColorHelper_GetStatusBrushes_ReturnsNonEmptyBrushesForBothThemes(GoalStatusCategory category)
     {
         var light = GoalColorHelper.GetStatusBrushes(category, isDark: false);
@@ -94,6 +95,11 @@ public class GoalAndCalendarColorTests
         var notStarted = GoalColorHelper.GetStatusBrushesForDailyGoal(5.0, 0, isDark: false);
         var notStartedExpected = GoalColorHelper.GetStatusBrushes(GoalStatusCategory.NotStarted, isDark: false);
         Assert.Equal(notStartedExpected.Background.Color, notStarted.Background.Color);
+
+        // Goal Not Met for past date: actual < planned
+        var pastNotMet = GoalColorHelper.GetStatusBrushesForDailyGoal(5.0, 0, DateTime.Today.AddDays(-1), isDark: false);
+        var notMetExpected = GoalColorHelper.GetStatusBrushes(GoalStatusCategory.GoalNotMet, isDark: false);
+        Assert.Equal(notMetExpected.Background.Color, pastNotMet.Background.Color);
     }
 
     [Fact]
@@ -186,6 +192,7 @@ public class GoalAndCalendarColorTests
         Exception? threadException = null;
         var thread = new System.Threading.Thread(() =>
         {
+            string? tempPlanFile = null;
             try
             {
                 if (System.Windows.Application.Current == null)
@@ -194,6 +201,10 @@ public class GoalAndCalendarColorTests
                     app.InitializeComponent();
                     ThemeManager.Initialize();
                 }
+
+                tempPlanFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"goal_test_plans_{Guid.NewGuid():N}.json");
+                var testPlanStorage = new CalendarPlanStorage(tempPlanFile);
+                CalendarPlanStorage.SetInstanceForTesting(testPlanStorage);
 
                 var today = DateTime.Today;
                 var testEntries = new List<TimeEntry>
@@ -228,7 +239,7 @@ public class GoalAndCalendarColorTests
                     new ActivityItem { Name = "Design" }
                 };
 
-                CalendarPlanStorage.Instance.Save(new List<PlannedWorkItem>
+                testPlanStorage.Save(new List<PlannedWorkItem>
                 {
                     new PlannedWorkItem
                     {
@@ -253,11 +264,34 @@ public class GoalAndCalendarColorTests
                 Assert.NotNull(window.GoalsDailyDataGrid.ItemsSource);
                 Assert.NotNull(window.GoalsProjectDataGrid.ItemsSource);
 
+                // Verify draggable splitter between goals tables
+                Assert.NotNull(window.GoalsTableGridSplitter);
+                Assert.Equal(1, System.Windows.Controls.Grid.GetColumn(window.GoalsTableGridSplitter));
+                Assert.Equal(System.Windows.Controls.GridResizeBehavior.PreviousAndNext, window.GoalsTableGridSplitter.ResizeBehavior);
+                Assert.Equal(System.Windows.Controls.GridResizeDirection.Columns, window.GoalsTableGridSplitter.ResizeDirection);
+
+                // Verify parent split grid column layout
+                var splitGrid = window.GoalsTableGridSplitter.Parent as System.Windows.Controls.Grid;
+                Assert.NotNull(splitGrid);
+                Assert.Equal(3, splitGrid.ColumnDefinitions.Count);
+                Assert.True(splitGrid.ColumnDefinitions[0].MinWidth >= 200);
+                Assert.True(splitGrid.ColumnDefinitions[2].MinWidth >= 200);
+
                 window.Close();
             }
             catch (Exception ex)
             {
                 threadException = ex;
+            }
+            finally
+            {
+                CalendarPlanStorage.ResetInstance();
+                try
+                {
+                    if (tempPlanFile != null && System.IO.File.Exists(tempPlanFile))
+                        System.IO.File.Delete(tempPlanFile);
+                }
+                catch { }
             }
         });
 
@@ -277,6 +311,7 @@ public class GoalAndCalendarColorTests
         Exception? threadException = null;
         var thread = new System.Threading.Thread(() =>
         {
+            string? tempPlanFile = null;
             try
             {
                 if (System.Windows.Application.Current == null)
@@ -285,6 +320,10 @@ public class GoalAndCalendarColorTests
                     app.InitializeComponent();
                     ThemeManager.Initialize();
                 }
+
+                tempPlanFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"planner_test_plans_{Guid.NewGuid():N}.json");
+                var testPlanStorage = new CalendarPlanStorage(tempPlanFile);
+                CalendarPlanStorage.SetInstanceForTesting(testPlanStorage);
 
                 var today = DateTime.Today;
                 var testEntries = new List<TimeEntry>
@@ -309,7 +348,7 @@ public class GoalAndCalendarColorTests
                     new ActivityItem { Name = "Development" }
                 };
 
-                CalendarPlanStorage.Instance.Save(new List<PlannedWorkItem>
+                testPlanStorage.Save(new List<PlannedWorkItem>
                 {
                     new PlannedWorkItem
                     {
@@ -333,6 +372,16 @@ public class GoalAndCalendarColorTests
             {
                 threadException = ex;
             }
+            finally
+            {
+                CalendarPlanStorage.ResetInstance();
+                try
+                {
+                    if (tempPlanFile != null && System.IO.File.Exists(tempPlanFile))
+                        System.IO.File.Delete(tempPlanFile);
+                }
+                catch { }
+            }
         });
 
         thread.SetApartmentState(System.Threading.ApartmentState.STA);
@@ -343,5 +392,132 @@ public class GoalAndCalendarColorTests
         {
             throw new Exception("STA test thread threw an exception", threadException);
         }
+    }
+
+    [Fact]
+    public void AppResources_DefinesModernGridSplitterStyles()
+    {
+        Exception? threadException = null;
+        var thread = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var vertStyle = System.Windows.Application.Current.TryFindResource("ModernVerticalGridSplitter") as System.Windows.Style;
+                var horizStyle = System.Windows.Application.Current.TryFindResource("ModernHorizontalGridSplitter") as System.Windows.Style;
+
+                Assert.NotNull(vertStyle);
+                Assert.NotNull(horizStyle);
+                Assert.Equal(typeof(System.Windows.Controls.GridSplitter), vertStyle.TargetType);
+                Assert.Equal(typeof(System.Windows.Controls.GridSplitter), horizStyle.TargetType);
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(System.Threading.ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void PlannedWorkItem_StatusCategoriesAndTexts_ForPastPresentFuture()
+    {
+        // Future date, unstarted
+        var future = new PlannedWorkItem { Date = DateTime.Today.AddDays(3), PlannedHours = 2.0, ActualHours = 0.0 };
+        Assert.Equal("⚪ Not Started Yet", future.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.NotStarted, future.StatusCategory);
+
+        // Future date, in progress
+        var futureInProgress = new PlannedWorkItem { Date = DateTime.Today.AddDays(3), PlannedHours = 2.0, ActualHours = 0.5 };
+        Assert.Equal("⏳ In Progress (25%)", futureInProgress.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.InProgress, futureInProgress.StatusCategory);
+
+        // Today, unstarted
+        var todayUnstarted = new PlannedWorkItem { Date = DateTime.Today, PlannedHours = 2.0, ActualHours = 0.0 };
+        Assert.Equal("⚪ Not Started Yet", todayUnstarted.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.NotStarted, todayUnstarted.StatusCategory);
+
+        // Today, in progress
+        var todayInProgress = new PlannedWorkItem { Date = DateTime.Today, PlannedHours = 4.0, ActualHours = 3.0 };
+        Assert.Equal("⏳ In Progress (75%)", todayInProgress.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.InProgress, todayInProgress.StatusCategory);
+
+        // Past date, unstarted -> Goal Not Met
+        var pastUnstarted = new PlannedWorkItem { Date = DateTime.Today.AddDays(-2), PlannedHours = 2.0, ActualHours = 0.0 };
+        Assert.Equal("❌ Goal Not Met", pastUnstarted.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, pastUnstarted.StatusCategory);
+
+        // Past date, partial -> Goal Not Met (percentage)
+        var pastPartial = new PlannedWorkItem { Date = DateTime.Today.AddDays(-1), PlannedHours = 2.0, ActualHours = 1.0 };
+        Assert.Equal("❌ Goal Not Met (50%)", pastPartial.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, pastPartial.StatusCategory);
+
+        // Past date, met
+        var pastMet = new PlannedWorkItem { Date = DateTime.Today.AddDays(-1), PlannedHours = 2.0, ActualHours = 2.0, IsCompleted = true, RewardIcon = "⭐" };
+        Assert.Equal("⭐ Goal Met", pastMet.CompletionStatusText);
+        Assert.Equal(GoalStatusCategory.GoalMet, pastMet.StatusCategory);
+    }
+
+    [Fact]
+    public void DailyGoalSummary_StatusCategoriesAndTexts_ForPastPresentFuture()
+    {
+        // Rest day
+        var rest = new DailyGoalSummary { Date = DateTime.Today, PlannedHours = 0, ActualHours = 0 };
+        Assert.Equal("💤 Rest Day", rest.StatusText);
+        Assert.Equal(GoalStatusCategory.RestDay, rest.StatusCategory);
+
+        // Unplanned work
+        var unplanned = new DailyGoalSummary { Date = DateTime.Today, PlannedHours = 0, ActualHours = 2.0 };
+        Assert.Contains("Unplanned", unplanned.StatusText);
+        Assert.Equal(GoalStatusCategory.Unplanned, unplanned.StatusCategory);
+
+        // Goal met
+        var met = new DailyGoalSummary { Date = DateTime.Today, PlannedHours = 2.0, ActualHours = 2.5 };
+        Assert.Contains("Goal Met", met.StatusText);
+        Assert.Equal(GoalStatusCategory.GoalMet, met.StatusCategory);
+
+        // Future unstarted
+        var future = new DailyGoalSummary { Date = DateTime.Today.AddDays(2), PlannedHours = 2.0, ActualHours = 0.0 };
+        Assert.Equal("⚪ Not Started Yet", future.StatusText);
+        Assert.Equal(GoalStatusCategory.NotStarted, future.StatusCategory);
+
+        // Past unstarted
+        var pastUnstarted = new DailyGoalSummary { Date = DateTime.Today.AddDays(-2), PlannedHours = 2.0, ActualHours = 0.0 };
+        Assert.Equal("❌ Goal Not Met", pastUnstarted.StatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, pastUnstarted.StatusCategory);
+
+        // Past partial
+        var pastPartial = new DailyGoalSummary { Date = DateTime.Today.AddDays(-1), PlannedHours = 4.0, ActualHours = 1.0 };
+        Assert.Equal("❌ Goal Not Met (25%)", pastPartial.StatusText);
+        Assert.Equal(GoalStatusCategory.GoalNotMet, pastPartial.StatusCategory);
+    }
+
+    [Fact]
+    public void DailyAnalyticsItem_GoalStatusText_ForPastPresentFuture()
+    {
+        var pastUnstarted = new DailyAnalyticsItem { Date = DateTime.Today.AddDays(-1), PlannedHours = 2.0, TotalDuration = TimeSpan.Zero };
+        Assert.Equal("❌ Goal Not Met", pastUnstarted.GoalStatusText);
+
+        var pastPartial = new DailyAnalyticsItem { Date = DateTime.Today.AddDays(-1), PlannedHours = 4.0, TotalDuration = TimeSpan.FromHours(1) };
+        Assert.Equal("❌ Goal Not Met (25%)", pastPartial.GoalStatusText);
+
+        var futureUnstarted = new DailyAnalyticsItem { Date = DateTime.Today.AddDays(1), PlannedHours = 2.0, TotalDuration = TimeSpan.Zero };
+        Assert.Equal("⚪ Not Started Yet", futureUnstarted.GoalStatusText);
+
+        var todayInProgress = new DailyAnalyticsItem { Date = DateTime.Today, PlannedHours = 4.0, TotalDuration = TimeSpan.FromHours(2) };
+        Assert.Equal("⏳ In Progress (50%)", todayInProgress.GoalStatusText);
     }
 }

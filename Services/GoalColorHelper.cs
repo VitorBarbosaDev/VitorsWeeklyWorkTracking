@@ -9,7 +9,8 @@ public enum GoalStatusCategory
     InProgress,
     Unplanned,
     NotStarted,
-    RestDay
+    RestDay,
+    GoalNotMet
 }
 
 public static class GoalColorHelper
@@ -41,13 +42,17 @@ public static class GoalColorHelper
                 ? (CreateBrush("#451A03"), CreateBrush("#F59E0B"), CreateBrush("#FCD34D"))
                 : (CreateBrush("#FEF3C7"), CreateBrush("#FDE68A"), CreateBrush("#B45309")),
 
+            GoalStatusCategory.GoalNotMet => dark
+                ? (CreateBrush("#451A1A"), CreateBrush("#EF4444"), CreateBrush("#FCA5A5"))
+                : (CreateBrush("#FEE2E2"), CreateBrush("#FCA5A5"), CreateBrush("#DC2626")),
+
             GoalStatusCategory.RestDay or _ => dark
                 ? (CreateBrush("#1E293B"), CreateBrush("#475569"), CreateBrush("#94A3B8"))
                 : (CreateBrush("#F1F5F9"), CreateBrush("#CBD5E1"), CreateBrush("#64748B"))
         };
     }
 
-    public static (SolidColorBrush Background, SolidColorBrush Border, SolidColorBrush Foreground) GetStatusBrushesForDailyGoal(double plannedHours, double actualHours, bool? isDark = null)
+    public static (SolidColorBrush Background, SolidColorBrush Border, SolidColorBrush Foreground) GetStatusBrushesForDailyGoal(double plannedHours, double actualHours, DateTime? date = null, bool? isDark = null)
     {
         if (plannedHours <= 0 && actualHours <= 0)
             return GetStatusBrushes(GoalStatusCategory.RestDay, isDark);
@@ -57,6 +62,9 @@ public static class GoalColorHelper
 
         if (actualHours >= plannedHours)
             return GetStatusBrushes(GoalStatusCategory.GoalMet, isDark);
+
+        if (date.HasValue && date.Value.Date < DateTime.Today)
+            return GetStatusBrushes(GoalStatusCategory.GoalNotMet, isDark);
 
         if (actualHours > 0)
             return GetStatusBrushes(GoalStatusCategory.InProgress, isDark);

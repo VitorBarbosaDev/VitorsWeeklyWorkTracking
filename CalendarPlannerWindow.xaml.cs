@@ -50,44 +50,78 @@ public partial class CalendarPlannerWindow : Window
 
     private void PopulateDropdowns()
     {
-        PlanProjectComboBox.Items.Clear();
-        var projects = _allProjects.Where(p => p.IsActive).Select(p => p.Name)
-            .Union(_allProjects.Select(p => p.Name))
-            .Union(_allEntries.Select(e => e.ProjectName))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct()
-            .OrderBy(n => n)
-            .ToList();
-
-        if (projects.Count == 0)
+        var projectMap = new Dictionary<string, Project>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in _allProjects)
         {
-            projects.Add("General Freelance");
+            if (!string.IsNullOrWhiteSpace(p.Name) && !projectMap.ContainsKey(p.Name))
+            {
+                projectMap[p.Name] = p;
+            }
+        }
+        foreach (var e in _allEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(e.ProjectName) && !projectMap.ContainsKey(e.ProjectName))
+            {
+                projectMap[e.ProjectName] = new Project { Name = e.ProjectName, IsActive = true };
+            }
         }
 
-        foreach (var proj in projects)
+        var projectList = projectMap.Values.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
+        if (projectList.Count == 0 && projectMap.Count > 0)
         {
-            PlanProjectComboBox.Items.Add(proj);
+            projectList = projectMap.Values.OrderBy(p => p.Name).ToList();
         }
-        PlanProjectComboBox.SelectedIndex = 0;
-
-        PlanActivityComboBox.Items.Clear();
-        var activities = (_allActivities.Count > 0 ? _allActivities.Where(a => a.IsActive).Select(a => a.Name) : ActivityStorage.DefaultActivities)
-            .Union(_allEntries.Select(e => e.Activity))
-            .Where(act => !string.IsNullOrWhiteSpace(act))
-            .Distinct()
-            .OrderBy(a => a)
-            .ToList();
-
-        if (activities.Count == 0)
+        if (projectList.Count == 0)
         {
-            activities.Add("Development");
+            projectList.Add(new Project { Name = "General Freelance", IsActive = true });
         }
 
-        foreach (var act in activities)
+        PlanProjectComboBox.ItemsSource = null;
+        PlanProjectComboBox.ItemsSource = projectList;
+        if (projectList.Count > 0)
         {
-            PlanActivityComboBox.Items.Add(act);
+            PlanProjectComboBox.SelectedIndex = 0;
         }
-        PlanActivityComboBox.SelectedIndex = 0;
+
+        var activityMap = new Dictionary<string, ActivityItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in _allActivities)
+        {
+            if (!string.IsNullOrWhiteSpace(a.Name) && !activityMap.ContainsKey(a.Name))
+            {
+                activityMap[a.Name] = a;
+            }
+        }
+        foreach (var defName in ActivityStorage.DefaultActivities)
+        {
+            if (!activityMap.ContainsKey(defName))
+            {
+                activityMap[defName] = new ActivityItem { Name = defName, IsActive = true };
+            }
+        }
+        foreach (var e in _allEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(e.Activity) && !activityMap.ContainsKey(e.Activity))
+            {
+                activityMap[e.Activity] = new ActivityItem { Name = e.Activity, IsActive = true };
+            }
+        }
+
+        var activityList = activityMap.Values.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
+        if (activityList.Count == 0 && activityMap.Count > 0)
+        {
+            activityList = activityMap.Values.OrderBy(a => a.Name).ToList();
+        }
+        if (activityList.Count == 0)
+        {
+            activityList.Add(new ActivityItem { Name = "Development", IsActive = true });
+        }
+
+        PlanActivityComboBox.ItemsSource = null;
+        PlanActivityComboBox.ItemsSource = activityList;
+        if (activityList.Count > 0)
+        {
+            PlanActivityComboBox.SelectedIndex = 0;
+        }
     }
 
     private void LoadWeekData()
@@ -395,10 +429,11 @@ public partial class CalendarPlannerWindow : Window
         // Activity and Notes
         if (!string.IsNullOrWhiteSpace(plan.Activity))
         {
+            var (actBg, actBorder, actFg) = ActivityColorHelper.GetActivityBadgeBrushes(plan.Activity);
             var actBadge = new Border
             {
-                Background = (Brush)FindResource("Theme.CardBackground"),
-                BorderBrush = (Brush)FindResource("Theme.CardBorder"),
+                Background = actBg,
+                BorderBrush = actBorder,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(3),
                 Padding = new Thickness(4, 1, 4, 1),
@@ -409,7 +444,8 @@ public partial class CalendarPlannerWindow : Window
             {
                 Text = $"🏷️ {plan.Activity}",
                 FontSize = 8.5,
-                Foreground = (Brush)FindResource("Theme.ForegroundMuted"),
+                FontWeight = FontWeights.SemiBold,
+                Foreground = actFg,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             actBadge.Child = actText;
@@ -528,14 +564,26 @@ public partial class CalendarPlannerWindow : Window
         // Activity tag if present
         if (!string.IsNullOrWhiteSpace(plan.Activity))
         {
+            var (actBg, actBorder, actFg) = ActivityColorHelper.GetActivityBadgeBrushes(plan.Activity);
+            var actBadge = new Border
+            {
+                Background = actBg,
+                BorderBrush = actBorder,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(5, 1.5, 5, 1.5),
+                Margin = new Thickness(0, 0, 0, 4),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
             var actText = new TextBlock
             {
                 Text = $"🏷️ {plan.Activity}",
-                FontSize = 10.5,
-                Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
-                Margin = new Thickness(0, 0, 0, 3)
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = actFg
             };
-            container.Children.Add(actText);
+            actBadge.Child = actText;
+            container.Children.Add(actBadge);
         }
 
         // Date info
@@ -632,19 +680,40 @@ public partial class CalendarPlannerWindow : Window
         _selectedPlanDate = plan.Date;
         PlanDatePicker.SelectedDate = plan.Date;
 
-        if (!PlanProjectComboBox.Items.Contains(plan.ProjectName))
+        if (!string.IsNullOrWhiteSpace(plan.ProjectName))
         {
-            PlanProjectComboBox.Items.Add(plan.ProjectName);
+            var projectItems = PlanProjectComboBox.ItemsSource as List<Project> ?? new List<Project>();
+            var matched = projectItems.FirstOrDefault(p => p.Name.Equals(plan.ProjectName, StringComparison.OrdinalIgnoreCase));
+            if (matched != null)
+            {
+                PlanProjectComboBox.SelectedItem = matched;
+            }
+            else
+            {
+                var newProj = new Project { Name = plan.ProjectName, IsActive = true };
+                projectItems.Add(newProj);
+                PlanProjectComboBox.ItemsSource = null;
+                PlanProjectComboBox.ItemsSource = projectItems;
+                PlanProjectComboBox.SelectedItem = newProj;
+            }
         }
-        PlanProjectComboBox.SelectedItem = plan.ProjectName;
 
         if (!string.IsNullOrWhiteSpace(plan.Activity))
         {
-            if (!PlanActivityComboBox.Items.Contains(plan.Activity))
+            var activityItems = PlanActivityComboBox.ItemsSource as List<ActivityItem> ?? new List<ActivityItem>();
+            var matched = activityItems.FirstOrDefault(a => a.Name.Equals(plan.Activity, StringComparison.OrdinalIgnoreCase));
+            if (matched != null)
             {
-                PlanActivityComboBox.Items.Add(plan.Activity);
+                PlanActivityComboBox.SelectedItem = matched;
             }
-            PlanActivityComboBox.SelectedItem = plan.Activity;
+            else
+            {
+                var newAct = new ActivityItem { Name = plan.Activity, IsActive = true };
+                activityItems.Add(newAct);
+                PlanActivityComboBox.ItemsSource = null;
+                PlanActivityComboBox.ItemsSource = activityItems;
+                PlanActivityComboBox.SelectedItem = newAct;
+            }
         }
 
         PlanHoursTextBox.Text = plan.PlannedHours < 1.0 ? TimeFormatHelper.FormatHours(plan.PlannedHours) : plan.PlannedHours.ToString("0.##");
@@ -680,8 +749,12 @@ public partial class CalendarPlannerWindow : Window
     private void SavePlanButton_Click(object sender, RoutedEventArgs e)
     {
         var date = PlanDatePicker.SelectedDate ?? DateTime.Today;
-        var project = PlanProjectComboBox.SelectedItem?.ToString() ?? PlanProjectComboBox.Text?.Trim() ?? string.Empty;
-        var activity = PlanActivityComboBox.SelectedItem?.ToString() ?? PlanActivityComboBox.Text?.Trim() ?? string.Empty;
+        var selectedProj = PlanProjectComboBox.SelectedItem as Project;
+        var project = selectedProj?.Name ?? PlanProjectComboBox.Text?.Trim() ?? PlanProjectComboBox.SelectedItem?.ToString() ?? string.Empty;
+
+        var selectedAct = PlanActivityComboBox.SelectedItem as ActivityItem;
+        var activity = selectedAct?.Name ?? PlanActivityComboBox.Text?.Trim() ?? PlanActivityComboBox.SelectedItem?.ToString() ?? string.Empty;
+
         var note = PlanNoteTextBox.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(project))
@@ -907,8 +980,11 @@ public partial class CalendarPlannerWindow : Window
 
     private void ApplyWeeklyTemplate(double hoursPerDay, int dayCount, string templateName)
     {
-        var project = PlanProjectComboBox.SelectedItem?.ToString() ?? "General Freelance";
-        var activity = PlanActivityComboBox.SelectedItem?.ToString() ?? "Development";
+        var selectedProj = PlanProjectComboBox.SelectedItem as Project;
+        var project = selectedProj?.Name ?? PlanProjectComboBox.Text?.Trim() ?? PlanProjectComboBox.SelectedItem?.ToString() ?? "General Freelance";
+
+        var selectedAct = PlanActivityComboBox.SelectedItem as ActivityItem;
+        var activity = selectedAct?.Name ?? PlanActivityComboBox.Text?.Trim() ?? PlanActivityComboBox.SelectedItem?.ToString() ?? "Development";
 
         var confirmed = ThemedMessageBox.Confirm(
             this,

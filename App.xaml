@@ -1640,6 +1640,129 @@
             <Setter Property="FontSize" Value="12"/>
         </Style>
 
+        <!-- Modern Vertical GridSplitter Style -->
+        <Style x:Key="ModernVerticalGridSplitter" TargetType="{x:Type GridSplitter}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ShowsPreview" Value="False"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="SizeWE"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+            <Setter Property="ResizeDirection" Value="Columns"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridSplitter}">
+                        <Border Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                                <Border x:Name="Track"
+                                        Width="2"
+                                        CornerRadius="1"
+                                        Background="{DynamicResource Theme.CardBorder}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Stretch"
+                                        Opacity="0.8"/>
+                                <Border x:Name="Handle"
+                                        Width="6"
+                                        Height="36"
+                                        CornerRadius="3"
+                                        Background="{DynamicResource Theme.CardBorder}"
+                                        BorderBrush="{DynamicResource Theme.CardBackground}"
+                                        BorderThickness="1"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="0 1"/>
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="0 1"/>
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="0 1"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Theme.Primary}"/>
+                                <Setter TargetName="Track" Property="Width" Value="3"/>
+                                <Setter TargetName="Handle" Property="Background" Value="{DynamicResource Theme.Primary}"/>
+                                <Setter TargetName="Handle" Property="Width" Value="8"/>
+                                <Setter TargetName="Handle" Property="Height" Value="42"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Theme.PrimaryHover}"/>
+                                <Setter TargetName="Track" Property="Width" Value="3"/>
+                                <Setter TargetName="Handle" Property="Background" Value="{DynamicResource Theme.PrimaryHover}"/>
+                                <Setter TargetName="Handle" Property="Width" Value="8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Horizontal GridSplitter Style -->
+        <Style x:Key="ModernHorizontalGridSplitter" TargetType="{x:Type GridSplitter}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ShowsPreview" Value="False"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="SizeNS"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+            <Setter Property="ResizeDirection" Value="Rows"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridSplitter}">
+                        <Border Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                <Border x:Name="Track"
+                                        Height="2"
+                                        CornerRadius="1"
+                                        Background="{DynamicResource Theme.CardBorder}"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center"
+                                        Opacity="0.8"/>
+                                <Border x:Name="Handle"
+                                        Height="6"
+                                        Width="36"
+                                        CornerRadius="3"
+                                        Background="{DynamicResource Theme.CardBorder}"
+                                        BorderBrush="{DynamicResource Theme.CardBackground}"
+                                        BorderThickness="1"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="1 0"/>
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="1 0"/>
+                                        <Border Width="2" Height="2" CornerRadius="1" Background="{DynamicResource Theme.ForegroundMuted}" Margin="1 0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Theme.Primary}"/>
+                                <Setter TargetName="Track" Property="Height" Value="3"/>
+                                <Setter TargetName="Handle" Property="Background" Value="{DynamicResource Theme.Primary}"/>
+                                <Setter TargetName="Handle" Property="Height" Value="8"/>
+                                <Setter TargetName="Handle" Property="Width" Value="42"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Theme.PrimaryHover}"/>
+                                <Setter TargetName="Track" Property="Height" Value="3"/>
+                                <Setter TargetName="Handle" Property="Background" Value="{DynamicResource Theme.PrimaryHover}"/>
+                                <Setter TargetName="Handle" Property="Height" Value="8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Default GridSplitter Style uses Vertical by default -->
+        <Style TargetType="{x:Type GridSplitter}" BasedOn="{StaticResource ModernVerticalGridSplitter}"/>
+
         <!-- Card Container Style Helper -->
         <Style x:Key="ModernCard" TargetType="{x:Type Border}">
             <Setter Property="Background" Value="{DynamicResource Theme.CardBackground}"/>

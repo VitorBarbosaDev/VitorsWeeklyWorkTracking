@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Media;
 using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking.Models;
@@ -14,6 +15,8 @@ public class ProjectAnalyticsItem
     public double Percentage { get; set; }
     public string FormattedPercentage => $"{Percentage:F1}%";
     public int EntryCount { get; set; }
+
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
 }
 
 public class ActivityAnalyticsItem
@@ -25,6 +28,8 @@ public class ActivityAnalyticsItem
     public double Percentage { get; set; }
     public string FormattedPercentage => $"{Percentage:F1}%";
     public int EntryCount { get; set; }
+
+    public SolidColorBrush ActivityBrush => ActivityColorHelper.GetActivityBrush(Activity);
 }
 
 public class TaskAnalyticsItem
@@ -38,6 +43,9 @@ public class TaskAnalyticsItem
     public double Percentage { get; set; }
     public string FormattedPercentage => $"{Percentage:F1}%";
     public int EntryCount { get; set; }
+
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
+    public SolidColorBrush ActivityBrush => ActivityColorHelper.GetActivityBrush(Activity);
 }
 
 public class DailyAnalyticsItem
@@ -83,8 +91,13 @@ public class DailyAnalyticsItem
             if (PlannedHours <= 0 && TotalHours <= 0) return "💤 Rest Day";
             if (PlannedHours <= 0 && TotalHours > 0) return $"✨ +{TimeFormatHelper.FormatHours(TotalHours)} Unplanned";
             if (TotalHours >= PlannedHours) return $"🎯 Goal Met ({CompletionPercentage:F0}%)";
+            if (Date.Date < DateTime.Today)
+            {
+                if (TotalHours > 0) return $"❌ Goal Not Met ({CompletionPercentage:F0}%)";
+                return "❌ Goal Not Met";
+            }
             if (TotalHours > 0) return $"⏳ In Progress ({CompletionPercentage:F0}%)";
-            return "⚠️ Not Started";
+            return "⚪ Not Started Yet";
         }
     }
 }

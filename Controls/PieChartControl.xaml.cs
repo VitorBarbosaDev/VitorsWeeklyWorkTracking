@@ -77,6 +77,8 @@ public partial class PieChartControl : UserControl
     public static event Action? ChartPreferencesChanged;
     public event EventHandler<PieSliceItem>? SliceClicked;
 
+    public IReadOnlyList<PieSliceItem> Slices => _slices;
+
     public static void SetGlobalPreferences(ChartStyle style, ChartPalette palette)
     {
         GlobalChartStyle = style;
@@ -154,10 +156,19 @@ public partial class PieChartControl : UserControl
         foreach (var item in rawList)
         {
             var percentage = totalSeconds > 0 ? (item.Value / totalSeconds) * 100.0 : 0.0;
-            var hex = paletteColors[colorIdx % paletteColors.Count];
-            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-            brush.Freeze();
-            colorIdx++;
+            Brush brush;
+            if (item.Color != null)
+            {
+                brush = item.Color;
+            }
+            else
+            {
+                var hex = paletteColors[colorIdx % paletteColors.Count];
+                var solid = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+                solid.Freeze();
+                brush = solid;
+                colorIdx++;
+            }
 
             var formattedVal = !string.IsNullOrWhiteSpace(item.FormattedValue)
                 ? item.FormattedValue

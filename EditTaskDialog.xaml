@@ -56,8 +56,18 @@
                             <TextBlock Text="📁 Project" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 0 4"/>
                             <ComboBox x:Name="ProjectComboBox"
                                       IsEditable="True"
+                                      TextSearch.TextPath="Name"
                                       Height="32"
-                                      VerticalContentAlignment="Center"/>
+                                      VerticalContentAlignment="Center">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="10" Height="10" CornerRadius="5" Background="{Binding Brush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
 
                         <!-- Activity -->
@@ -65,8 +75,18 @@
                             <TextBlock Text="🏷️ Activity" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 0 4"/>
                             <ComboBox x:Name="ActivityComboBox"
                                       IsEditable="True"
+                                      TextSearch.TextPath="Name"
                                       Height="32"
-                                      VerticalContentAlignment="Center"/>
+                                      VerticalContentAlignment="Center">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="10" Height="10" CornerRadius="5" Background="{Binding Brush}" Margin="0 0 7 0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
                     </Grid>
 

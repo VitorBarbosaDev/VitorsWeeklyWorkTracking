@@ -44,6 +44,24 @@ public class DailyGoalSummary
 
     public bool IsGoalMet => PlannedHours > 0 && ActualHours >= PlannedHours;
 
+    public GoalStatusCategory StatusCategory
+    {
+        get
+        {
+            if (PlannedHours <= 0 && ActualHours <= 0)
+                return GoalStatusCategory.RestDay;
+            if (PlannedHours <= 0 && ActualHours > 0)
+                return GoalStatusCategory.Unplanned;
+            if (ActualHours >= PlannedHours)
+                return GoalStatusCategory.GoalMet;
+            if (Date.Date < DateTime.Today)
+                return GoalStatusCategory.GoalNotMet;
+            if (ActualHours > 0)
+                return GoalStatusCategory.InProgress;
+            return GoalStatusCategory.NotStarted;
+        }
+    }
+
     public string StatusText
     {
         get
@@ -54,9 +72,15 @@ public class DailyGoalSummary
                 return $"✨ +{TimeFormatHelper.FormatHours(ActualHours)} Unplanned";
             if (ActualHours >= PlannedHours)
                 return $"🎯 Goal Met ({CompletionPercentage:F0}%)";
+            if (Date.Date < DateTime.Today)
+            {
+                if (ActualHours > 0)
+                    return $"❌ Goal Not Met ({CompletionPercentage:F0}%)";
+                return "❌ Goal Not Met";
+            }
             if (ActualHours > 0)
                 return $"⏳ In Progress ({CompletionPercentage:F0}%)";
-            return "⚠️ Not Started";
+            return "⚪ Not Started Yet";
         }
     }
 
@@ -67,12 +91,12 @@ public class DailyGoalSummary
     public List<PlannedWorkItem> PlannedItems { get; set; } = new();
 
     public string ShortDateFormatted => Date.ToString("dd MMM");
-    public string DayStatusEmoji => IsGoalMet ? "✅" : (PlannedHours <= 0 && ActualHours <= 0 ? "💤" : (ActualHours > 0 ? "⏳" : "—"));
+    public string DayStatusEmoji => IsGoalMet ? "✅" : (PlannedHours <= 0 && ActualHours <= 0 ? "💤" : (Date.Date < DateTime.Today ? "❌" : (ActualHours > 0 ? "⏳" : "⚪")));
 
     public bool IsWeekend => Date.DayOfWeek == DayOfWeek.Saturday || Date.DayOfWeek == DayOfWeek.Sunday;
-    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Background;
-    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Border;
-    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Foreground;
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Foreground;
     public SolidColorBrush VarianceForegroundBrush => GoalColorHelper.GetVarianceBrush(VarianceHours, PlannedHours, ActualHours);
     public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsGoalMet);
 }
@@ -174,13 +198,30 @@ public class PlannedTaskItemViewModel
     public bool IsCompleted => PlannedHours > 0 && ActualHours >= PlannedHours;
     public string FormattedActual => TimeFormatHelper.FormatHours(ActualHours);
     public string FormattedPlanned => Plan.FormattedHours;
+
+    public GoalStatusCategory StatusCategory
+    {
+        get
+        {
+            if (IsCompleted || (PlannedHours > 0 && ActualHours >= PlannedHours))
+                return GoalStatusCategory.GoalMet;
+            if (Plan.Date.Date < DateTime.Today)
+                return GoalStatusCategory.GoalNotMet;
+            if (ActualHours > 0)
+                return GoalStatusCategory.InProgress;
+            return GoalStatusCategory.NotStarted;
+        }
+    }
+
     public string StatusText => IsCompleted 
         ? $"{RewardIcon} Completed ({FormattedPercentage})" 
-        : (ActualHours > 0 ? $"⏳ {FormattedActual} / {FormattedPlanned} ({FormattedPercentage})" : $"⚪ {FormattedPlanned}");
+        : (Plan.Date.Date < DateTime.Today 
+            ? (ActualHours > 0 ? $"❌ Goal Not Met ({FormattedActual} / {FormattedPlanned} • {FormattedPercentage})" : $"❌ Goal Not Met ({FormattedPlanned})")
+            : (ActualHours > 0 ? $"⏳ {FormattedActual} / {FormattedPlanned} ({FormattedPercentage})" : $"⚪ {FormattedPlanned}"));
 
-    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Background;
-    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Border;
-    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Foreground;
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Foreground;
     public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
     public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsCompleted);
 }
