@@ -397,5 +397,117 @@ public class TimeFormattingAndSettingsTests
         Assert.NotNull(restored);
         Assert.Equal(60, restored.SoundVolume);
         Assert.Equal(75, restored.GoalMilestoneSoundVolume);
+        Assert.False(restored.ForceWelcomePopupOnNextLaunch);
+    }
+
+    [Fact]
+    public void WorkRestSettings_ForceWelcomePopupOnNextLaunch_DefaultsToFalse()
+    {
+        var settings = new WorkRestSettings();
+        Assert.False(settings.ForceWelcomePopupOnNextLaunch);
+        Assert.True(settings.WelcomePopupEnabled);
+        Assert.Null(settings.LastWelcomePopupDate);
+    }
+
+    [Fact]
+    public void WorkRestSettings_ShouldShowWelcomePopup_FirstLaunch_ReturnsTrue()
+    {
+        var settings = new WorkRestSettings
+        {
+            WelcomePopupEnabled = true,
+            LastWelcomePopupDate = null,
+            ForceWelcomePopupOnNextLaunch = false
+        };
+
+        var today = new DateTime(2026, 10, 22);
+        Assert.True(settings.ShouldShowWelcomePopup(today));
+    }
+
+    [Fact]
+    public void WorkRestSettings_ShouldShowWelcomePopup_SameDayWithoutForce_ReturnsFalse()
+    {
+        var today = new DateTime(2026, 10, 22);
+        var settings = new WorkRestSettings
+        {
+            WelcomePopupEnabled = true,
+            LastWelcomePopupDate = today,
+            ForceWelcomePopupOnNextLaunch = false
+        };
+
+        Assert.False(settings.ShouldShowWelcomePopup(today));
+    }
+
+    [Fact]
+    public void WorkRestSettings_ShouldShowWelcomePopup_SameDayWithForce_ReturnsTrue()
+    {
+        var today = new DateTime(2026, 10, 22);
+        var settings = new WorkRestSettings
+        {
+            WelcomePopupEnabled = true,
+            LastWelcomePopupDate = today,
+            ForceWelcomePopupOnNextLaunch = true
+        };
+
+        // Even though popup was already shown today, forced flag causes it to show again
+        Assert.True(settings.ShouldShowWelcomePopup(today));
+    }
+
+    [Fact]
+    public void WorkRestSettings_ShouldShowWelcomePopup_Disabled_ReturnsFalseEvenWhenForced()
+    {
+        var today = new DateTime(2026, 10, 22);
+        var settings = new WorkRestSettings
+        {
+            WelcomePopupEnabled = false,
+            LastWelcomePopupDate = today,
+            ForceWelcomePopupOnNextLaunch = true
+        };
+
+        Assert.False(settings.ShouldShowWelcomePopup(today));
+    }
+
+    [Fact]
+    public void WorkRestSettings_MarkWelcomePopupShown_ClearsForceFlagAndUpdatesDate()
+    {
+        var today = new DateTime(2026, 10, 22);
+        var settings = new WorkRestSettings
+        {
+            WelcomePopupEnabled = true,
+            LastWelcomePopupDate = null,
+            ForceWelcomePopupOnNextLaunch = true
+        };
+
+        Assert.True(settings.ShouldShowWelcomePopup(today));
+
+        settings.MarkWelcomePopupShown(today);
+
+        Assert.False(settings.ForceWelcomePopupOnNextLaunch);
+        Assert.Equal(today.Date, settings.LastWelcomePopupDate);
+
+        // Next launch on the same day should now return false (consumed)
+        Assert.False(settings.ShouldShowWelcomePopup(today));
+
+        // Launch on the next day should return true (daily popup)
+        var tomorrow = today.AddDays(1);
+        Assert.True(settings.ShouldShowWelcomePopup(tomorrow));
+    }
+
+    [Fact]
+    public void WorkRestSettings_SerializationAndDeserialization_PreservesForceWelcomePopupOnNextLaunch()
+    {
+        var settings = new WorkRestSettings
+        {
+            UserName = "Vitor",
+            WelcomePopupEnabled = true,
+            ForceWelcomePopupOnNextLaunch = true
+        };
+
+        var json = JsonSerializer.Serialize(settings);
+        var restored = JsonSerializer.Deserialize<WorkRestSettings>(json);
+
+        Assert.NotNull(restored);
+        Assert.True(restored.ForceWelcomePopupOnNextLaunch);
+        Assert.Equal("Vitor", restored.UserName);
+        Assert.True(restored.WelcomePopupEnabled);
     }
 }

@@ -144,14 +144,11 @@ public partial class MainWindow : Window
 
     private void CheckDailyWelcome()
     {
-        if (!_workRestSettings.WelcomePopupEnabled)
-            return;
-
         var today = DateTime.Today;
-        if (_workRestSettings.LastWelcomePopupDate.HasValue && _workRestSettings.LastWelcomePopupDate.Value.Date == today)
+        if (!_workRestSettings.ShouldShowWelcomePopup(today))
             return;
 
-        _workRestSettings.LastWelcomePopupDate = today;
+        _workRestSettings.MarkWelcomePopupShown(today);
         FocusCompanionStorage.Save(_workRestSettings);
 
         var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(today);
@@ -1118,7 +1115,7 @@ public partial class MainWindow : Window
         _entries.Add(entry);
         _storage.Save(_entries);
 
-        _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, TimeSpan.Zero, projectName);
+        _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, TimeSpan.Zero, projectName, entry.StartTime);
 
         RefreshFilterProjectsDropdown();
         RefreshFilterActivitiesDropdown();
@@ -1367,7 +1364,7 @@ public partial class MainWindow : Window
             TimerDisplayTextBlock.Text = displayTime;
 
             // Check Daily and Weekly Goals achievement during active tracking
-            _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, elapsed, projectName);
+            _goalMilestoneTracker.CheckMilestones(DateTime.Today, _entries, elapsed, projectName, _currentStartTime);
 
             // Determine companion animation progress:
             // When Pomodoro mode is ON: animation tracks the Pomodoro focus/break interval progress.
@@ -1681,25 +1678,35 @@ public partial class MainWindow : Window
 
         double activeElapsedHours = 0;
         string? activeProj = null;
+        DateTime? activeStart = null;
         if (_currentStartTime != null)
         {
             activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            activeStart = _currentStartTime.Value;
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            activeStart = _pendingStartTime.Value;
         }
+
+        var effectiveDate = activeStart.HasValue
+            ? CalendarPlanStorage.Instance.GetEffectiveTrackingDate(activeStart.Value, DateTime.Today, activeProj)
+            : DateTime.Today;
 
         if (activeElapsedHours > 0)
         {
-            todaySummary.ActualHours += activeElapsedHours;
-            weeklySummary.TotalActualHours += activeElapsedHours;
-            var todayDaily = weeklySummary.DailySummaries.FirstOrDefault(d => d.Date.Date == DateTime.Today);
-            if (todayDaily != null)
+            if (effectiveDate.Date == DateTime.Today)
             {
-                todayDaily.ActualHours += activeElapsedHours;
+                todaySummary.ActualHours += activeElapsedHours;
+            }
+            var targetDaily = weeklySummary.DailySummaries.FirstOrDefault(d => d.Date.Date == effectiveDate.Date);
+            if (targetDaily != null)
+            {
+                targetDaily.ActualHours += activeElapsedHours;
+                weeklySummary.TotalActualHours += activeElapsedHours;
             }
         }
 
@@ -1793,18 +1800,27 @@ public partial class MainWindow : Window
         double activeElapsedHours = 0;
         string? activeProj = null;
         string? activeAct = null;
+        DateTime? activeStart = null;
         if (_currentStartTime != null)
         {
             activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
             activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+            activeStart = _currentStartTime.Value;
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
             activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+            activeStart = _pendingStartTime.Value;
         }
+
+        var effectiveDate = activeStart.HasValue
+            ? CalendarPlanStorage.Instance.GetEffectiveTrackingDate(activeStart.Value, today, activeProj)
+            : today;
+
+        bool isActiveForToday = (effectiveDate.Date == today.Date);
 
         TodayPlansContainer.Children.Clear();
 
@@ -1825,8 +1841,8 @@ public partial class MainWindow : Window
             totalPlannedHours += plan.PlannedHours;
             double planActualHours = CalendarPlanStorage.Instance.CalculatePlanItemActualHours(plan, _entries);
 
-            // Add active elapsed tracking if active session matches this plan
-            if (activeElapsedHours > 0 && !string.IsNullOrWhiteSpace(activeProj) &&
+            // Add active elapsed tracking if active session matches this plan and contributes to today
+            if (isActiveForToday && activeElapsedHours > 0 && !string.IsNullOrWhiteSpace(activeProj) &&
                 plan.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase))
             {
                 if (string.IsNullOrWhiteSpace(plan.Activity) ||

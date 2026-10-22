@@ -442,7 +442,7 @@ public partial class AnalyticsWindow : Window
 
         // Daily Breakdown
         _currentDailyAnalytics = _currentFilteredEntries
-            .GroupBy(e => e.StartTime.Date)
+            .GroupBy(e => CalendarPlanStorage.Instance.GetEffectiveEntryDate(e))
             .Select(g =>
             {
                 var duration = TimeSpan.FromTicks(g.Sum(x => x.Duration.Ticks));

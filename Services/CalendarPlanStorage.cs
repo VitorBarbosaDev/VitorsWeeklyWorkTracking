@@ -184,6 +184,60 @@ public class CalendarPlanStorage
         return (monday, sunday);
     }
 
+    public bool HasPlannedTaskForProject(string? projectName, DateTime date)
+    {
+        if (string.IsNullOrWhiteSpace(projectName)) return false;
+        var dateOnly = date.Date;
+        return GetPlansForDate(dateOnly)
+            .Any(p => p.ProjectName.Equals(projectName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    public DateTime GetEffectiveEntryDate(TimeEntry? entry)
+    {
+        if (entry == null) return DateTime.Today;
+        var startDate = entry.StartTime.Date;
+        var endDate = (entry.EndTime != default && entry.EndTime >= entry.StartTime)
+            ? entry.EndTime.Date
+            : startDate;
+
+        if (startDate == endDate)
+        {
+            return startDate;
+        }
+
+        // Tracking spans across midnight / day boundary:
+        // If start date already has a task for that project, attribute to start date.
+        // Otherwise, attribute to end date.
+        if (HasPlannedTaskForProject(entry.ProjectName, startDate))
+        {
+            return startDate;
+        }
+
+        return endDate;
+    }
+
+    public DateTime GetEffectiveTrackingDate(DateTime? startTime, DateTime currentDate, string? projectName)
+    {
+        if (!startTime.HasValue) return currentDate.Date;
+        var startDate = startTime.Value.Date;
+        var endDate = currentDate.Date;
+
+        if (startDate == endDate)
+        {
+            return startDate;
+        }
+
+        // Active tracking across midnight:
+        // If start date already has a task for that project, attribute to start date.
+        // Otherwise, attribute to current/new day.
+        if (HasPlannedTaskForProject(projectName, startDate))
+        {
+            return startDate;
+        }
+
+        return endDate;
+    }
+
     public DailyGoalSummary CalculateDailySummary(DateTime date, List<TimeEntry> allEntries)
     {
         var dateOnly = date.Date;
@@ -191,7 +245,7 @@ public class CalendarPlanStorage
         double plannedHours = dayPlans.Sum(p => p.PlannedHours);
 
         var dayEntries = allEntries
-            .Where(e => e.StartTime.Date == dateOnly)
+            .Where(e => GetEffectiveEntryDate(e) == dateOnly)
             .ToList();
 
         var totalDuration = TimeSpan.FromTicks(dayEntries.Sum(e => e.Duration.Ticks));
@@ -235,7 +289,11 @@ public class CalendarPlanStorage
         double totalPlannedHours = weekPlans.Sum(p => p.PlannedHours);
 
         var weekEntries = allEntries
-            .Where(e => e.StartTime.Date >= monday && e.StartTime.Date <= sunday)
+            .Where(e =>
+            {
+                var effDate = GetEffectiveEntryDate(e);
+                return effDate >= monday && effDate <= sunday;
+            })
             .ToList();
 
         var totalActualDuration = TimeSpan.FromTicks(weekEntries.Sum(e => e.Duration.Ticks));
@@ -329,7 +387,7 @@ public class CalendarPlanStorage
         var dateOnly = plan.Date.Date;
 
         var matchingEntries = allEntries
-            .Where(e => e.StartTime.Date == dateOnly && e.ProjectName.Equals(plan.ProjectName, StringComparison.OrdinalIgnoreCase))
+            .Where(e => GetEffectiveEntryDate(e) == dateOnly && e.ProjectName.Equals(plan.ProjectName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (!string.IsNullOrWhiteSpace(plan.Activity))
@@ -363,7 +421,7 @@ public class CalendarPlanStorage
         double plannedHours = dayPlans.Sum(p => p.PlannedHours);
 
         var dayEntries = allEntries
-            .Where(e => e.StartTime.Date == dateOnly && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .Where(e => GetEffectiveEntryDate(e) == dateOnly && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         var totalDuration = TimeSpan.FromTicks(dayEntries.Sum(e => e.Duration.Ticks));
@@ -403,7 +461,11 @@ public class CalendarPlanStorage
         double plannedHours = weekPlans.Sum(p => p.PlannedHours);
 
         var weekEntries = allEntries
-            .Where(e => e.StartTime.Date >= monday && e.StartTime.Date <= sunday && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .Where(e =>
+            {
+                var effDate = GetEffectiveEntryDate(e);
+                return effDate >= monday && effDate <= sunday && e.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase);
+            })
             .ToList();
 
         var totalDuration = TimeSpan.FromTicks(weekEntries.Sum(e => e.Duration.Ticks));

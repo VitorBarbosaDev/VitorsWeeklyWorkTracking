@@ -62,9 +62,30 @@ public class WorkRestSettings
     public string UserName { get; set; } = string.Empty;
     public bool WelcomePopupEnabled { get; set; } = true;
     public DateTime? LastWelcomePopupDate { get; set; } = null;
+    public bool ForceWelcomePopupOnNextLaunch { get; set; } = false;
     public int FocusXp { get; set; } = 0;
     public int FocusStreak { get; set; } = 0;
     public int TotalSessionsCompleted { get; set; } = 0;
+
+    public bool ShouldShowWelcomePopup(DateTime currentDate)
+    {
+        if (!WelcomePopupEnabled)
+            return false;
+
+        if (ForceWelcomePopupOnNextLaunch)
+            return true;
+
+        if (LastWelcomePopupDate.HasValue && LastWelcomePopupDate.Value.Date == currentDate.Date)
+            return false;
+
+        return true;
+    }
+
+    public void MarkWelcomePopupShown(DateTime currentDate)
+    {
+        ForceWelcomePopupOnNextLaunch = false;
+        LastWelcomePopupDate = currentDate.Date;
+    }
 
     // Goal Milestone Rewards & Notification Settings
     public string CompletionRewardIcon { get; set; } = "Star"; // "Star", "Dinosaur", "Brontosaurus", "Trophy", "Medal", "Rocket", "Target", "Crown", "Checkmark"

@@ -58,9 +58,12 @@ public class GoalMilestoneTracker
         }
     }
 
-    public void CheckMilestones(DateTime date, List<TimeEntry> entries, TimeSpan activeTrackingElapsed, string? activeProjectName = null)
+    public void CheckMilestones(DateTime date, List<TimeEntry> entries, TimeSpan activeTrackingElapsed, string? activeProjectName = null, DateTime? activeStartTime = null)
     {
-        var dateOnly = date.Date;
+        var targetDate = activeStartTime.HasValue
+            ? _planStorage.GetEffectiveTrackingDate(activeStartTime.Value, date, activeProjectName)
+            : date.Date;
+        var dateOnly = targetDate.Date;
 
         if (LastCheckDate.HasValue && dateOnly != LastCheckDate.Value)
         {

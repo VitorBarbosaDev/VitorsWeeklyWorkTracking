@@ -1353,4 +1353,280 @@ public class GoalNotificationTests : IDisposable
         var timerVolume = SoundEffectManager.GetEffectiveVolume(SoundEffectType.Start, settings);
         Assert.Equal(30, timerVolume);
     }
+
+    [Fact]
+    public void GetEffectiveEntryDate_SameDay_ReturnsStartTimeDate()
+    {
+        var testDate = new DateTime(2026, 10, 21);
+        var entry = new TimeEntry
+        {
+            ProjectName = "Project Alpha",
+            StartTime = testDate.AddHours(14),
+            EndTime = testDate.AddHours(16)
+        };
+
+        var effDate = _planStorage.GetEffectiveEntryDate(entry);
+        Assert.Equal(testDate.Date, effDate);
+    }
+
+    [Fact]
+    public void GetEffectiveEntryDate_Overnight_WithExistingPlanOnStartDate_ReturnsStartDate()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 2.0 }
+        });
+
+        // Started 11pm on Wednesday, ended 1am on Thursday
+        var entry = new TimeEntry
+        {
+            ProjectName = "Project Alpha",
+            StartTime = day1.AddHours(23),
+            EndTime = day2.AddHours(1)
+        };
+
+        var effDate = _planStorage.GetEffectiveEntryDate(entry);
+        Assert.Equal(day1.Date, effDate);
+    }
+
+    [Fact]
+    public void GetEffectiveEntryDate_Overnight_WithoutExistingPlanOnStartDate_ReturnsEndDate()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        // No plan on day1 for Project Beta, but planned on day2
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 2.0 }
+        });
+
+        var entry = new TimeEntry
+        {
+            ProjectName = "Project Beta",
+            StartTime = day1.AddHours(23),
+            EndTime = day2.AddHours(1)
+        };
+
+        var effDate = _planStorage.GetEffectiveEntryDate(entry);
+        Assert.Equal(day2.Date, effDate);
+    }
+
+    [Fact]
+    public void GetEffectiveTrackingDate_ActiveOvernightTracking_WithPlanOnStartDate_ReturnsStartDate()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 2.0 }
+        });
+
+        var startTime = day1.AddHours(23); // 11pm Wednesday
+        var currentDate = day2; // Thursday
+
+        var effDate = _planStorage.GetEffectiveTrackingDate(startTime, currentDate, "Project Alpha");
+        Assert.Equal(day1.Date, effDate);
+    }
+
+    [Fact]
+    public void GetEffectiveTrackingDate_ActiveOvernightTracking_WithoutPlanOnStartDate_ReturnsEndDate()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 2.0 }
+        });
+
+        var startTime = day1.AddHours(23); // 11pm Wednesday
+        var currentDate = day2; // Thursday
+
+        var effDate = _planStorage.GetEffectiveTrackingDate(startTime, currentDate, "Project Beta");
+        Assert.Equal(day2.Date, effDate);
+    }
+
+    [Fact]
+    public void GoalMilestoneTracker_OvernightTracking_WithPlanOnStartDate_TriggersGoalForStartDate()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 1.5 }
+        });
+
+        var tracker = new GoalMilestoneTracker(_planStorage);
+        var entries = new List<TimeEntry>();
+        tracker.Initialize(day1, entries);
+
+        ProjectGoalSummary? triggeredProjectSummary = null;
+        tracker.ProjectGoalAchieved += (summary, _) =>
+        {
+            triggeredProjectSummary = summary;
+        };
+
+        var activeStart = day1.AddHours(23); // Started 11pm on Wednesday
+        // Active tracking across midnight: now 12:40am on Thursday (100 minutes elapsed)
+        tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(100), "Project Alpha", activeStart);
+
+        Assert.NotNull(triggeredProjectSummary);
+        Assert.Equal("Project Alpha", triggeredProjectSummary.ProjectName);
+        Assert.Equal(day1.Date, triggeredProjectSummary.Date);
+    }
+
+    [Fact]
+    public void GoalMilestoneTracker_OvernightTracking_WithoutPlanOnStartDate_TriggersGoalForNewDay()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 1.0 }
+        });
+
+        var tracker = new GoalMilestoneTracker(_planStorage);
+        var entries = new List<TimeEntry>();
+        tracker.Initialize(day1, entries);
+
+        ProjectGoalSummary? triggeredProjectSummary = null;
+        tracker.ProjectGoalAchieved += (summary, _) =>
+        {
+            triggeredProjectSummary = summary;
+        };
+
+        var activeStart = day1.AddHours(23); // Started 11pm on Wednesday
+        // Active tracking across midnight: now 12:15am on Thursday (75 minutes elapsed)
+        tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(75), "Project Beta", activeStart);
+
+        Assert.NotNull(triggeredProjectSummary);
+        Assert.Equal("Project Beta", triggeredProjectSummary.ProjectName);
+        Assert.Equal(day2.Date, triggeredProjectSummary.Date);
+    }
+
+    [Fact]
+    public void CalendarPlanStorage_OvernightEntry_WithPlanOnStartDate_TicksOffStartDatePlan()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        var planDay1 = new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 2.0 };
+        var planDay2 = new PlannedWorkItem { Date = day2, ProjectName = "Project Alpha", PlannedHours = 2.0 };
+        _planStorage.Save(new List<PlannedWorkItem> { planDay1, planDay2 });
+
+        // User tracked from 11pm Wednesday to 1:15am Thursday (2.25 hours)
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Project Alpha",
+                StartTime = day1.AddHours(23),
+                EndTime = day2.AddHours(1).AddMinutes(15)
+            }
+        };
+
+        // Day 1 plan should have 2.25 hours and be completed (ticked off)
+        double day1ActualHours = _planStorage.CalculatePlanItemActualHours(planDay1, entries);
+        bool day1Completed = _planStorage.IsPlanItemCompleted(planDay1, entries);
+        Assert.Equal(2.25, day1ActualHours);
+        Assert.True(day1Completed);
+
+        // Day 2 plan should have 0 hours and NOT be completed
+        double day2ActualHours = _planStorage.CalculatePlanItemActualHours(planDay2, entries);
+        bool day2Completed = _planStorage.IsPlanItemCompleted(planDay2, entries);
+        Assert.Equal(0.0, day2ActualHours);
+        Assert.False(day2Completed);
+
+        // Daily summaries
+        var day1Summary = _planStorage.CalculateDailySummary(day1, entries);
+        var day2Summary = _planStorage.CalculateDailySummary(day2, entries);
+        Assert.Equal(2.25, day1Summary.ActualHours);
+        Assert.True(day1Summary.IsGoalMet);
+        Assert.Equal(0.0, day2Summary.ActualHours);
+        Assert.False(day2Summary.IsGoalMet);
+    }
+
+    [Fact]
+    public void CalendarPlanStorage_OvernightEntry_WithoutPlanOnStartDate_TicksOffNewDayPlan()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        // No plan on day 1 for Project Beta, but planned on day 2
+        var planDay2 = new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 2.0 };
+        _planStorage.Save(new List<PlannedWorkItem> { planDay2 });
+
+        // User tracked from 11pm Wednesday to 1:15am Thursday (2.25 hours)
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Project Beta",
+                StartTime = day1.AddHours(23),
+                EndTime = day2.AddHours(1).AddMinutes(15)
+            }
+        };
+
+        // Day 2 plan should have 2.25 hours and be completed (ticked off)
+        double day2ActualHours = _planStorage.CalculatePlanItemActualHours(planDay2, entries);
+        bool day2Completed = _planStorage.IsPlanItemCompleted(planDay2, entries);
+        Assert.Equal(2.25, day2ActualHours);
+        Assert.True(day2Completed);
+
+        // Daily summaries
+        var day1Summary = _planStorage.CalculateDailySummary(day1, entries);
+        var day2Summary = _planStorage.CalculateDailySummary(day2, entries);
+        Assert.Equal(0.0, day1Summary.ActualHours);
+        Assert.Equal(2.25, day2Summary.ActualHours);
+        Assert.True(day2Summary.IsGoalMet);
+    }
+
+    [Fact]
+    public void WeeklySummary_OvernightEntry_CorrectlyAllocatesToAppropriateDay()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        var planDay1 = new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 1.0 };
+        var planDay2 = new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 1.0 };
+        _planStorage.Save(new List<PlannedWorkItem> { planDay1, planDay2 });
+
+        var entries = new List<TimeEntry>
+        {
+            // Alpha overnight with plan on day1 -> allocated to Wednesday
+            new TimeEntry
+            {
+                ProjectName = "Project Alpha",
+                StartTime = day1.AddHours(23),
+                EndTime = day2.AddHours(0.5) // 1.5h
+            },
+            // Beta overnight WITHOUT plan on day1 -> allocated to Thursday
+            new TimeEntry
+            {
+                ProjectName = "Project Beta",
+                StartTime = day1.AddHours(23),
+                EndTime = day2.AddHours(0.5) // 1.5h
+            }
+        };
+
+        var weeklySummary = _planStorage.CalculateWeeklySummary(day1, entries);
+        Assert.Equal(2.0, weeklySummary.TotalPlannedHours);
+        Assert.Equal(3.0, weeklySummary.TotalActualHours);
+
+        var wedSummary = weeklySummary.DailySummaries.First(d => d.Date.Date == day1.Date);
+        var thuSummary = weeklySummary.DailySummaries.First(d => d.Date.Date == day2.Date);
+
+        Assert.Equal(1.5, wedSummary.ActualHours);
+        Assert.True(wedSummary.IsGoalMet);
+
+        Assert.Equal(1.5, thuSummary.ActualHours);
+        Assert.True(thuSummary.IsGoalMet);
+    }
 }

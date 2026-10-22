@@ -99,6 +99,7 @@ public partial class WorkRestSettingsDialog : Window
             UserName = currentSettings.UserName,
             WelcomePopupEnabled = currentSettings.WelcomePopupEnabled,
             LastWelcomePopupDate = currentSettings.LastWelcomePopupDate,
+            ForceWelcomePopupOnNextLaunch = currentSettings.ForceWelcomePopupOnNextLaunch,
             FocusXp = currentSettings.FocusXp,
             FocusStreak = currentSettings.FocusStreak,
             TotalSessionsCompleted = currentSettings.TotalSessionsCompleted,
@@ -123,6 +124,7 @@ public partial class WorkRestSettingsDialog : Window
 
             UserNameTextBox.Text = Settings.UserName ?? string.Empty;
             WelcomePopupEnabledCheckBox.IsChecked = Settings.WelcomePopupEnabled;
+            UpdateForceWelcomeButtonState();
 
             // Reward Icon, Color & Goal Notification preferences
             RewardIconComboBox.ItemsSource = RewardIconHelper.AvailableIcons;
@@ -718,6 +720,43 @@ public partial class WorkRestSettingsDialog : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void UpdateForceWelcomeButtonState()
+    {
+        if (ForceWelcomeNextLaunchButton == null) return;
+
+        if (Settings.ForceWelcomePopupOnNextLaunch)
+        {
+            ForceWelcomeNextLaunchButton.Content = "✓ Will show WELCOME BACK POPUP on next launch";
+            ForceWelcomeNextLaunchButton.ToolTip = "The Welcome Back popup is set to display on the next launch. Click to cancel.";
+        }
+        else
+        {
+            ForceWelcomeNextLaunchButton.Content = "Show WELCOME BACK POPUP on next launch";
+            ForceWelcomeNextLaunchButton.ToolTip = "Show the Welcome Back popup again next time the application is launched today.";
+        }
+    }
+
+    private void ForceWelcomeNextLaunchButton_Click(object sender, RoutedEventArgs e)
+    {
+        Settings.ForceWelcomePopupOnNextLaunch = !Settings.ForceWelcomePopupOnNextLaunch;
+        if (Settings.ForceWelcomePopupOnNextLaunch && WelcomePopupEnabledCheckBox.IsChecked != true)
+        {
+            WelcomePopupEnabledCheckBox.IsChecked = true;
+            Settings.WelcomePopupEnabled = true;
+        }
+
+        // Persist immediately to settings storage so it takes effect even if closed without Save
+        var saved = FocusCompanionStorage.Load();
+        saved.ForceWelcomePopupOnNextLaunch = Settings.ForceWelcomePopupOnNextLaunch;
+        if (Settings.ForceWelcomePopupOnNextLaunch)
+        {
+            saved.WelcomePopupEnabled = true;
+        }
+        FocusCompanionStorage.Save(saved);
+
+        UpdateForceWelcomeButtonState();
     }
 
     private void PreviewWelcomeButton_Click(object sender, RoutedEventArgs e)

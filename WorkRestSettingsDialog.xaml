@@ -76,9 +76,20 @@
 
                         <CheckBox x:Name="WelcomePopupEnabledCheckBox"
                                   IsChecked="True"
-                                  Margin="0,0,0,0">
+                                  Margin="0,0,0,8">
                             <TextBlock Text="👋 Show Welcome Back popup with scheduled daily goals on first launch of the day" TextWrapping="Wrap"/>
                         </CheckBox>
+
+                        <Button x:Name="ForceWelcomeNextLaunchButton"
+                                Content="Show WELCOME BACK POPUP on next launch"
+                                Style="{StaticResource GhostButton}"
+                                Height="28"
+                                HorizontalAlignment="Left"
+                                Padding="12,0"
+                                Margin="0,2,0,0"
+                                FontSize="11"
+                                ToolTip="Show the Welcome Back popup again next time the application is launched today"
+                                Click="ForceWelcomeNextLaunchButton_Click"/>
                     </StackPanel>
                 </Border>
 
