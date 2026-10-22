@@ -31,9 +31,10 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Row 1: Period, Week navigation & Planner shortcut -->
+                <!-- Row 0: Period & Week navigation -->
                 <WrapPanel Grid.Row="0" VerticalAlignment="Center" Margin="0 0 0 8">
                     <TextBlock Text="Period:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
                     <ComboBox x:Name="PeriodComboBox" Width="125" Margin="0 0 8 0" SelectionChanged="PeriodComboBox_SelectionChanged">
@@ -45,21 +46,33 @@
                         <ComboBoxItem Content="Custom Range"/>
                     </ComboBox>
 
-                    <Button Content="◀ Prev Week" Width="85" Height="28" Margin="0 0 4 0" Click="PrevWeekButton_Click"/>
-                    <Button Content="Current Week" Width="90" Height="28" Margin="0 0 4 0" Click="CurrentWeekButton_Click"/>
-                    <Button Content="Next Week ▶" Width="85" Height="28" Margin="0 0 10 0" Click="NextWeekButton_Click"/>
+                    <Button Content="◀ Prev Week" Width="100" Height="28" Margin="0 0 4 0" Click="PrevWeekButton_Click"/>
+                    <Button Content="Current Week" Width="150" Height="28" Margin="0 0 4 0" Click="CurrentWeekButton_Click"/>
+                    <Button Content="Next Week ▶" Width="100" Height="28" Margin="0 0 10 0" Click="NextWeekButton_Click"/>
+                </WrapPanel>
 
-                    <Button Content="📅 Work Planner" Style="{StaticResource PrimaryButton}" Height="28" Padding="10 0" Margin="0 0 14 0" Click="OpenCalendarPlanner_Click"/>
-
+                <!-- Row 1: Project & Activity Filters & Actions -->
+                <WrapPanel Grid.Row="1" VerticalAlignment="Center" Margin="0 0 0 8">
                     <TextBlock Text="Project:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
                     <ComboBox x:Name="ProjectFilterComboBox" Width="135" Margin="0 0 10 0" SelectionChanged="Filter_SelectionChanged"/>
 
                     <TextBlock Text="Activity:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.Foreground}"/>
-                    <ComboBox x:Name="ActivityFilterComboBox" Width="135" SelectionChanged="Filter_SelectionChanged"/>
-                </WrapPanel>
+                    <ComboBox x:Name="ActivityFilterComboBox" Width="135" Margin="0 0 10 0" SelectionChanged="Filter_SelectionChanged"/>
 
+                    <Button x:Name="ClearFilterButton"
+                            Content="✕ Clear Filter"
+                            Height="28"
+                            Padding="10 0"
+                            Margin="0 0 10 0"
+                            Click="ClearFilterButton_Click"
+                            Visibility="Collapsed"
+                            ToolTip="Clear applied project and activity filters"/>
+
+                    <Button Content="📅 Work Planner" Style="{StaticResource PrimaryButton}" Height="28" Padding="10 0" Margin="0 0 14 0" Click="OpenCalendarPlanner_Click"/>
+                </WrapPanel>
+                
                 <!-- Row 2: Date Pickers & Range Label -->
-                <WrapPanel Grid.Row="1" VerticalAlignment="Center">
+                <WrapPanel Grid.Row="2" VerticalAlignment="Center">
                     <TextBlock Text="From:" VerticalAlignment="Center" Margin="0 0 6 0" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
                     <DatePicker x:Name="StartDatePicker" Width="125" Margin="0 0 10 0" SelectedDateChanged="DatePicker_SelectedDateChanged"/>
 
@@ -168,7 +181,7 @@
         </Grid>
 
         <!-- Main Content Tabs -->
-        <TabControl Grid.Row="2">
+        <TabControl x:Name="MainTabControl" Grid.Row="2">
             <!-- Tab 1: Pie Charts Overview -->
             <TabItem Header="🥧 Pie Charts">
                 <Grid Margin="6">
@@ -272,11 +285,20 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🎯 Target Goal (Mon-Sun):" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Primary}" Margin="0 0 8 0"/>
-                                    <TextBlock x:Name="GoalTabHeadlineText" Text="0.0h planned • 0.0h worked (0%)" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border x:Name="GoalTargetBadge"
+                                            Background="{DynamicResource Theme.StatCard2Bg}"
+                                            BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="7 2"
+                                            Margin="0 0 10 0"
+                                            VerticalAlignment="Center">
+                                        <TextBlock x:Name="GoalTargetBadgeText" Text="🎯 TARGET GOAL" FontWeight="Bold" FontSize="10.5" Foreground="{DynamicResource Theme.StatCard2Title}"/>
+                                    </Border>
+                                    <TextBlock x:Name="GoalTabHeadlineText" Text="0.0h planned • 0.0h worked (0%)" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <ProgressBar x:Name="GoalTabProgressBar" Height="6" Maximum="100" Value="0" Margin="0 6 20 0" Foreground="{DynamicResource Theme.Primary}"/>
+                                <ProgressBar x:Name="GoalTabProgressBar" Height="7" Maximum="100" Value="0" Margin="0 8 20 0" Foreground="{DynamicResource Theme.Primary}" Background="{DynamicResource Theme.SecondaryBorder}"/>
                             </StackPanel>
 
                             <Button Grid.Column="1"
@@ -309,14 +331,93 @@
                                           IsReadOnly="True"
                                           BorderThickness="0">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Date" Binding="{Binding FormattedDate}" Width="125"/>
-                                        <DataGridTextColumn Header="Day" Binding="{Binding DayOfWeekName}" Width="85"/>
-                                        <DataGridTextColumn Header="Planned" Binding="{Binding FormattedPlannedHours}" Width="75"/>
-                                        <DataGridTextColumn Header="Actual" Binding="{Binding FormattedActualHours}" Width="75"/>
-                                        <DataGridTextColumn Header="Variance" Binding="{Binding FormattedVariance}" Width="80"/>
-                                        <DataGridTextColumn Header="Progress" Binding="{Binding FormattedCompletionPercentage}" Width="65"/>
-                                        <DataGridTextColumn Header="Goal Status" Binding="{Binding StatusText}" Width="135"/>
-                                        <DataGridTextColumn Header="Projects / Plans" Binding="{Binding ProjectsSummary}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Date" Width="105">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedDate}" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center" Margin="4 0" TextTrimming="CharacterEllipsis"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Day" Width="85">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding DayOfWeekName}" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Planned" Width="75">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedPlannedHours}" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Actual" Width="75">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedActualHours}" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Variance" Width="85">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedVariance}" FontWeight="Bold" Foreground="{Binding VarianceForegroundBrush}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Progress" Width="105">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Grid VerticalAlignment="Center" Margin="4 0">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock Text="{Binding FormattedCompletionPercentage}" FontWeight="SemiBold" FontSize="11" Foreground="{Binding VarianceForegroundBrush}" HorizontalAlignment="Right"/>
+                                                        <ProgressBar Grid.Row="1" Value="{Binding CompletionPercentage, Mode=OneWay}" Maximum="100" Height="5" Margin="0 2 0 0" Foreground="{Binding ProgressBarBrush}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Goal Status" Width="145">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{Binding StatusBackgroundBrush}"
+                                                            BorderBrush="{Binding StatusBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="10"
+                                                            Padding="7 2"
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Center"
+                                                            Margin="4 2">
+                                                        <TextBlock Text="{Binding StatusText}"
+                                                                   FontWeight="SemiBold"
+                                                                   FontSize="11"
+                                                                   Foreground="{Binding StatusForegroundBrush}"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Projects / Plans" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ProjectsSummary}"
+                                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"
+                                                               Margin="4 0"
+                                                               ToolTip="{Binding ProjectsSummary}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
 
@@ -349,14 +450,53 @@
                                           IsReadOnly="True"
                                           BorderThickness="0">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="140"/>
-                                        <DataGridTextColumn Header="Planned" Binding="{Binding FormattedPlanned}" Width="65"/>
-                                        <DataGridTextColumn Header="Actual" Binding="{Binding FormattedActual}" Width="75"/>
-                                        <DataGridTextColumn Header="Progress" Binding="{Binding FormattedPercentage}" Width="65"/>
+                                        <DataGridTemplateColumn Header="Project" Width="135">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4 0">
+                                                        <Ellipse Width="8" Height="8" Fill="{Binding ProjectBrush}" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding FormattedProjectWithReward}" FontWeight="SemiBold" Foreground="{DynamicResource Theme.Foreground}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ProjectName}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Planned" Width="65">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedPlanned}" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Actual" Width="65">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedActual}" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Variance" Width="75">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedVariance}" FontWeight="Bold" Foreground="{Binding VarianceForegroundBrush}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Header="Progress" Width="65">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedPercentage}" FontWeight="SemiBold" Foreground="{Binding VarianceForegroundBrush}" VerticalAlignment="Center" Margin="4 0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
                                         <DataGridTemplateColumn Header="Bar" Width="*">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <ProgressBar Value="{Binding CompletionPercentage, Mode=OneWay}" Maximum="100" Height="10" Margin="4 0" Foreground="{DynamicResource Theme.Primary}" Background="{DynamicResource Theme.SecondaryBorder}"/>
+                                                    <ProgressBar Value="{Binding CompletionPercentage, Mode=OneWay}" Maximum="100" Height="10" Margin="4 0" Foreground="{Binding ProgressBarBrush}" Background="{DynamicResource Theme.SecondaryBorder}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -398,7 +538,13 @@
                             <DataGrid x:Name="ProjectsDataGrid"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
-                                      BorderThickness="0">
+                                      BorderThickness="0"
+                                      MouseDoubleClick="ProjectsDataGrid_MouseDoubleClick">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="📊 View Detailed Share Analytics..." Click="ContextMenu_ProjectShareAnalytics_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="160"/>
                                     <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
@@ -459,7 +605,13 @@
                             <DataGrid x:Name="ActivitiesDataGrid"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
-                                      BorderThickness="0">
+                                      BorderThickness="0"
+                                      MouseDoubleClick="ActivitiesDataGrid_MouseDoubleClick">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="📊 View Detailed Share Analytics..." Click="ContextMenu_ActivityShareAnalytics_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Activity" Binding="{Binding Activity}" Width="160"/>
                                     <DataGridTextColumn Header="Duration" Binding="{Binding FormattedDuration}" Width="110"/>
@@ -520,7 +672,13 @@
                             <DataGrid x:Name="TasksDataGrid"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
-                                      BorderThickness="0">
+                                      BorderThickness="0"
+                                      MouseDoubleClick="TasksDataGrid_MouseDoubleClick">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="📊 View Detailed Share Analytics..." Click="ContextMenu_TaskShareAnalytics_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Task / Description" Binding="{Binding Description}" Width="180"/>
                                     <DataGridTextColumn Header="Project" Binding="{Binding ProjectName}" Width="120"/>

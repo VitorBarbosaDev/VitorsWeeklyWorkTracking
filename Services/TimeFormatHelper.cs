@@ -22,7 +22,7 @@ public static class TimeFormatHelper
 
         int totalMinutes = (int)Math.Round(totalHours * 60.0);
         if (totalMinutes <= 0)
-            return "0m";
+            return totalHours > 0 ? "< 1m" : "0m";
 
         int hours = totalMinutes / 60;
         int minutes = totalMinutes % 60;
@@ -32,6 +32,22 @@ public static class TimeFormatHelper
         if (minutes == 0)
             return $"{hours}h";
         return $"{hours}h {minutes}m";
+    }
+
+    /// <summary>
+    /// Formats a TimeSpan duration cleanly without seconds by default.
+    /// </summary>
+    public static string FormatDuration(TimeSpan duration, bool includeSeconds = false)
+    {
+        if (duration <= TimeSpan.Zero)
+            return "0m";
+
+        if (includeSeconds)
+        {
+            return $"{(int)duration.TotalHours}h {duration.Minutes:D2}m {duration.Seconds:D2}s";
+        }
+
+        return FormatHours(duration.TotalHours);
     }
 
     /// <summary>

@@ -1726,6 +1726,7 @@ public partial class MainWindow : Window
                 : "No weekly plan scheduled yet (Click Planner to set goals)";
         }
 
+        GoalWeeklyProgressBar.Foreground = GoalColorHelper.GetProgressBarBrush(weeklySummary.CompletionPercentage, weeklySummary.IsGoalMet);
         GoalWeeklyProgressBar.Value = Math.Min(100, weeklySummary.CompletionPercentage);
         GoalWeeklyProgressPctText.Text = weeklySummary.IsGoalMet ? $"{rewardIcon} {weeklySummary.FormattedCompletionPercentage}" : weeklySummary.FormattedCompletionPercentage;
 
@@ -1960,6 +1961,18 @@ public partial class MainWindow : Window
 
         // 1. Project Name & Activity & Note
         var titlePanel = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
+        var projRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var projectBrush = ProjectColorHelper.GetProjectBrush(plan.ProjectName);
+        var projBullet = new System.Windows.Shapes.Ellipse
+        {
+            Width = 6,
+            Height = 6,
+            Fill = isCompleted ? rewardText : projectBrush,
+            Margin = new Thickness(0, 0, 4, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        projRow.Children.Add(projBullet);
+
         var projNameText = new TextBlock
         {
             Text = plan.ProjectName,
@@ -1967,11 +1980,13 @@ public partial class MainWindow : Window
             FontSize = 11.5,
             TextTrimming = TextTrimming.CharacterEllipsis,
             ToolTip = plan.ProjectName,
+            MaxWidth = 160,
             Foreground = isCompleted
                 ? rewardText
                 : (TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black)
         };
-        titlePanel.Children.Add(projNameText);
+        projRow.Children.Add(projNameText);
+        titlePanel.Children.Add(projRow);
 
         if (!string.IsNullOrWhiteSpace(plan.Activity))
         {
@@ -2043,7 +2058,7 @@ public partial class MainWindow : Window
             Value = Math.Min(100, pct),
             Foreground = isCompleted
                 ? rewardBorder
-                : (TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue)
+                : GoalColorHelper.GetProgressBarBrush(pct, false)
         };
         progressPanel.Children.Add(statsText);
         progressPanel.Children.Add(pBar);

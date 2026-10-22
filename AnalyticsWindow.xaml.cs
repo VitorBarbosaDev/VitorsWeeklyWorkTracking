@@ -34,6 +34,7 @@ public partial class AnalyticsWindow : Window
         PopulateProjectFilter();
         PopulateActivityFilter();
         SyncChartPreferenceControls();
+        HookUpPieChartClickEvents();
         SetPeriodWeek(0); // This week
 
         _isInitializing = false;
@@ -224,6 +225,41 @@ public partial class AnalyticsWindow : Window
         RecalculateAnalytics();
     }
 
+    private void ClearFilterButton_Click(object sender, RoutedEventArgs e)
+    {
+        ClearFilters();
+    }
+
+    public void ClearFilters()
+    {
+        _isInitializing = true;
+        if (ProjectFilterComboBox != null && ProjectFilterComboBox.Items.Count > 0)
+        {
+            ProjectFilterComboBox.SelectedIndex = 0;
+        }
+        if (ActivityFilterComboBox != null && ActivityFilterComboBox.Items.Count > 0)
+        {
+            ActivityFilterComboBox.SelectedIndex = 0;
+        }
+        _isInitializing = false;
+
+        RecalculateAnalytics();
+    }
+
+    private void UpdateClearFilterButtonVisibility()
+    {
+        if (ClearFilterButton == null)
+            return;
+
+        var selectedProject = ProjectFilterComboBox?.SelectedItem?.ToString();
+        var isProjectFiltered = !string.IsNullOrEmpty(selectedProject) && selectedProject != "All Projects";
+
+        var selectedActivity = ActivityFilterComboBox?.SelectedItem?.ToString();
+        var isActivityFiltered = !string.IsNullOrEmpty(selectedActivity) && selectedActivity != "All Activities";
+
+        ClearFilterButton.Visibility = (isProjectFiltered || isActivityFiltered) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void SyncChartPreferenceControls()
     {
         if (ChartStyleComboBox != null)
@@ -283,6 +319,8 @@ public partial class AnalyticsWindow : Window
         var selectedActivity = ActivityFilterComboBox.SelectedItem?.ToString();
         var isAllActivities = string.IsNullOrEmpty(selectedActivity) || selectedActivity == "All Activities";
 
+        UpdateClearFilterButtonVisibility();
+
         DateRangeLabel.Text = $"Showing: {startDate:dd MMM yyyy} - {EndDatePicker.SelectedDate ?? startDate:dd MMM yyyy}";
 
         _currentFilteredEntries = _allEntries
@@ -297,7 +335,7 @@ public partial class AnalyticsWindow : Window
         var totalDuration = TimeSpan.FromTicks(totalDurationTicks);
         var totalSessions = _currentFilteredEntries.Count;
 
-        TotalTimeTextBlock.Text = $"{(int)totalDuration.TotalHours}h {totalDuration.Minutes:D2}m {totalDuration.Seconds:D2}s";
+        TotalTimeTextBlock.Text = TimeFormatHelper.FormatHours(totalDuration.TotalHours);
         TotalSessionsTextBlock.Text = $"{totalSessions} session{(totalSessions == 1 ? "" : "s")}";
 
         var totalDays = Math.Max(1, ((EndDatePicker.SelectedDate ?? startDate).Date - startDate.Date).Days + 1);
@@ -487,23 +525,40 @@ public partial class AnalyticsWindow : Window
             ? (totalDuration.TotalHours / totalPlannedHours) * 100.0
             : (totalDuration.TotalHours > 0 ? 100.0 : 0.0);
         double remainingHours = Math.Max(0, totalPlannedHours - totalDuration.TotalHours);
+        bool isPeriodGoalMet = totalPlannedHours > 0 && totalDuration.TotalHours >= totalPlannedHours;
 
         PlannedGoalTextBlock.Text = totalPlannedHours > 0
-            ? $"{TimeFormatHelper.FormatHours(totalPlannedHours)} ({goalProgressPercentage:F0}%)"
+            ? (isPeriodGoalMet 
+                ? $"{TimeFormatHelper.FormatHours(totalPlannedHours)} ({goalProgressPercentage:F0}% ✓)" 
+                : $"{TimeFormatHelper.FormatHours(totalPlannedHours)} ({goalProgressPercentage:F0}%)")
             : (totalDuration.TotalHours > 0 ? "No plan set" : "0m");
 
         // Goal Tab Headline & Progress Bar
+        GoalTabProgressBar.Foreground = GoalColorHelper.GetProgressBarBrush(goalProgressPercentage, isPeriodGoalMet);
+        GoalTabProgressBar.Value = Math.Min(100, goalProgressPercentage);
+
         if (totalPlannedHours > 0)
         {
-            GoalTabHeadlineText.Text = $"{TimeFormatHelper.FormatHours(totalPlannedHours)} planned • {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} worked ({goalProgressPercentage:F1}%) • {TimeFormatHelper.FormatHours(remainingHours)} remaining";
+            GoalTabHeadlineText.Text = isPeriodGoalMet
+                ? $"{TimeFormatHelper.FormatHours(totalPlannedHours)} planned • {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} worked ({goalProgressPercentage:F1}%) • Goal Achieved! 🎉"
+                : $"{TimeFormatHelper.FormatHours(totalPlannedHours)} planned • {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} worked ({goalProgressPercentage:F1}%) • {TimeFormatHelper.FormatHours(remainingHours)} remaining";
+
+            if (GoalTargetBadgeText != null)
+            {
+                GoalTargetBadgeText.Text = isPeriodGoalMet ? "🎉 GOAL ACHIEVED" : "🎯 TARGET GOAL";
+            }
         }
         else
         {
             GoalTabHeadlineText.Text = totalDuration.TotalHours > 0
                 ? $"Worked {TimeFormatHelper.FormatHours(totalDuration.TotalHours)} in this period (No planned target set)"
                 : "No planned sessions scheduled for this period";
+
+            if (GoalTargetBadgeText != null)
+            {
+                GoalTargetBadgeText.Text = totalDuration.TotalHours > 0 ? "✨ UNPLANNED" : "🎯 TARGET GOAL";
+            }
         }
-        GoalTabProgressBar.Value = Math.Min(100, goalProgressPercentage);
 
         // Daily Goal Comparison for Goal Tab
         var dailyGoalList = new List<DailyGoalSummary>();
@@ -691,6 +746,149 @@ public partial class AnalyticsWindow : Window
     private static string Escape(string value)
     {
         return value.Replace("\"", "\"\"");
+    }
+
+    private void HookUpPieChartClickEvents()
+    {
+        OverviewProjectPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Project, slice.Label);
+        ProjectPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Project, slice.Label);
+
+        OverviewActivityPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Activity, slice.Label);
+        ActivityPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Activity, slice.Label);
+
+        OverviewTaskPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Task, slice.Label);
+        TaskPieChart.SliceClicked += (s, slice) => OpenShareAnalytics(ShareCategory.Task, slice.Label);
+    }
+
+    private void ProjectsDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (ProjectsDataGrid.SelectedItem is ProjectAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Project, item.ProjectName);
+        }
+    }
+
+    private void ContextMenu_ProjectShareAnalytics_Click(object sender, RoutedEventArgs e)
+    {
+        if (ProjectsDataGrid.SelectedItem is ProjectAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Project, item.ProjectName);
+        }
+    }
+
+    private void ActivitiesDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (ActivitiesDataGrid.SelectedItem is ActivityAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Activity, item.Activity);
+        }
+    }
+
+    private void ContextMenu_ActivityShareAnalytics_Click(object sender, RoutedEventArgs e)
+    {
+        if (ActivitiesDataGrid.SelectedItem is ActivityAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Activity, item.Activity);
+        }
+    }
+
+    private void TasksDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (TasksDataGrid.SelectedItem is TaskAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Task, item.Description);
+        }
+    }
+
+    private void ContextMenu_TaskShareAnalytics_Click(object sender, RoutedEventArgs e)
+    {
+        if (TasksDataGrid.SelectedItem is TaskAnalyticsItem item)
+        {
+            OpenShareAnalytics(ShareCategory.Task, item.Description);
+        }
+    }
+
+    private void OpenShareAnalytics(ShareCategory category, string shareName)
+    {
+        if (string.IsNullOrWhiteSpace(shareName))
+            return;
+
+        var startDate = StartDatePicker.SelectedDate ?? DateTime.Today;
+        var endDate = EndDatePicker.SelectedDate ?? DateTime.Today;
+
+        var dialog = new ShareAnalyticsDialog(
+            category,
+            shareName,
+            _currentFilteredEntries,
+            startDate,
+            endDate,
+            (action, targetName) =>
+            {
+                HandleShareAnalyticsNavigation(action, targetName);
+            })
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
+    }
+
+    private void HandleShareAnalyticsNavigation(ShareAnalyticsNavigationAction action, string targetName)
+    {
+        switch (action)
+        {
+            case ShareAnalyticsNavigationAction.GoToProjectBreakdown:
+                MainTabControl.SelectedIndex = 2; // Project Breakdown tab
+                var projItem = _currentProjectAnalytics.FirstOrDefault(p => p.ProjectName.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                if (projItem != null)
+                {
+                    ProjectsDataGrid.SelectedItem = projItem;
+                    ProjectsDataGrid.ScrollIntoView(projItem);
+                }
+                break;
+
+            case ShareAnalyticsNavigationAction.GoToActivityBreakdown:
+                MainTabControl.SelectedIndex = 3; // Activity Breakdown tab
+                var actItem = _currentActivityAnalytics.FirstOrDefault(a => a.Activity.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                if (actItem != null)
+                {
+                    ActivitiesDataGrid.SelectedItem = actItem;
+                    ActivitiesDataGrid.ScrollIntoView(actItem);
+                }
+                break;
+
+            case ShareAnalyticsNavigationAction.GoToTaskBreakdown:
+                MainTabControl.SelectedIndex = 4; // Task Breakdown tab
+                var taskItem = _currentTaskAnalytics.FirstOrDefault(t => t.Description.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                if (taskItem != null)
+                {
+                    TasksDataGrid.SelectedItem = taskItem;
+                    TasksDataGrid.ScrollIntoView(taskItem);
+                }
+                break;
+
+            case ShareAnalyticsNavigationAction.FilterInWorkLog:
+                MainTabControl.SelectedIndex = 6; // Tasks / Work Log tab
+                if (_allProjects.Any(p => p.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase)) ||
+                    _allEntries.Any(e => e.ProjectName.Equals(targetName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var match = ProjectFilterComboBox.Items.Cast<object>().FirstOrDefault(item => item.ToString()?.Equals(targetName, StringComparison.OrdinalIgnoreCase) == true);
+                    if (match != null)
+                    {
+                        ProjectFilterComboBox.SelectedItem = match;
+                    }
+                }
+                else if (_allActivities.Any(a => a.Name.Equals(targetName, StringComparison.OrdinalIgnoreCase)) ||
+                         _allEntries.Any(e => e.Activity.Equals(targetName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var match = ActivityFilterComboBox.Items.Cast<object>().FirstOrDefault(item => item.ToString()?.Equals(targetName, StringComparison.OrdinalIgnoreCase) == true);
+                    if (match != null)
+                    {
+                        ActivityFilterComboBox.SelectedItem = match;
+                    }
+                }
+                break;
+        }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

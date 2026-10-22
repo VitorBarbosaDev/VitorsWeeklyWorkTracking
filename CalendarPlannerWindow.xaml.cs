@@ -106,6 +106,7 @@ public partial class CalendarPlannerWindow : Window
         WeeklyActualHoursText.Text = TimeFormatHelper.FormatHoursWithUnit(weeklySummary.TotalActualHours, "0 mins");
         WeeklyProgressPctText.Text = weeklySummary.IsGoalMet ? $"{rewardIcon} {weeklySummary.FormattedCompletionPercentage}" : weeklySummary.FormattedCompletionPercentage;
         WeeklyRemainingText.Text = weeklySummary.FormattedRemainingHours;
+        WeeklyProgressBar.Foreground = GoalColorHelper.GetProgressBarBrush(weeklySummary.CompletionPercentage, weeklySummary.IsGoalMet);
         WeeklyProgressBar.Value = Math.Min(100, weeklySummary.CompletionPercentage);
 
         // Update 7 day columns (Monday = 0 ... Sunday = 6)
@@ -136,7 +137,7 @@ public partial class CalendarPlannerWindow : Window
                 dayNameTexts[i].Text = dayDate.ToString("dddd").ToUpperInvariant();
                 dayStatsTexts[i].Text = $"Plan: {TimeFormatHelper.FormatHours(daySummary.PlannedHours)} • Act: {TimeFormatHelper.FormatHours(daySummary.ActualHours)}";
                 dayStatsTexts[i].Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black;
-                dayProgressBars[i].Foreground = TryFindResource("Theme.Primary") as Brush ?? Brushes.DodgerBlue;
+                dayProgressBars[i].Foreground = GoalColorHelper.GetProgressBarBrush(daySummary.CompletionPercentage, false);
             }
 
             dayDateTexts[i].Text = dayDate.ToString("dd MMM yyyy") + (isToday ? " • TODAY" : "");
@@ -198,6 +199,7 @@ public partial class CalendarPlannerWindow : Window
         foreach (var p in weekPlans)
         {
             p.RewardIcon = rewardIcon;
+            p.ActualHours = CalendarPlanStorage.Instance.CalculatePlanItemActualHours(p, _allEntries);
             p.IsCompleted = CalendarPlanStorage.Instance.IsPlanItemCompleted(p, _allEntries);
         }
         AllPlansDataGrid.ItemsSource = null;
@@ -296,6 +298,7 @@ public partial class CalendarPlannerWindow : Window
         bool isPlanCompleted = plan.PlannedHours > 0 && planActualHours >= plan.PlannedHours;
         var rewardIcon = RewardIconHelper.GetIconEmoji(_settings.CompletionRewardIcon);
         var (rewardBg, rewardBorder, rewardText) = RewardColorHelper.GetRewardBrushes(_settings.CompletionRewardColor, this);
+        var projectBrush = ProjectColorHelper.GetProjectBrush(plan.ProjectName);
 
         var card = new Border
         {
@@ -313,10 +316,21 @@ public partial class CalendarPlannerWindow : Window
 
         var stack = new StackPanel();
 
-        // Top line: Project name + Planned hours badge
+        // Top line: Project bullet & name + Planned/Actual hours badge
         var topLine = new Grid();
         topLine.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         topLine.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var projPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var bullet = new System.Windows.Shapes.Ellipse
+        {
+            Width = 6,
+            Height = 6,
+            Fill = isPlanCompleted ? rewardText : projectBrush,
+            Margin = new Thickness(0, 0, 4, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        projPanel.Children.Add(bullet);
 
         var projText = new TextBlock
         {
@@ -326,10 +340,12 @@ public partial class CalendarPlannerWindow : Window
             Foreground = isPlanCompleted
                 ? rewardText
                 : (Brush)FindResource("Theme.Foreground"),
-            TextTrimming = TextTrimming.CharacterEllipsis
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(projText, 0);
-        topLine.Children.Add(projText);
+        projPanel.Children.Add(projText);
+        Grid.SetColumn(projPanel, 0);
+        topLine.Children.Add(projPanel);
 
         var hoursBadge = new Border
         {
@@ -338,19 +354,21 @@ public partial class CalendarPlannerWindow : Window
                 : (Brush)FindResource("Theme.CardBackground"),
             BorderBrush = isPlanCompleted
                 ? rewardBorder
-                : (Brush)FindResource("Theme.Primary"),
+                : (planActualHours > 0 ? (Brush)FindResource("Theme.Primary") : (Brush)FindResource("Theme.CardBorder")),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(3),
             Padding = new Thickness(4, 1, 4, 1)
         };
         var hoursText = new TextBlock
         {
-            Text = isPlanCompleted ? $"{rewardIcon} {plan.FormattedHours} ✓" : plan.FormattedHours,
+            Text = isPlanCompleted 
+                ? $"{rewardIcon} {plan.FormattedHours} ✓" 
+                : (planActualHours > 0 ? $"{TimeFormatHelper.FormatHours(planActualHours)} / {plan.FormattedHours}" : plan.FormattedHours),
             FontSize = 9,
             FontWeight = FontWeights.Bold,
             Foreground = isPlanCompleted
                 ? rewardText
-                : (Brush)FindResource("Theme.Primary")
+                : (planActualHours > 0 ? (Brush)FindResource("Theme.Primary") : (Brush)FindResource("Theme.ForegroundMuted"))
         };
         hoursBadge.Child = hoursText;
         Grid.SetColumn(hoursBadge, 1);
@@ -358,18 +376,44 @@ public partial class CalendarPlannerWindow : Window
 
         stack.Children.Add(topLine);
 
+        // Mini progress bar if worked partially
+        if (plan.PlannedHours > 0 && planActualHours > 0)
+        {
+            double progressPct = Math.Min(100.0, (planActualHours / plan.PlannedHours) * 100.0);
+            var miniBar = new ProgressBar
+            {
+                Value = progressPct,
+                Maximum = 100,
+                Height = 3,
+                Margin = new Thickness(0, 3, 0, 0),
+                Foreground = isPlanCompleted ? rewardBorder : GoalColorHelper.GetProgressBarBrush(progressPct, false),
+                Background = (Brush)FindResource("Theme.SecondaryBorder")
+            };
+            stack.Children.Add(miniBar);
+        }
+
         // Activity and Notes
         if (!string.IsNullOrWhiteSpace(plan.Activity))
         {
+            var actBadge = new Border
+            {
+                Background = (Brush)FindResource("Theme.CardBackground"),
+                BorderBrush = (Brush)FindResource("Theme.CardBorder"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(4, 1, 4, 1),
+                Margin = new Thickness(0, 3, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
             var actText = new TextBlock
             {
                 Text = $"🏷️ {plan.Activity}",
-                FontSize = 9,
+                FontSize = 8.5,
                 Foreground = (Brush)FindResource("Theme.ForegroundMuted"),
-                Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
-            stack.Children.Add(actText);
+            actBadge.Child = actText;
+            stack.Children.Add(actBadge);
         }
 
         if (!string.IsNullOrWhiteSpace(plan.Note))

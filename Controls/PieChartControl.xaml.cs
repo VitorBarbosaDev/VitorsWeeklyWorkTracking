@@ -75,6 +75,7 @@ public partial class PieChartControl : UserControl
     public static ChartStyle GlobalChartStyle { get; set; } = ChartStyle.Donut;
     public static ChartPalette GlobalChartPalette { get; set; } = ChartPalette.ModernVivid;
     public static event Action? ChartPreferencesChanged;
+    public event EventHandler<PieSliceItem>? SliceClicked;
 
     public static void SetGlobalPreferences(ChartStyle style, ChartPalette palette)
     {
@@ -86,7 +87,7 @@ public partial class PieChartControl : UserControl
     private readonly List<PieSliceItem> _slices = new();
     private readonly List<UIElement> _renderedShapes = new();
     private readonly List<Border> _legendItems = new();
-    private string _defaultTotalFormatted = "0h 00m";
+    private string _defaultTotalFormatted = "0m";
     private double _defaultTotalHours = 0;
     private IEnumerable<PieSliceItem>? _lastRawItems;
     private string? _lastTitle;
@@ -97,12 +98,26 @@ public partial class PieChartControl : UserControl
         
         ThemeManager.ThemeChanged += _ =>
         {
-            ReapplyData();
+            if (Dispatcher.CheckAccess())
+            {
+                ReapplyData();
+            }
+            else
+            {
+                Dispatcher.InvokeAsync(ReapplyData);
+            }
         };
 
         ChartPreferencesChanged += () =>
         {
-            ReapplyData();
+            if (Dispatcher.CheckAccess())
+            {
+                ReapplyData();
+            }
+            else
+            {
+                Dispatcher.InvokeAsync(ReapplyData);
+            }
         };
     }
 
@@ -127,10 +142,9 @@ public partial class PieChartControl : UserControl
 
         var rawList = _lastRawItems?.Where(x => x.Value > 0).ToList() ?? new List<PieSliceItem>();
         var totalSeconds = rawList.Sum(x => x.Value);
-        var totalTimeSpan = TimeSpan.FromSeconds(totalSeconds);
-        _defaultTotalHours = totalTimeSpan.TotalHours;
+        _defaultTotalHours = totalSeconds / 3600.0;
 
-        _defaultTotalFormatted = $"{(int)totalTimeSpan.TotalHours}h {totalTimeSpan.Minutes:D2}m {totalTimeSpan.Seconds:D2}s";
+        _defaultTotalFormatted = TimeFormatHelper.FormatHours(_defaultTotalHours);
 
         _slices.Clear();
         int colorIdx = 0;
@@ -145,11 +159,15 @@ public partial class PieChartControl : UserControl
             brush.Freeze();
             colorIdx++;
 
+            var formattedVal = !string.IsNullOrWhiteSpace(item.FormattedValue)
+                ? item.FormattedValue
+                : TimeFormatHelper.FormatHours(item.Value / 3600.0);
+
             _slices.Add(new PieSliceItem
             {
                 Label = string.IsNullOrWhiteSpace(item.Label) ? "(Unassigned)" : item.Label,
                 Value = item.Value,
-                FormattedValue = item.FormattedValue,
+                FormattedValue = formattedVal,
                 Percentage = percentage,
                 Color = brush
             });
@@ -199,8 +217,11 @@ public partial class PieChartControl : UserControl
             CenterHubLabel.Text = "TOTAL";
             CenterHubValue.Text = _defaultTotalFormatted;
             CenterHubPercent.Text = $"{_slices.Count} {(_slices.Count == 1 ? "item" : "items")}";
-            CenterHubBorder.Width = Math.Max(60, innerRadius * 1.85);
-            CenterHubBorder.Height = Math.Max(60, innerRadius * 1.85);
+            double hubDiameter = Math.Max(50, innerRadius * 1.85);
+            CenterHubBorder.Width = hubDiameter;
+            CenterHubBorder.Height = hubDiameter;
+            CenterHubBorder.MaxWidth = hubDiameter;
+            CenterHubBorder.MaxHeight = hubDiameter;
         }
         else
         {
@@ -230,6 +251,11 @@ public partial class PieChartControl : UserControl
                 
                 donutPath.MouseEnter += (s, e) => HighlightSlice(0);
                 donutPath.MouseLeave += (s, e) => ResetHighlight();
+                donutPath.MouseLeftButtonUp += (s, e) =>
+                {
+                    e.Handled = true;
+                    SliceClicked?.Invoke(this, singleSlice);
+                };
                 shape = donutPath;
             }
             else
@@ -249,6 +275,11 @@ public partial class PieChartControl : UserControl
 
                 circle.MouseEnter += (s, e) => HighlightSlice(0);
                 circle.MouseLeave += (s, e) => ResetHighlight();
+                circle.MouseLeftButtonUp += (s, e) =>
+                {
+                    e.Handled = true;
+                    SliceClicked?.Invoke(this, singleSlice);
+                };
                 shape = circle;
             }
 
@@ -272,6 +303,11 @@ public partial class PieChartControl : UserControl
             int sliceIndex = i;
             path.MouseEnter += (s, e) => HighlightSlice(sliceIndex);
             path.MouseLeave += (s, e) => ResetHighlight();
+            path.MouseLeftButtonUp += (s, e) =>
+            {
+                e.Handled = true;
+                SliceClicked?.Invoke(this, slice);
+            };
 
             _renderedShapes.Add(path);
             ChartCanvas.Children.Add(path);
@@ -376,9 +412,19 @@ public partial class PieChartControl : UserControl
             Margin = new Thickness(0, 2, 0, 0)
         };
 
+        var hintText = new TextBlock
+        {
+            Text = "💡 Click to view detailed analytics",
+            FontSize = 10,
+            FontStyle = FontStyles.Italic,
+            Foreground = (Brush)Application.Current.Resources["Theme.ForegroundMuted"],
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+
         sp.Children.Add(headerPanel);
         sp.Children.Add(valueText);
         sp.Children.Add(percentText);
+        sp.Children.Add(hintText);
         border.Child = sp;
 
         return new ToolTip
@@ -518,6 +564,11 @@ public partial class PieChartControl : UserControl
 
             itemBorder.MouseEnter += (s, e) => HighlightSlice(sliceIndex);
             itemBorder.MouseLeave += (s, e) => ResetHighlight();
+            itemBorder.MouseLeftButtonUp += (s, e) =>
+            {
+                e.Handled = true;
+                SliceClicked?.Invoke(this, slice);
+            };
 
             _legendItems.Add(itemBorder);
             LegendPanel.Children.Add(itemBorder);

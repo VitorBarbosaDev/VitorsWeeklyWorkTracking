@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Windows.Media;
 using VitorsWeeklyWorkTracking.Services;
 
 namespace VitorsWeeklyWorkTracking.Models;
@@ -67,6 +68,13 @@ public class DailyGoalSummary
 
     public string ShortDateFormatted => Date.ToString("dd MMM");
     public string DayStatusEmoji => IsGoalMet ? "✅" : (PlannedHours <= 0 && ActualHours <= 0 ? "💤" : (ActualHours > 0 ? "⏳" : "—"));
+
+    public bool IsWeekend => Date.DayOfWeek == DayOfWeek.Saturday || Date.DayOfWeek == DayOfWeek.Sunday;
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushesForDailyGoal(PlannedHours, ActualHours).Foreground;
+    public SolidColorBrush VarianceForegroundBrush => GoalColorHelper.GetVarianceBrush(VarianceHours, PlannedHours, ActualHours);
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsGoalMet);
 }
 
 public class WeeklyGoalSummary
@@ -114,6 +122,9 @@ public class WeeklyGoalSummary
 
     public List<DailyGoalSummary> DailySummaries { get; set; } = new();
     public List<ProjectGoalComparison> ProjectComparisons { get; set; } = new();
+
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsGoalMet);
+    public SolidColorBrush VarianceForegroundBrush => GoalColorHelper.GetVarianceBrush(VarianceHours, TotalPlannedHours, TotalActualHours);
 }
 
 public class ProjectGoalComparison
@@ -138,7 +149,15 @@ public class ProjectGoalComparison
     public double VarianceHours => ActualHours - PlannedHours;
     public bool IsGoalMet => PlannedHours > 0 && ActualHours >= PlannedHours;
     public string FormattedProjectWithReward => IsGoalMet ? $"{RewardIcon} {ProjectName}" : ProjectName;
+    public string FormattedVariance => (PlannedHours <= 0 && ActualHours <= 0) ? "—" : (VarianceHours >= 0 ? $"+{VarianceHours:F2} hrs" : $"{VarianceHours:F2} hrs");
     public string StatusText => IsGoalMet ? $"{RewardIcon} Target Reached ({FormattedPercentage})" : (ActualHours > 0 ? $"⏳ In Progress ({FormattedPercentage})" : "⚪ Not Started");
+
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsGoalMet);
+    public SolidColorBrush VarianceForegroundBrush => GoalColorHelper.GetVarianceBrush(VarianceHours, PlannedHours, ActualHours);
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(IsGoalMet ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(IsGoalMet ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(IsGoalMet ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Foreground;
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
 }
 
 public class PlannedTaskItemViewModel
@@ -158,6 +177,12 @@ public class PlannedTaskItemViewModel
     public string StatusText => IsCompleted 
         ? $"{RewardIcon} Completed ({FormattedPercentage})" 
         : (ActualHours > 0 ? $"⏳ {FormattedActual} / {FormattedPlanned} ({FormattedPercentage})" : $"⚪ {FormattedPlanned}");
+
+    public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Background;
+    public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Border;
+    public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(IsCompleted ? GoalStatusCategory.GoalMet : (ActualHours > 0 ? GoalStatusCategory.InProgress : GoalStatusCategory.NotStarted)).Foreground;
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsCompleted);
 }
 
 public class ProjectGoalSummary
@@ -200,4 +225,8 @@ public class ProjectGoalSummary
     public string ActivitiesSummary { get; set; } = string.Empty;
     public string TasksSummary { get; set; } = string.Empty;
     public string FormattedDate => IsWeekly ? $"{Date:ddd, dd MMM} (Weekly Goal)" : Date.ToString("dddd, dd MMMM yyyy");
+
+    public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsGoalMet);
+    public SolidColorBrush VarianceForegroundBrush => GoalColorHelper.GetVarianceBrush(VarianceHours, PlannedHours, ActualHours);
+    public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
 }
