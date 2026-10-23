@@ -15,6 +15,11 @@ public class GoalMilestoneTracker
     public HashSet<string> ShownWeeklyProjectGoals { get; } = new(StringComparer.OrdinalIgnoreCase);
     public DateTime? LastCheckDate { get; set; } = null;
 
+    private readonly HashSet<DateTime> _dailyGoalsByDate = new();
+    private readonly Dictionary<DateTime, HashSet<string>> _dailyProjectGoalsByDate = new();
+    private readonly HashSet<DateTime> _weeklyGoalsByWeek = new();
+    private readonly Dictionary<DateTime, HashSet<string>> _weeklyProjectGoalsByWeek = new();
+
     public event Action<DailyGoalSummary, double>? DailyGoalAchieved;
     public event Action<WeeklyGoalSummary, double>? WeeklyGoalAchieved;
     public event Action<ProjectGoalSummary, double>? ProjectGoalAchieved;
@@ -29,32 +34,172 @@ public class GoalMilestoneTracker
     {
         LastCheckDate = date.Date;
 
-        var initToday = _planStorage.CalculateDailySummary(date, entries);
-        HasShownDailyGoalNotification = initToday.PlannedHours > 0 && initToday.ActualHours >= initToday.PlannedHours;
-
-        var initWeek = _planStorage.CalculateWeeklySummary(date, entries);
-        HasShownWeeklyGoalNotification = initWeek.TotalPlannedHours > 0 && initWeek.TotalActualHours >= initWeek.TotalPlannedHours;
-
+        _dailyGoalsByDate.Clear();
+        _dailyProjectGoalsByDate.Clear();
+        _weeklyGoalsByWeek.Clear();
+        _weeklyProjectGoalsByWeek.Clear();
         ShownDailyProjectGoals.Clear();
-        var todayProjects = _planStorage.GetAllPlannedProjectsForDate(date);
-        foreach (var proj in todayProjects)
+        ShownWeeklyProjectGoals.Clear();
+
+        var (monday, sunday) = CalendarPlanStorage.GetWeekBounds(date);
+        var weeklySummary = _planStorage.CalculateWeeklySummary(date, entries);
+
+        if (weeklySummary.TotalPlannedHours > 0 && weeklySummary.TotalActualHours >= weeklySummary.TotalPlannedHours)
         {
-            var projSummary = _planStorage.CalculateProjectDailySummary(proj, date, entries);
-            if (projSummary.PlannedHours > 0 && projSummary.ActualHours >= projSummary.PlannedHours)
-            {
-                ShownDailyProjectGoals.Add(proj);
-            }
+            _weeklyGoalsByWeek.Add(monday);
         }
 
-        ShownWeeklyProjectGoals.Clear();
         var weekProjects = _planStorage.GetAllPlannedProjectsForWeek(date);
+        var shownWeekProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var proj in weekProjects)
         {
             var projSummary = _planStorage.CalculateProjectWeeklySummary(proj, date, entries);
             if (projSummary.PlannedHours > 0 && projSummary.ActualHours >= projSummary.PlannedHours)
             {
-                ShownWeeklyProjectGoals.Add(proj);
+                shownWeekProjects.Add(proj);
             }
+        }
+        _weeklyProjectGoalsByWeek[monday] = shownWeekProjects;
+
+        for (var d = monday; d <= sunday; d = d.AddDays(1))
+        {
+            var daySummary = _planStorage.CalculateDailySummary(d, entries);
+            if (daySummary.PlannedHours > 0 && daySummary.ActualHours >= daySummary.PlannedHours)
+            {
+                _dailyGoalsByDate.Add(d);
+            }
+
+            var dayProjects = _planStorage.GetAllPlannedProjectsForDate(d);
+            var shownDayProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var proj in dayProjects)
+            {
+                var projSummary = _planStorage.CalculateProjectDailySummary(proj, d, entries);
+                if (projSummary.PlannedHours > 0 && projSummary.ActualHours >= projSummary.PlannedHours)
+                {
+                    shownDayProjects.Add(proj);
+                }
+            }
+            _dailyProjectGoalsByDate[d] = shownDayProjects;
+        }
+
+        LoadStateForDate(date.Date, entries);
+    }
+
+    private void SaveCurrentStateToDate(DateTime d)
+    {
+        var dateKey = d.Date;
+        var (weekMonday, _) = CalendarPlanStorage.GetWeekBounds(dateKey);
+
+        if (HasShownDailyGoalNotification)
+            _dailyGoalsByDate.Add(dateKey);
+        else
+            _dailyGoalsByDate.Remove(dateKey);
+
+        if (!_dailyProjectGoalsByDate.TryGetValue(dateKey, out var daySet))
+        {
+            daySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            _dailyProjectGoalsByDate[dateKey] = daySet;
+        }
+        daySet.Clear();
+        foreach (var p in ShownDailyProjectGoals)
+            daySet.Add(p);
+
+        if (HasShownWeeklyGoalNotification)
+            _weeklyGoalsByWeek.Add(weekMonday);
+        else
+            _weeklyGoalsByWeek.Remove(weekMonday);
+
+        if (!_weeklyProjectGoalsByWeek.TryGetValue(weekMonday, out var weekSet))
+        {
+            weekSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            _weeklyProjectGoalsByWeek[weekMonday] = weekSet;
+        }
+        weekSet.Clear();
+        foreach (var p in ShownWeeklyProjectGoals)
+            weekSet.Add(p);
+    }
+
+    private void LoadStateForDate(DateTime d, List<TimeEntry> entries)
+    {
+        var dateKey = d.Date;
+        var (weekMonday, _) = CalendarPlanStorage.GetWeekBounds(dateKey);
+
+        // Daily
+        if (_dailyGoalsByDate.Contains(dateKey))
+        {
+            HasShownDailyGoalNotification = true;
+        }
+        else if (!_dailyProjectGoalsByDate.ContainsKey(dateKey))
+        {
+            var daySummary = _planStorage.CalculateDailySummary(dateKey, entries);
+            HasShownDailyGoalNotification = daySummary.PlannedHours > 0 && daySummary.ActualHours >= daySummary.PlannedHours;
+            if (HasShownDailyGoalNotification)
+                _dailyGoalsByDate.Add(dateKey);
+        }
+        else
+        {
+            HasShownDailyGoalNotification = false;
+        }
+
+        ShownDailyProjectGoals.Clear();
+        if (_dailyProjectGoalsByDate.TryGetValue(dateKey, out var savedDayProjects))
+        {
+            foreach (var p in savedDayProjects)
+                ShownDailyProjectGoals.Add(p);
+        }
+        else
+        {
+            var daySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var dayProjects = _planStorage.GetAllPlannedProjectsForDate(dateKey);
+            foreach (var proj in dayProjects)
+            {
+                var projSummary = _planStorage.CalculateProjectDailySummary(proj, dateKey, entries);
+                if (projSummary.PlannedHours > 0 && projSummary.ActualHours >= projSummary.PlannedHours)
+                {
+                    ShownDailyProjectGoals.Add(proj);
+                    daySet.Add(proj);
+                }
+            }
+            _dailyProjectGoalsByDate[dateKey] = daySet;
+        }
+
+        // Weekly
+        if (_weeklyGoalsByWeek.Contains(weekMonday))
+        {
+            HasShownWeeklyGoalNotification = true;
+        }
+        else if (!_weeklyProjectGoalsByWeek.ContainsKey(weekMonday))
+        {
+            var weekSummary = _planStorage.CalculateWeeklySummary(dateKey, entries);
+            HasShownWeeklyGoalNotification = weekSummary.TotalPlannedHours > 0 && weekSummary.TotalActualHours >= weekSummary.TotalPlannedHours;
+            if (HasShownWeeklyGoalNotification)
+                _weeklyGoalsByWeek.Add(weekMonday);
+        }
+        else
+        {
+            HasShownWeeklyGoalNotification = false;
+        }
+
+        ShownWeeklyProjectGoals.Clear();
+        if (_weeklyProjectGoalsByWeek.TryGetValue(weekMonday, out var savedWeekProjects))
+        {
+            foreach (var p in savedWeekProjects)
+                ShownWeeklyProjectGoals.Add(p);
+        }
+        else
+        {
+            var weekSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var weekProjects = _planStorage.GetAllPlannedProjectsForWeek(dateKey);
+            foreach (var proj in weekProjects)
+            {
+                var projSummary = _planStorage.CalculateProjectWeeklySummary(proj, dateKey, entries);
+                if (projSummary.PlannedHours > 0 && projSummary.ActualHours >= projSummary.PlannedHours)
+                {
+                    ShownWeeklyProjectGoals.Add(proj);
+                    weekSet.Add(proj);
+                }
+            }
+            _weeklyProjectGoalsByWeek[weekMonday] = weekSet;
         }
     }
 
@@ -67,13 +212,12 @@ public class GoalMilestoneTracker
 
         if (LastCheckDate.HasValue && dateOnly != LastCheckDate.Value)
         {
-            HasShownDailyGoalNotification = false;
-            ShownDailyProjectGoals.Clear();
-            if (dateOnly.DayOfWeek == DayOfWeek.Monday)
-            {
-                HasShownWeeklyGoalNotification = false;
-                ShownWeeklyProjectGoals.Clear();
-            }
+            SaveCurrentStateToDate(LastCheckDate.Value);
+            LoadStateForDate(dateOnly, entries);
+        }
+        else if (!LastCheckDate.HasValue)
+        {
+            LoadStateForDate(dateOnly, entries);
         }
         LastCheckDate = dateOnly;
 
@@ -134,6 +278,8 @@ public class GoalMilestoneTracker
                         HasShownWeeklyGoalNotification = true;
                     }
 
+                    SaveCurrentStateToDate(dateOnly);
+
                     projWeeklySummary.ActualHours = projActiveWeeklyHours;
                     if (ShouldShowProjectGoalNotification)
                     {
@@ -160,6 +306,8 @@ public class GoalMilestoneTracker
                     ShownWeeklyProjectGoals.Add(activeProjectName);
                 }
 
+                SaveCurrentStateToDate(dateOnly);
+
                 weeklySummary.TotalActualHours = activeWeeklyHours;
                 if (ShouldShowWeeklyGoalNotification)
                 {
@@ -172,6 +320,7 @@ public class GoalMilestoneTracker
         {
             // If week is only planned for one day, weekly goal is automatically considered met when daily goal is met, without showing a weekly popup
             HasShownWeeklyGoalNotification = true;
+            SaveCurrentStateToDate(dateOnly);
         }
 
         // 3. Check Project Daily Goals
@@ -205,6 +354,8 @@ public class GoalMilestoneTracker
                         }
                     }
 
+                    SaveCurrentStateToDate(dateOnly);
+
                     projDailySummary.ActualHours = projActiveDailyHours;
                     if (ShouldShowProjectGoalNotification)
                     {
@@ -225,6 +376,8 @@ public class GoalMilestoneTracker
                 {
                     HasShownWeeklyGoalNotification = true;
                 }
+
+                SaveCurrentStateToDate(dateOnly);
 
                 todaySummary.ActualHours = activeTodayHours;
                 if (ShouldShowDailyGoalNotification)
@@ -252,59 +405,182 @@ public class GoalMilestoneTracker
         TimeSpan activeTrackingElapsed = default,
         string? activeProjectName = null)
     {
-        if (todaySummary.ActualHours < todaySummary.PlannedHours)
-        {
-            HasShownDailyGoalNotification = false;
-        }
-        else if (todaySummary.PlannedHours > 0 && todaySummary.ActualHours >= todaySummary.PlannedHours)
-        {
-            HasShownDailyGoalNotification = true;
-        }
+        var (weekMonday, _) = CalendarPlanStorage.GetWeekBounds(weeklySummary.WeekStartDate);
 
+        // Weekly flag
         if (weeklySummary.TotalActualHours < weeklySummary.TotalPlannedHours)
         {
-            HasShownWeeklyGoalNotification = false;
+            _weeklyGoalsByWeek.Remove(weekMonday);
+            if (LastCheckDate.HasValue)
+            {
+                var (curMon, _) = CalendarPlanStorage.GetWeekBounds(LastCheckDate.Value);
+                if (curMon == weekMonday)
+                {
+                    HasShownWeeklyGoalNotification = false;
+                }
+            }
+            else
+            {
+                HasShownWeeklyGoalNotification = false;
+            }
         }
         else if (weeklySummary.TotalPlannedHours > 0 && weeklySummary.TotalActualHours >= weeklySummary.TotalPlannedHours)
         {
-            HasShownWeeklyGoalNotification = true;
+            _weeklyGoalsByWeek.Add(weekMonday);
+            if (LastCheckDate.HasValue)
+            {
+                var (curMon, _) = CalendarPlanStorage.GetWeekBounds(LastCheckDate.Value);
+                if (curMon == weekMonday)
+                {
+                    HasShownWeeklyGoalNotification = true;
+                }
+            }
+            else
+            {
+                HasShownWeeklyGoalNotification = true;
+            }
+        }
+
+        // Daily flags
+        var allDaysToCheck = new Dictionary<DateTime, DailyGoalSummary>();
+        if (weeklySummary.DailySummaries != null)
+        {
+            foreach (var d in weeklySummary.DailySummaries)
+            {
+                allDaysToCheck[d.Date.Date] = d;
+            }
+        }
+        allDaysToCheck[todaySummary.Date.Date] = todaySummary;
+
+        var activeDate = LastCheckDate ?? todaySummary.Date.Date;
+
+        foreach (var (dateKey, daySummary) in allDaysToCheck)
+        {
+            double dayActual = daySummary.ActualHours;
+            if (dateKey == activeDate && daySummary != todaySummary)
+            {
+                dayActual += activeTrackingElapsed.TotalHours;
+            }
+
+            if (dayActual < daySummary.PlannedHours)
+            {
+                _dailyGoalsByDate.Remove(dateKey);
+                if (LastCheckDate.HasValue && LastCheckDate.Value == dateKey)
+                {
+                    HasShownDailyGoalNotification = false;
+                }
+                else if (!LastCheckDate.HasValue && dateKey == todaySummary.Date.Date)
+                {
+                    HasShownDailyGoalNotification = false;
+                }
+            }
+            else if (daySummary.PlannedHours > 0 && dayActual >= daySummary.PlannedHours)
+            {
+                _dailyGoalsByDate.Add(dateKey);
+                if (LastCheckDate.HasValue && LastCheckDate.Value == dateKey)
+                {
+                    HasShownDailyGoalNotification = true;
+                }
+                else if (!LastCheckDate.HasValue && dateKey == todaySummary.Date.Date)
+                {
+                    HasShownDailyGoalNotification = true;
+                }
+            }
+
+            if (entries != null)
+            {
+                if (!_dailyProjectGoalsByDate.TryGetValue(dateKey, out var dayProjects))
+                {
+                    if (LastCheckDate.HasValue && LastCheckDate.Value == dateKey && ShownDailyProjectGoals.Count > 0)
+                    {
+                        dayProjects = new HashSet<string>(ShownDailyProjectGoals, StringComparer.OrdinalIgnoreCase);
+                        _dailyProjectGoalsByDate[dateKey] = dayProjects;
+                    }
+                    else if (!LastCheckDate.HasValue && dateKey == todaySummary.Date.Date && ShownDailyProjectGoals.Count > 0)
+                    {
+                        dayProjects = new HashSet<string>(ShownDailyProjectGoals, StringComparer.OrdinalIgnoreCase);
+                        _dailyProjectGoalsByDate[dateKey] = dayProjects;
+                    }
+                }
+
+                if (dayProjects != null)
+                {
+                    var toRemove = new List<string>();
+                    foreach (var proj in dayProjects)
+                    {
+                        var projSummary = _planStorage.CalculateProjectDailySummary(proj, dateKey, entries);
+                        double actualHours = projSummary.ActualHours;
+                        if (!string.IsNullOrWhiteSpace(activeProjectName) && proj.Equals(activeProjectName, StringComparison.OrdinalIgnoreCase) && dateKey == activeDate)
+                        {
+                            actualHours += activeTrackingElapsed.TotalHours;
+                        }
+
+                        if (projSummary.PlannedHours <= 0 || actualHours < projSummary.PlannedHours)
+                        {
+                            toRemove.Add(proj);
+                        }
+                    }
+                    foreach (var r in toRemove) dayProjects.Remove(r);
+
+                    if (LastCheckDate.HasValue && LastCheckDate.Value == dateKey)
+                    {
+                        ShownDailyProjectGoals.Clear();
+                        foreach (var p in dayProjects) ShownDailyProjectGoals.Add(p);
+                    }
+                    else if (!LastCheckDate.HasValue && dateKey == todaySummary.Date.Date)
+                    {
+                        ShownDailyProjectGoals.Clear();
+                        foreach (var p in dayProjects) ShownDailyProjectGoals.Add(p);
+                    }
+                }
+            }
         }
 
         if (entries != null)
         {
-            var toRemoveDaily = new List<string>();
-            foreach (var proj in ShownDailyProjectGoals)
+            if (!_weeklyProjectGoalsByWeek.TryGetValue(weekMonday, out var weekProjects))
             {
-                var projSummary = _planStorage.CalculateProjectDailySummary(proj, todaySummary.Date, entries);
-                double actualHours = projSummary.ActualHours;
-                if (!string.IsNullOrWhiteSpace(activeProjectName) && proj.Equals(activeProjectName, StringComparison.OrdinalIgnoreCase))
+                if (ShownWeeklyProjectGoals.Count > 0)
                 {
-                    actualHours += activeTrackingElapsed.TotalHours;
-                }
-
-                if (projSummary.PlannedHours <= 0 || actualHours < projSummary.PlannedHours)
-                {
-                    toRemoveDaily.Add(proj);
+                    weekProjects = new HashSet<string>(ShownWeeklyProjectGoals, StringComparer.OrdinalIgnoreCase);
+                    _weeklyProjectGoalsByWeek[weekMonday] = weekProjects;
                 }
             }
-            foreach (var r in toRemoveDaily) ShownDailyProjectGoals.Remove(r);
 
-            var toRemoveWeekly = new List<string>();
-            foreach (var proj in ShownWeeklyProjectGoals)
+            if (weekProjects != null)
             {
-                var projSummary = _planStorage.CalculateProjectWeeklySummary(proj, weeklySummary.WeekStartDate, entries);
-                double actualHours = projSummary.ActualHours;
-                if (!string.IsNullOrWhiteSpace(activeProjectName) && proj.Equals(activeProjectName, StringComparison.OrdinalIgnoreCase))
+                var toRemove = new List<string>();
+                foreach (var proj in weekProjects)
                 {
-                    actualHours += activeTrackingElapsed.TotalHours;
-                }
+                    var projSummary = _planStorage.CalculateProjectWeeklySummary(proj, weekMonday, entries);
+                    double actualHours = projSummary.ActualHours;
+                    if (!string.IsNullOrWhiteSpace(activeProjectName) && proj.Equals(activeProjectName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        actualHours += activeTrackingElapsed.TotalHours;
+                    }
 
-                if (projSummary.PlannedHours <= 0 || actualHours < projSummary.PlannedHours)
+                    if (projSummary.PlannedHours <= 0 || actualHours < projSummary.PlannedHours)
+                    {
+                        toRemove.Add(proj);
+                    }
+                }
+                foreach (var r in toRemove) weekProjects.Remove(r);
+
+                if (LastCheckDate.HasValue)
                 {
-                    toRemoveWeekly.Add(proj);
+                    var (curMon, _) = CalendarPlanStorage.GetWeekBounds(LastCheckDate.Value);
+                    if (curMon == weekMonday)
+                    {
+                        ShownWeeklyProjectGoals.Clear();
+                        foreach (var p in weekProjects) ShownWeeklyProjectGoals.Add(p);
+                    }
+                }
+                else
+                {
+                    ShownWeeklyProjectGoals.Clear();
+                    foreach (var p in weekProjects) ShownWeeklyProjectGoals.Add(p);
                 }
             }
-            foreach (var r in toRemoveWeekly) ShownWeeklyProjectGoals.Remove(r);
         }
     }
 
@@ -312,11 +588,22 @@ public class GoalMilestoneTracker
     {
         HasShownDailyGoalNotification = false;
         ShownDailyProjectGoals.Clear();
+        if (LastCheckDate.HasValue)
+        {
+            _dailyGoalsByDate.Remove(LastCheckDate.Value.Date);
+            _dailyProjectGoalsByDate.Remove(LastCheckDate.Value.Date);
+        }
     }
 
     public void ResetWeekly()
     {
         HasShownWeeklyGoalNotification = false;
         ShownWeeklyProjectGoals.Clear();
+        if (LastCheckDate.HasValue)
+        {
+            var (weekMonday, _) = CalendarPlanStorage.GetWeekBounds(LastCheckDate.Value);
+            _weeklyGoalsByWeek.Remove(weekMonday);
+            _weeklyProjectGoalsByWeek.Remove(weekMonday);
+        }
     }
 }

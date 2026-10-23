@@ -1173,6 +1173,7 @@ public partial class MainWindow : Window
         if (DateTime.Today != _lastGoalCheckDate)
         {
             _lastGoalCheckDate = DateTime.Today;
+            UpdateGoalProgressCard();
         }
 
         if (!_intervalManager.IsAlertPending && IntervalAlertBanner.Visibility == Visibility.Visible)

@@ -1629,4 +1629,113 @@ public class GoalNotificationTests : IDisposable
         Assert.Equal(1.5, thuSummary.ActualHours);
         Assert.True(thuSummary.IsGoalMet);
     }
+
+    [Fact]
+    public void MidnightRollover_TrackingDifferentTask_DoesNotSpamPreviousDayGoal()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        // Plan: Project Alpha on Day 1 for 2 hours, Project Beta on Day 2 for 2 hours
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 2.0 },
+            new PlannedWorkItem { Date = day2, ProjectName = "Project Beta", PlannedHours = 2.0 }
+        });
+
+        // Entries: Project Alpha 2 hours on Day 1 (completed and saved)
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Project Alpha",
+                StartTime = day1.AddHours(9),
+                EndTime = day1.AddHours(11) // 2.0h
+            }
+        };
+
+        var tracker = new GoalMilestoneTracker(_planStorage);
+        tracker.Initialize(day1, entries);
+
+        int totalTriggers = 0;
+        tracker.ProjectGoalAchieved += (_, _) => totalTriggers++;
+        tracker.DailyGoalAchieved += (_, _) => totalTriggers++;
+        tracker.WeeklyGoalAchieved += (_, _) => totalTriggers++;
+
+        // Verify day 1 goal was already marked as shown by Initialize
+        Assert.True(tracker.HasShownDailyGoalNotification);
+        Assert.Contains("Project Alpha", tracker.ShownDailyProjectGoals);
+        Assert.Equal(0, totalTriggers);
+
+        // User starts tracking a DIFFERENT task (Project Beta) around midnight
+        var activeStart = day2.AddMinutes(-5); // Started 11:55pm or 12:00am
+        // Check on Day 2 with 5 minutes elapsed on Project Beta
+        tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(5), "Project Beta", activeStart);
+
+        // Day 1 goal must NOT trigger again
+        Assert.Equal(0, totalTriggers);
+
+        // Simulate progress card update on Day 2
+        var day2Summary = _planStorage.CalculateDailySummary(day2, entries);
+        var weeklySummary = _planStorage.CalculateWeeklySummary(day2, entries);
+        tracker.ResetIfPlansOrEntriesDecreased(day2Summary, weeklySummary, entries, TimeSpan.FromMinutes(5), "Project Beta");
+
+        // Simulate 20 consecutive timer ticks and UI updates on Day 2
+        for (int i = 6; i <= 25; i++)
+        {
+            tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(i), "Project Beta", activeStart);
+            tracker.ResetIfPlansOrEntriesDecreased(day2Summary, weeklySummary, entries, TimeSpan.FromMinutes(i), "Project Beta");
+        }
+
+        // Must still be 0 triggers (no spamming!)
+        Assert.Equal(0, totalTriggers);
+    }
+
+    [Fact]
+    public void MidnightRollover_OvernightActiveTracking_DoesNotSpamPreviousDayGoalRepeatedly()
+    {
+        var day1 = new DateTime(2026, 10, 21); // Wednesday
+        var day2 = new DateTime(2026, 10, 22); // Thursday
+
+        // Plan: Project Alpha on Day 1 for 2 hours
+        _planStorage.Save(new List<PlannedWorkItem>
+        {
+            new PlannedWorkItem { Date = day1, ProjectName = "Project Alpha", PlannedHours = 2.0 }
+        });
+
+        var entries = new List<TimeEntry>();
+        var tracker = new GoalMilestoneTracker(_planStorage);
+        tracker.Initialize(day1, entries);
+
+        int totalTriggers = 0;
+        tracker.ProjectGoalAchieved += (_, _) => totalTriggers++;
+        tracker.DailyGoalAchieved += (_, _) => totalTriggers++;
+        tracker.WeeklyGoalAchieved += (_, _) => totalTriggers++;
+
+        // At 11:00 PM on Day 1, user had already achieved 2 hours
+        tracker.CheckMilestones(day1, entries, TimeSpan.FromHours(2.0), "Project Alpha", day1.AddHours(21));
+        Assert.Equal(1, totalTriggers);
+
+        // User keeps tracking across midnight (now 12:05 AM on Day 2, 125 minutes elapsed)
+        var activeStart = day1.AddHours(21);
+        tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(125), "Project Alpha", activeStart);
+
+        // Must not trigger duplicate notification
+        Assert.Equal(1, totalTriggers);
+
+        // Progress card updates for Day 2
+        var day2Summary = _planStorage.CalculateDailySummary(day2, entries);
+        var weeklySummary = _planStorage.CalculateWeeklySummary(day2, entries);
+        tracker.ResetIfPlansOrEntriesDecreased(day2Summary, weeklySummary, entries, TimeSpan.FromMinutes(125), "Project Alpha");
+
+        // Subsequent ticks on Day 2
+        for (int m = 126; m <= 140; m++)
+        {
+            tracker.CheckMilestones(day2, entries, TimeSpan.FromMinutes(m), "Project Alpha", activeStart);
+            tracker.ResetIfPlansOrEntriesDecreased(day2Summary, weeklySummary, entries, TimeSpan.FromMinutes(m), "Project Alpha");
+        }
+
+        // Must still be exactly 1 trigger total (no spamming)
+        Assert.Equal(1, totalTriggers);
+    }
 }
