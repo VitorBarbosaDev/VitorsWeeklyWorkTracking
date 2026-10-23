@@ -422,7 +422,8 @@
                                 <ComboBox x:Name="ProjectComboBox"
                                           IsEditable="False"
                                           TextSearch.TextPath="Name"
-                                          HorizontalAlignment="Stretch">
+                                          HorizontalAlignment="Stretch"
+                                          SelectionChanged="ProjectComboBox_SelectionChanged">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -461,7 +462,8 @@
                                 <ComboBox x:Name="ActivityComboBox"
                                           IsEditable="False"
                                           TextSearch.TextPath="Name"
-                                          HorizontalAlignment="Stretch">
+                                          HorizontalAlignment="Stretch"
+                                          SelectionChanged="ActivityComboBox_SelectionChanged">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

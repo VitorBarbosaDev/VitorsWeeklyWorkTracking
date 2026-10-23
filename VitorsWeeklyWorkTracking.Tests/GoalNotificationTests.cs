@@ -1738,4 +1738,242 @@ public class GoalNotificationTests : IDisposable
         // Must still be exactly 1 trigger total (no spamming)
         Assert.Equal(1, totalTriggers);
     }
+
+    [Fact]
+    public void CalculatePlanItemActualHours_WithSpecificActivity_MatchesActivityEntriesIfPresent()
+    {
+        var testDate = new DateTime(2026, 10, 23);
+        var plan = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Project X",
+            Activity = "Development",
+            PlannedHours = 2.0
+        };
+
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Project X",
+                Activity = "Development",
+                StartTime = testDate.AddHours(9),
+                EndTime = testDate.AddHours(10) // 1.0 hr
+            },
+            new TimeEntry
+            {
+                ProjectName = "Project X",
+                Activity = "Design",
+                StartTime = testDate.AddHours(10),
+                EndTime = testDate.AddHours(11) // 1.0 hr
+            }
+        };
+
+        double actualHours = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        Assert.Equal(1.0, actualHours);
+    }
+
+    [Fact]
+    public void CalculatePlanItemActualHours_WhenNoActivityEntriesExist_FallsBackToAllProjectEntries()
+    {
+        var testDate = new DateTime(2026, 10, 23);
+        var plan = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Desktop Game Dev",
+            Activity = "Game Dev",
+            PlannedHours = 1.0
+        };
+
+        // User previously logged 1 hour on the project with general/no activity
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Desktop Game Dev",
+                Activity = "",
+                StartTime = testDate.AddHours(9),
+                EndTime = testDate.AddHours(10) // 1.0 hr
+            }
+        };
+
+        // Since no entries specifically have Activity = "Game Dev", it falls back to project entries
+        double actualHours = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        Assert.Equal(1.0, actualHours);
+        Assert.True(_planStorage.IsPlanItemCompleted(plan, entries));
+    }
+
+    [Fact]
+    public void CalculatePlanItemActualHours_WithEmptyActivity_MatchesAllEntriesForProject()
+    {
+        var testDate = new DateTime(2026, 10, 23);
+        var plan = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Project X",
+            Activity = "", // General plan with no specific activity
+            PlannedHours = 2.0
+        };
+
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Project X",
+                Activity = "Development",
+                StartTime = testDate.AddHours(9),
+                EndTime = testDate.AddHours(10) // 1.0 hr
+            },
+            new TimeEntry
+            {
+                ProjectName = "Project X",
+                Activity = "Design",
+                StartTime = testDate.AddHours(10),
+                EndTime = testDate.AddHours(11) // 1.0 hr
+            }
+        };
+
+        double actualHours = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        Assert.Equal(2.0, actualHours);
+    }
+
+    [Fact]
+    public void TodayPlans_ActiveTrackingAndDiscardFlow_IncludesPriorSavedHoursAndUpdatesRealtimeAndRevertsOnDiscard()
+    {
+        var testDate = new DateTime(2026, 10, 23);
+        var plan = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Desktop Game Dev",
+            Activity = "Development",
+            PlannedHours = 1.0
+        };
+        _planStorage.Save(new List<PlannedWorkItem> { plan });
+
+        // 1. Initial state: User already has 1.0 hour previously tracked and logged
+        var entries = new List<TimeEntry>
+        {
+            new TimeEntry
+            {
+                ProjectName = "Desktop Game Dev",
+                Activity = "Development",
+                StartTime = testDate.AddHours(8),
+                EndTime = testDate.AddHours(9) // 1.0 hr
+            }
+        };
+
+        double initialActual = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        Assert.Equal(1.0, initialActual);
+        Assert.True(_planStorage.IsPlanItemCompleted(plan, entries));
+
+        // 2. Simulate Active Tracking: User tracks additional 15 minutes (0.25h) on Desktop Game Dev
+        double activeElapsedHours = 0.25;
+        string activeProj = "Desktop Game Dev";
+        string activeAct = "Development";
+
+        double trackingActual = initialActual;
+        bool isActivityMatch = string.IsNullOrWhiteSpace(plan.Activity)
+            || string.IsNullOrWhiteSpace(activeAct)
+            || plan.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase);
+
+        if (plan.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase) && isActivityMatch)
+        {
+            trackingActual += activeElapsedHours;
+        }
+
+        Assert.Equal(1.25, trackingActual);
+        Assert.Equal("1h 15m", TimeFormatHelper.FormatHours(trackingActual));
+        Assert.Equal("125%", $"{Math.Round((trackingActual / plan.PlannedHours) * 100):F0}%");
+
+        // 3. Simulate Paused / Review State: 15 minutes pending
+        double pausedElapsedHours = 0.25;
+        double pausedActual = initialActual;
+        if (plan.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase) && isActivityMatch)
+        {
+            pausedActual += pausedElapsedHours;
+        }
+        Assert.Equal(1.25, pausedActual);
+
+        // 4. Simulate Discard State: Pending tracking cleared, entries list NOT modified
+        activeElapsedHours = 0.0;
+        double discardedActual = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        if (activeElapsedHours > 0)
+        {
+            discardedActual += activeElapsedHours;
+        }
+
+        // Reverted back to the original 1.0 hour!
+        Assert.Equal(1.0, discardedActual);
+        Assert.Equal("1h", TimeFormatHelper.FormatHours(discardedActual));
+        Assert.Single(entries);
+
+        // 5. Simulate Save State: Second entry saved to entries list
+        var newEntry = new TimeEntry
+        {
+            ProjectName = "Desktop Game Dev",
+            Activity = "Development",
+            StartTime = testDate.AddHours(9),
+            EndTime = testDate.AddHours(9.25) // 15 mins
+        };
+        entries.Add(newEntry);
+
+        double savedActual = _planStorage.CalculatePlanItemActualHours(plan, entries);
+        Assert.Equal(1.25, savedActual);
+        Assert.Equal("1h 15m", TimeFormatHelper.FormatHours(savedActual));
+    }
+
+    [Fact]
+    public void TodayPlans_MultiplePlansDifferentActivities_ActiveTrackingOnlyMatchesCorrespondingPlan()
+    {
+        var testDate = new DateTime(2026, 10, 23);
+        var planCoding = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Project Alpha",
+            Activity = "Coding",
+            PlannedHours = 1.0
+        };
+        var planDesign = new PlannedWorkItem
+        {
+            Date = testDate,
+            ProjectName = "Project Alpha",
+            Activity = "Design",
+            PlannedHours = 1.0
+        };
+        _planStorage.Save(new List<PlannedWorkItem> { planCoding, planDesign });
+
+        var entries = new List<TimeEntry>();
+
+        // User tracks Project Alpha with Activity "Coding" for 45 minutes
+        double activeElapsedHours = 0.75; // 45m
+        string activeProj = "Project Alpha";
+        string activeAct = "Coding";
+
+        double codingActual = _planStorage.CalculatePlanItemActualHours(planCoding, entries);
+        bool codingMatch = string.IsNullOrWhiteSpace(planCoding.Activity)
+            || string.IsNullOrWhiteSpace(activeAct)
+            || planCoding.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase);
+
+        if (planCoding.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase) && codingMatch)
+        {
+            codingActual += activeElapsedHours;
+        }
+
+        double designActual = _planStorage.CalculatePlanItemActualHours(planDesign, entries);
+        bool designMatch = string.IsNullOrWhiteSpace(planDesign.Activity)
+            || string.IsNullOrWhiteSpace(activeAct)
+            || planDesign.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase);
+
+        if (planDesign.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase) && designMatch)
+        {
+            designActual += activeElapsedHours;
+        }
+
+        // Only Coding plan should have 45m, Design plan should remain 0m
+        Assert.Equal(0.75, codingActual);
+        Assert.Equal("45m", TimeFormatHelper.FormatHours(codingActual));
+
+        Assert.Equal(0.0, designActual);
+        Assert.Equal("0m", TimeFormatHelper.FormatHours(designActual));
+    }
 }

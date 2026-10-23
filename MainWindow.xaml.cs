@@ -918,6 +918,24 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ProjectComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        UpdateGoalProgressCard();
+        UpdateStatus();
+    }
+
+    private void ActivityComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        UpdateGoalProgressCard();
+        UpdateStatus();
+    }
+
     private void RefreshActivitiesDropdown(string? selectActivityName = null)
     {
         var activeActivities = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
@@ -1703,12 +1721,14 @@ public partial class MainWindow : Window
         {
             activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            if (string.IsNullOrEmpty(activeProj)) activeProj = "Unassigned Project";
             activeStart = _currentStartTime.Value;
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+            if (string.IsNullOrEmpty(activeProj)) activeProj = "Unassigned Project";
             activeStart = _pendingStartTime.Value;
         }
 
@@ -1826,14 +1846,16 @@ public partial class MainWindow : Window
         {
             activeElapsedHours = (DateTime.Now - _currentStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
-            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+            if (string.IsNullOrEmpty(activeProj)) activeProj = "Unassigned Project";
+            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString();
             activeStart = _currentStartTime.Value;
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
         {
             activeElapsedHours = (_pendingEndTime.Value - _pendingStartTime.Value).TotalHours;
             activeProj = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
-            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+            if (string.IsNullOrEmpty(activeProj)) activeProj = "Unassigned Project";
+            activeAct = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim() ?? ActivityComboBox.SelectedItem?.ToString();
             activeStart = _pendingStartTime.Value;
         }
 
@@ -1866,8 +1888,11 @@ public partial class MainWindow : Window
             if (isActiveForToday && activeElapsedHours > 0 && !string.IsNullOrWhiteSpace(activeProj) &&
                 plan.ProjectName.Equals(activeProj, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrWhiteSpace(plan.Activity) ||
-                    plan.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase))
+                bool isActivityMatch = string.IsNullOrWhiteSpace(plan.Activity)
+                    || string.IsNullOrWhiteSpace(activeAct)
+                    || plan.Activity.Equals(activeAct, StringComparison.OrdinalIgnoreCase);
+
+                if (isActivityMatch)
                 {
                     planActualHours += activeElapsedHours;
                 }
@@ -2112,9 +2137,12 @@ public partial class MainWindow : Window
         {
             ProjectComboBox.SelectedItem = matchedProj;
         }
-        else
+        else if (!string.IsNullOrWhiteSpace(plan.ProjectName))
         {
-            ProjectComboBox.Text = plan.ProjectName;
+            var newProj = new Project { Name = plan.ProjectName, IsActive = true, ColorHex = null };
+            _projects.Add(newProj);
+            _projectStorage.Save(_projects);
+            RefreshProjectsDropdown(newProj.Name);
         }
 
         if (!string.IsNullOrWhiteSpace(plan.Activity))
@@ -2126,7 +2154,10 @@ public partial class MainWindow : Window
             }
             else
             {
-                ActivityComboBox.Text = plan.Activity;
+                var newAct = new ActivityItem { Name = plan.Activity, IsActive = true, ColorHex = null };
+                _activities.Add(newAct);
+                _activityStorage.Save(_activities);
+                RefreshActivitiesDropdown(newAct.Name);
             }
         }
 
@@ -2135,6 +2166,8 @@ public partial class MainWindow : Window
             DescriptionTextBox.Text = plan.Note;
         }
 
+        UpdateGoalProgressCard();
+        UpdateStatus();
         StartButton.Focus();
     }
 
