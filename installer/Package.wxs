@@ -2,11 +2,11 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="Vitor's Weekly Work Tracking"
            Manufacturer="Vitor"
-           Version="1.0.0"
+           Version="1.0.1"
            UpgradeCode="9c7f051a-ddaa-42a4-91fa-bf45cd5cf8c4"
            Scope="perMachine">
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Vitor's Weekly Work Tracking is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Vitor's Weekly Work Tracking is already installed." AllowSameVersionUpgrades="yes" />
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 

@@ -17,7 +17,17 @@ public class Project
     public SolidColorBrush Brush => ProjectColorHelper.GetProjectBrush(Name);
 
     [JsonIgnore]
-    public bool HasCustomColor => !string.IsNullOrWhiteSpace(ColorHex) && ProjectColorHelper.IsValidHex(ColorHex);
+    public bool HasCustomColor
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ColorHex) || !ProjectColorHelper.IsValidHex(ColorHex))
+                return false;
+            
+            // Default color hex is not considered "custom" for repair purposes
+            return !ColorHex.Equals(ProjectColorHelper.DefaultProjectColorHex, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
     public override string ToString() => Name;
 }

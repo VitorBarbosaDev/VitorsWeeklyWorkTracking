@@ -36,22 +36,21 @@ public class ProjectStorage
             // Auto-discover pre-existing projects from time entries and calendar plans
             var discoveredProjects = DiscoverProjectsFromData();
 
-            // Check if existing projects list contains dummy placeholders (e.g. "Alpha", "Beta", "Long Milestone", "Quick Sync")
-            // while real non-dummy projects exist. Clean up the dummy placeholders.
-            bool hasRealProjects = discoveredProjects.Any(p => !IsDummyPlaceholder(p)) || list.Any(p => !IsDummyPlaceholder(p.Name));
-            if (hasRealProjects)
+            // Safe Repair: Remove dummy placeholders only if they are NOT used in real data 
+            // AND don't have any custom user-assigned colors. This cleans up accidental 
+            // template data without losing user customizations.
+            int removed = list.RemoveAll(p => IsDummyPlaceholder(p.Name) && 
+                                              !p.HasCustomColor && 
+                                              !discoveredProjects.Contains(p.Name, StringComparer.OrdinalIgnoreCase));
+            if (removed > 0)
             {
-                int removedCount = list.RemoveAll(p => IsDummyPlaceholder(p.Name));
-                if (removedCount > 0)
-                {
-                    needsSave = true;
-                }
+                needsSave = true;
             }
 
-            // Add any discovered projects that are not yet in the list
+            // Only add discovered projects that are not yet in the list and are not dummies
             foreach (var projName in discoveredProjects)
             {
-                if (!list.Any(p => p.Name.Equals(projName, StringComparison.OrdinalIgnoreCase)))
+                if (!IsDummyPlaceholder(projName) && !list.Any(p => p.Name.Equals(projName, StringComparison.OrdinalIgnoreCase)))
                 {
                     list.Add(new Project
                     {
@@ -61,6 +60,18 @@ public class ProjectStorage
                     });
                     needsSave = true;
                 }
+            }
+
+            // If still completely empty, initialize with default project
+            if (list.Count == 0)
+            {
+                list.Add(new Project
+                {
+                    Name = "General Freelance",
+                    IsActive = true,
+                    ColorHex = null
+                });
+                needsSave = true;
             }
 
             if (needsSave && list.Count > 0)
@@ -181,12 +192,6 @@ public class ProjectStorage
             StoragePathHelper.LogError(ex, "ProjectStorage.DiscoverProjects.CalendarPlans");
         }
 
-        var nonDummy = result.Where(p => !IsDummyPlaceholder(p)).ToList();
-        if (nonDummy.Count > 0)
-        {
-            return nonDummy.OrderBy(x => x).ToList();
-        }
-
         return result.OrderBy(x => x).ToList();
     }
 
@@ -203,7 +208,8 @@ public class ProjectStorage
                clean.Equals("Storage Query Test", StringComparison.OrdinalIgnoreCase) ||
                clean.Equals("Test Project", StringComparison.OrdinalIgnoreCase) ||
                clean.Equals("Client Website", StringComparison.OrdinalIgnoreCase) ||
-               clean.Equals("End of Year Review", StringComparison.OrdinalIgnoreCase);
+               clean.Equals("End of Year Review", StringComparison.OrdinalIgnoreCase) ||
+               clean.Equals("General Freelance", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Save(List<Project> projects)

@@ -51,21 +51,21 @@ public class ActivityStorage
             // Auto-discover pre-existing activities from time entries and calendar plans
             var discovered = DiscoverActivitiesFromData();
 
-            // Check if existing list has dummy placeholders (e.g., "Marketing") not present in real user data
-            bool hasRealData = discovered.Any(a => !IsDummyActivityPlaceholder(a)) || list.Any(a => !IsDummyActivityPlaceholder(a.Name));
-            if (hasRealData)
+            // Safe Repair: Remove dummy placeholders only if they are NOT used in real data 
+            // AND don't have any custom user-assigned colors. This cleans up accidental 
+            // template data without losing user customizations.
+            int removed = list.RemoveAll(a => IsDummyActivityPlaceholder(a.Name) && 
+                                              !a.HasCustomColor && 
+                                              !discovered.Contains(a.Name, StringComparer.OrdinalIgnoreCase));
+            if (removed > 0)
             {
-                int removed = list.RemoveAll(a => IsDummyActivityPlaceholder(a.Name) && !discovered.Contains(a.Name, StringComparer.OrdinalIgnoreCase));
-                if (removed > 0)
-                {
-                    needsSave = true;
-                }
+                needsSave = true;
             }
 
-            // Add any discovered activities that are not yet in the list
+            // Add any discovered activities that are not yet in the list and are not dummies
             foreach (var actName in discovered)
             {
-                if (!list.Any(a => a.Name.Equals(actName, StringComparison.OrdinalIgnoreCase)))
+                if (!IsDummyActivityPlaceholder(actName) && !list.Any(a => a.Name.Equals(actName, StringComparison.OrdinalIgnoreCase)))
                 {
                     list.Add(new ActivityItem
                     {
@@ -216,12 +216,6 @@ public class ActivityStorage
             StoragePathHelper.LogError(ex, "ActivityStorage.DiscoverActivities.CalendarPlans");
         }
 
-        var nonDummy = result.Where(a => !IsDummyActivityPlaceholder(a)).ToList();
-        if (nonDummy.Count > 0)
-        {
-            return nonDummy.OrderBy(x => x).ToList();
-        }
-
         return result.OrderBy(x => x).ToList();
     }
 
@@ -229,9 +223,19 @@ public class ActivityStorage
     {
         if (string.IsNullOrWhiteSpace(name)) return true;
         var clean = name.Trim();
-        return clean.Equals("Marketing", StringComparison.OrdinalIgnoreCase) ||
-               clean.Equals("Activity Alpha", StringComparison.OrdinalIgnoreCase) ||
-               clean.Equals("Activity Beta", StringComparison.OrdinalIgnoreCase);
+        
+        // Examples and placeholders used in tests or legacy versions
+        if (clean.Equals("Marketing", StringComparison.OrdinalIgnoreCase) ||
+            clean.Equals("Activity Alpha", StringComparison.OrdinalIgnoreCase) ||
+            clean.Equals("Activity Beta", StringComparison.OrdinalIgnoreCase) ||
+            clean.Equals("Development", StringComparison.OrdinalIgnoreCase) ||
+            clean.Equals("Study", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Current default activity set - these should be considered removable if unused and unstyled
+        return DefaultActivities.Contains(clean, StringComparer.OrdinalIgnoreCase);
     }
 
     public void Save(List<ActivityItem> activities)

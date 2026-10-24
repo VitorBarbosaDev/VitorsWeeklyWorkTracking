@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using System.Windows.Media;
 using VitorsWeeklyWorkTracking.Services;
 
@@ -14,21 +15,30 @@ public class PlannedWorkItem
     public string Note { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    [JsonIgnore]
     public string FormattedHours => TimeFormatHelper.FormatHours(PlannedHours);
 
+    [JsonIgnore]
     public string FormattedDate => Date.ToString("yyyy-MM-dd");
+    [JsonIgnore]
     public string DayOfWeekName => Date.ToString("dddd");
+    [JsonIgnore]
     public string ShortDayDate => Date.ToString("ddd, dd MMM");
 
     public bool IsCompleted { get; set; } = false;
     public double ActualHours { get; set; } = 0.0;
+    [JsonIgnore]
     public string FormattedActualHours => TimeFormatHelper.FormatHours(ActualHours);
     public string RewardIcon { get; set; } = "⭐";
+    [JsonIgnore]
     public string FormattedProjectWithReward => ProjectName;
 
+    [JsonIgnore]
     public double CompletionPercentage => PlannedHours > 0 ? (ActualHours / PlannedHours) * 100.0 : (ActualHours > 0 ? 100.0 : 0.0);
+    [JsonIgnore]
     public string FormattedCompletionPercentage => $"{CompletionPercentage:F0}%";
 
+    [JsonIgnore]
     public GoalStatusCategory StatusCategory
     {
         get
@@ -46,6 +56,7 @@ public class PlannedWorkItem
         }
     }
 
+    [JsonIgnore]
     public string CompletionStatusText
     {
         get
@@ -67,13 +78,22 @@ public class PlannedWorkItem
         }
     }
 
+    [JsonIgnore]
     public SolidColorBrush StatusBackgroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Background;
+    [JsonIgnore]
     public SolidColorBrush StatusBorderBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Border;
+    [JsonIgnore]
     public SolidColorBrush StatusForegroundBrush => GoalColorHelper.GetStatusBrushes(StatusCategory).Foreground;
+    [JsonIgnore]
     public SolidColorBrush ProjectBrush => ProjectColorHelper.GetProjectBrush(ProjectName);
+    [JsonIgnore]
     public SolidColorBrush ActivityBrush => ActivityColorHelper.GetActivityBrush(Activity);
+    [JsonIgnore]
     public SolidColorBrush ActivityBadgeBackground => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Background;
+    [JsonIgnore]
     public SolidColorBrush ActivityBadgeBorder => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Border;
+    [JsonIgnore]
     public SolidColorBrush ActivityBadgeForeground => ActivityColorHelper.GetActivityBadgeBrushes(Activity).Foreground;
+    [JsonIgnore]
     public SolidColorBrush ProgressBarBrush => GoalColorHelper.GetProgressBarBrush(CompletionPercentage, IsCompleted || (PlannedHours > 0 && ActualHours >= PlannedHours));
 }

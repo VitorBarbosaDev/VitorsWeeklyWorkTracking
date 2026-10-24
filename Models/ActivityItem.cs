@@ -17,7 +17,17 @@ public class ActivityItem
     public SolidColorBrush Brush => ActivityColorHelper.GetActivityBrush(Name);
 
     [JsonIgnore]
-    public bool HasCustomColor => !string.IsNullOrWhiteSpace(ColorHex) && ActivityColorHelper.IsValidHex(ColorHex);
+    public bool HasCustomColor
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ColorHex) || !ActivityColorHelper.IsValidHex(ColorHex))
+                return false;
+            
+            // Default color hex is not considered "custom" for repair purposes
+            return !ColorHex.Equals(ActivityColorHelper.DefaultActivityColorHex, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
     public override string ToString() => Name;
 }

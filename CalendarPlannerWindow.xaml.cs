@@ -71,10 +71,6 @@ public partial class CalendarPlannerWindow : Window
         {
             projectList = projectMap.Values.OrderBy(p => p.Name).ToList();
         }
-        if (projectList.Count == 0)
-        {
-            projectList.Add(new Project { Name = "General Freelance", IsActive = true });
-        }
 
         PlanProjectComboBox.ItemsSource = null;
         PlanProjectComboBox.ItemsSource = projectList;
@@ -91,13 +87,6 @@ public partial class CalendarPlannerWindow : Window
                 activityMap[a.Name] = a;
             }
         }
-        foreach (var defName in ActivityStorage.DefaultActivities)
-        {
-            if (!activityMap.ContainsKey(defName))
-            {
-                activityMap[defName] = new ActivityItem { Name = defName, IsActive = true };
-            }
-        }
         foreach (var e in _allEntries)
         {
             if (!string.IsNullOrWhiteSpace(e.Activity) && !activityMap.ContainsKey(e.Activity))
@@ -110,10 +99,6 @@ public partial class CalendarPlannerWindow : Window
         if (activityList.Count == 0 && activityMap.Count > 0)
         {
             activityList = activityMap.Values.OrderBy(a => a.Name).ToList();
-        }
-        if (activityList.Count == 0)
-        {
-            activityList.Add(new ActivityItem { Name = "Development", IsActive = true });
         }
 
         PlanActivityComboBox.ItemsSource = null;

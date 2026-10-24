@@ -13,6 +13,11 @@ public static class StoragePathHelper
     private const string AppFolderName = "VitorsWeeklyWorkTracking";
     private static readonly string AppDataFolder;
 
+    /// <summary>
+    /// For testing purposes only. Allows overriding the data folder.
+    /// </summary>
+    public static string? OverrideAppDataFolder { get; set; }
+
     static StoragePathHelper()
     {
         try
@@ -47,8 +52,9 @@ public static class StoragePathHelper
     /// </summary>
     public static string GetFilePath(string fileName, string? legacyFileName = null)
     {
-        EnsureDirectoryExists(AppDataFolder);
-        var targetPath = Path.Combine(AppDataFolder, fileName);
+        var folder = OverrideAppDataFolder ?? AppDataFolder;
+        EnsureDirectoryExists(folder);
+        var targetPath = Path.Combine(folder, fileName);
 
         // Migrate legacy file if destination does not exist
         try
