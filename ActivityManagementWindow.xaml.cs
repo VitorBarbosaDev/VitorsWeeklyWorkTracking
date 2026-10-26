@@ -228,6 +228,10 @@ public partial class ActivityManagementWindow : Window
             return;
 
         newName = newName.Trim();
+
+        // Create pre-update backup before bulk renaming activity across multiple files
+        BackupService.Instance.CreateBackup("Pre-Update (Activity Rename)", $"Before renaming activity '{oldName}' to '{newName}'");
+
         selected.Name = newName;
 
         if (selected.HasCustomColor)
@@ -391,6 +395,8 @@ public partial class ActivityManagementWindow : Window
             "Cancel");
 
         if (!confirmed) return;
+
+        BackupService.Instance.CreateBackup("Pre-Update (Activity Delete)", $"Before deleting activity '{activityName}'");
 
         _activities.Remove(selected);
         ActivityColorHelper.RemoveActivityColor(activityName);

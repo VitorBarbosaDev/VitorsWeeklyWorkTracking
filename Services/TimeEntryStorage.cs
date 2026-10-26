@@ -39,6 +39,11 @@ public class TimeEntryStorage
     {
         try
         {
+            if (File.Exists(_filePath))
+            {
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Time Entries)");
+            }
+
             string json = JsonSerializer.Serialize(entries, new JsonSerializerOptions
             {
                 WriteIndented = true

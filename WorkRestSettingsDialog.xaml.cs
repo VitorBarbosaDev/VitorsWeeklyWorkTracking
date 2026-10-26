@@ -769,4 +769,49 @@ public partial class WorkRestSettingsDialog : Window
         };
         previewDialog.ShowDialog();
     }
+
+    private void BackupsButton_Click(object sender, RoutedEventArgs e)
+    {
+        bool confirmed = ThemedMessageBox.Confirm(
+            this,
+            "Are you sure you want to create a backup of your data?",
+            "Confirm Backup",
+            "Backup Now",
+            "Cancel");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var created = BackupService.Instance.CreateBackup(
+            reason: "Manual Backup",
+            note: "Created from Settings",
+            isManual: true,
+            pruneAfter: false);
+
+        if (created != null)
+        {
+            ThemedMessageBox.ShowSuccess(
+                this,
+                $"Backup snapshot created successfully!\n\nSnapshot contains:\n• {created.TimeEntryCount} Time Entries\n• {created.ProjectCount} Projects\n• {created.ActivityCount} Activities\n• {created.CalendarPlanCount} Calendar Plans\n• Total size: {created.FormattedSize}",
+                "Backup Created");
+        }
+        else
+        {
+            ThemedMessageBox.ShowWarning(
+                this,
+                "No active data was found to back up.",
+                "Backup Incomplete");
+        }
+    }
+
+    private void ManageBackupsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new BackupManagementWindow
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+    }
 }

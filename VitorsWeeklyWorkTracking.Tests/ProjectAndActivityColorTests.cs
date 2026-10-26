@@ -10,6 +10,7 @@ using Xunit;
 
 namespace VitorsWeeklyWorkTracking.Tests;
 
+[Collection("StorageTests")]
 public class ProjectAndActivityColorTests
 {
     [Fact]
@@ -236,6 +237,7 @@ public class ProjectAndActivityColorTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"proj_filter_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
+        StoragePathHelper.OverrideAppDataFolder = tempDir;
 
         try
         {
@@ -261,6 +263,7 @@ public class ProjectAndActivityColorTests
         }
         finally
         {
+            StoragePathHelper.OverrideAppDataFolder = null;
             if (Directory.Exists(tempDir))
                 Directory.Delete(tempDir, true);
         }

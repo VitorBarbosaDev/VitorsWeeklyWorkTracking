@@ -7,6 +7,7 @@ using Xunit;
 
 namespace VitorsWeeklyWorkTracking.Tests;
 
+[Collection("StorageTests")]
 public class GoalAndCalendarColorTests
 {
     [Fact]
@@ -406,6 +407,7 @@ public class GoalAndCalendarColorTests
                 {
                     var app = new App();
                     app.InitializeComponent();
+                    ThemeManager.Initialize();
                 }
 
                 var vertStyle = System.Windows.Application.Current.TryFindResource("ModernVerticalGridSplitter") as System.Windows.Style;

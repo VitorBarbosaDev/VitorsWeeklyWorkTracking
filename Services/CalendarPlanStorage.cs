@@ -23,6 +23,15 @@ public class CalendarPlanStorage
         _instance = null;
     }
 
+    public void InvalidateCache()
+    {
+        lock (_lock)
+        {
+            _cachedPlans = null;
+            PlansChanged?.Invoke();
+        }
+    }
+
     public event Action? PlansChanged;
     private readonly object _lock = new();
     private List<PlannedWorkItem>? _cachedPlans;
@@ -82,6 +91,11 @@ public class CalendarPlanStorage
     {
         lock (_lock)
         {
+            if (File.Exists(_filePath))
+            {
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Calendar Plans)");
+            }
+
             foreach (var p in plans)
             {
                 SanitizePlanItem(p);

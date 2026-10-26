@@ -242,6 +242,11 @@ public class ActivityStorage
     {
         try
         {
+            if (File.Exists(_filePath))
+            {
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Activities)");
+            }
+
             ActivityColorHelper.RegisterActivities(activities);
             string json = JsonSerializer.Serialize(activities, new JsonSerializerOptions
             {

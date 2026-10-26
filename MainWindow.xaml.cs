@@ -134,6 +134,9 @@ public partial class MainWindow : Window
         _timer.Tick += (s, e) => UpdateStatus();
         UpdateStatus();
 
+        BackupService.Instance.DataRestored += (s, e) => Dispatcher.Invoke(ReloadAllData);
+        BackupService.Instance.CreateAutoBackupIfNeeded("App Launch");
+
         Loaded += MainWindow_Loaded;
     }
 
@@ -2447,6 +2450,46 @@ public partial class MainWindow : Window
             Owner = this
         };
         dialog.ShowDialog();
+    }
+
+    private void BackupsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new BackupManagementWindow
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+        if (dialog.WasRestored)
+        {
+            ReloadAllData();
+        }
+    }
+
+    public void ReloadAllData()
+    {
+        var currentSelectedProject = (ProjectComboBox.SelectedItem as Project)?.Name ?? ProjectComboBox.Text?.Trim();
+        var currentSelectedActivity = (ActivityComboBox.SelectedItem as ActivityItem)?.Name ?? ActivityComboBox.Text?.Trim();
+        var currentFilterProject = FilterProjectComboBox.SelectedItem?.ToString();
+        var currentFilterActivity = FilterActivityComboBox.SelectedItem?.ToString();
+
+        _entries = _storage.Load();
+        _projects = _projectStorage.Load();
+        _activities = _activityStorage.Load();
+        _workRestSettings = FocusCompanionStorage.Load();
+
+        ProjectColorHelper.RegisterProjects(_projects);
+        ActivityColorHelper.RegisterActivities(_activities);
+
+        _goalMilestoneTracker.Settings = _workRestSettings;
+        _goalMilestoneTracker.Initialize(DateTime.Today, _entries);
+
+        RefreshProjectsDropdown(currentSelectedProject);
+        RefreshActivitiesDropdown(currentSelectedActivity);
+        RefreshFilterProjectsDropdown(currentFilterProject);
+        RefreshFilterActivitiesDropdown(currentFilterActivity);
+        RefreshGrid();
+        UpdateGoalProgressCard();
+        UpdateStatus();
     }
 
     private void ViewEntryDetailsButton_Click(object sender, RoutedEventArgs e)

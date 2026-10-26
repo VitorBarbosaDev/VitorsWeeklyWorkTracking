@@ -216,6 +216,11 @@ public class ProjectStorage
     {
         try
         {
+            if (File.Exists(_filePath))
+            {
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Projects)");
+            }
+
             ProjectColorHelper.RegisterProjects(projects);
             string json = JsonSerializer.Serialize(projects, new JsonSerializerOptions
             {

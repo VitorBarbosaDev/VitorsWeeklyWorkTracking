@@ -1054,6 +1054,7 @@
                         Click="AddNewActivityButton_Click"/>
                 <Button Content="📊 Analytics"
                         Width="95"
+                        Margin="0 0 6 0"
                         Click="AnalyticsButton_Click"/>
             </StackPanel>
 

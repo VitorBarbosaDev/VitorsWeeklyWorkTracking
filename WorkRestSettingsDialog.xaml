@@ -1130,7 +1130,8 @@
                         BorderBrush="{DynamicResource Theme.CardBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
-                        Padding="14">
+                        Padding="14"
+                        Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="⚙️ Transition &amp; Companion Options" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
 
@@ -1145,19 +1146,64 @@
                                   IsChecked="True"/>
                     </StackPanel>
                 </Border>
+
+                <!-- Data Backup & Safety Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="💾 Data Backup &amp; Recovery" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Protect your tracked time entries, projects, activities, and goals against accidental loss or overwrites."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="BackupCardButton"
+                                    Content="💾 Create Backup"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="12,0"
+                                    Margin="0,0,8,0"
+                                    FontSize="11"
+                                    ToolTip="Save an instant snapshot backup of all current data with confirmation"
+                                    Click="BackupsButton_Click"/>
+                            <Button x:Name="ManageBackupsCardButton"
+                                    Content="📂 Manage &amp; Restore Backups..."
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="12,0"
+                                    FontSize="11"
+                                    ToolTip="View snapshot history, restore previous data, export or import ZIP archives"
+                                    Click="ManageBackupsButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
         <!-- Actions -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
+            <Button x:Name="BackupsButton"
+                    Grid.Column="0"
+                    Content="💾 Backups"
+                    Style="{StaticResource GhostButton}"
+                    Padding="14,6"
+                    ToolTip="Backup your current data or manage backups"
+                    Click="BackupsButton_Click"/>
+
             <Button x:Name="CancelButton"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     Content="Cancel"
                     Style="{StaticResource GhostButton}"
                     Padding="16,6"
@@ -1165,7 +1211,7 @@
                     Click="CancelButton_Click"/>
 
             <Button x:Name="SaveButton"
-                    Grid.Column="2"
+                    Grid.Column="3"
                     Content="Save Settings"
                     Style="{StaticResource PrimaryButton}"
                     Padding="18,6"

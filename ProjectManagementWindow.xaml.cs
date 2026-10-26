@@ -228,6 +228,10 @@ public partial class ProjectManagementWindow : Window
             return;
 
         newName = newName.Trim();
+
+        // Create pre-update backup before bulk renaming project across multiple files
+        BackupService.Instance.CreateBackup("Pre-Update (Project Rename)", $"Before renaming project '{oldName}' to '{newName}'");
+
         selected.Name = newName;
 
         if (selected.HasCustomColor)
@@ -372,6 +376,8 @@ public partial class ProjectManagementWindow : Window
             "Cancel");
 
         if (!confirmed) return;
+
+        BackupService.Instance.CreateBackup("Pre-Update (Project Delete)", $"Before deleting project '{projectName}'");
 
         _projects.Remove(selected);
         ProjectColorHelper.RemoveProjectColor(projectName);

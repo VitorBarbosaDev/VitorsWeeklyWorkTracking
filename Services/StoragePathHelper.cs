@@ -47,13 +47,32 @@ public static class StoragePathHelper
     }
 
     /// <summary>
+    /// Gets the root data folder for application data.
+    /// </summary>
+    public static string GetDataFolder()
+    {
+        var folder = OverrideAppDataFolder ?? AppDataFolder;
+        EnsureDirectoryExists(folder);
+        return folder;
+    }
+
+    /// <summary>
+    /// Gets the backups folder path, ensuring it exists.
+    /// </summary>
+    public static string GetBackupFolderPath()
+    {
+        var backupFolder = Path.Combine(GetDataFolder(), "backups");
+        EnsureDirectoryExists(backupFolder);
+        return backupFolder;
+    }
+
+    /// <summary>
     /// Gets the full path to a file in the user's LocalApplicationData folder,
     /// automatically creating directories and migrating legacy files if present.
     /// </summary>
     public static string GetFilePath(string fileName, string? legacyFileName = null)
     {
-        var folder = OverrideAppDataFolder ?? AppDataFolder;
-        EnsureDirectoryExists(folder);
+        var folder = GetDataFolder();
         var targetPath = Path.Combine(folder, fileName);
 
         // Migrate legacy file if destination does not exist
@@ -120,7 +139,7 @@ public static class StoragePathHelper
     {
         try
         {
-            var logPath = Path.Combine(AppDataFolder, "error.log");
+            var logPath = Path.Combine(GetDataFolder(), "error.log");
             var message = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{context}] {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}\n\n";
             File.AppendAllText(logPath, message);
         }
