@@ -9,11 +9,12 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class ProjectStorage
 {
-    private readonly string _filePath;
+    private readonly string? _customFilePath;
+    private string FilePath => _customFilePath ?? StoragePathHelper.GetFilePath("projects.json");
 
     public ProjectStorage(string? filePath = null)
     {
-        _filePath = filePath ?? StoragePathHelper.GetFilePath("projects.json");
+        _customFilePath = filePath;
     }
 
     public List<Project> Load()
@@ -23,9 +24,9 @@ public class ProjectStorage
             List<Project> list;
             bool needsSave = false;
 
-            if (File.Exists(_filePath))
+            if (File.Exists(FilePath))
             {
-                string json = File.ReadAllText(_filePath);
+                string json = File.ReadAllText(FilePath);
                 list = JsonSerializer.Deserialize<List<Project>>(json) ?? new List<Project>();
             }
             else
@@ -36,11 +37,11 @@ public class ProjectStorage
             // Auto-discover pre-existing projects from time entries and calendar plans
             var discoveredProjects = DiscoverProjectsFromData();
 
-            // Safe Repair: Remove dummy placeholders only if they are NOT used in real data 
-            // AND don't have any custom user-assigned colors. This cleans up accidental 
-            // template data without losing user customizations.
+            // Safe Repair: Remove dummy placeholders only if they are NOT used in real data, 
+            // don't have custom user-assigned colors, and don't have any milestones attached.
             int removed = list.RemoveAll(p => IsDummyPlaceholder(p.Name) && 
                                               !p.HasCustomColor && 
+                                              (p.Milestones == null || p.Milestones.Count == 0) &&
                                               !discoveredProjects.Contains(p.Name, StringComparer.OrdinalIgnoreCase));
             if (removed > 0)
             {
@@ -216,7 +217,7 @@ public class ProjectStorage
     {
         try
         {
-            if (File.Exists(_filePath))
+            if (File.Exists(FilePath))
             {
                 BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Projects)");
             }
@@ -227,13 +228,13 @@ public class ProjectStorage
                 WriteIndented = true
             });
 
-            var dir = Path.GetDirectoryName(_filePath);
+            var dir = Path.GetDirectoryName(FilePath);
             if (!string.IsNullOrEmpty(dir))
             {
                 StoragePathHelper.EnsureDirectoryExists(dir);
             }
 
-            File.WriteAllText(_filePath, json);
+            File.WriteAllText(FilePath, json);
         }
         catch (Exception ex)
         {

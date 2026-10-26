@@ -234,6 +234,14 @@ public partial class ProjectManagementWindow : Window
 
         selected.Name = newName;
 
+        if (selected.Milestones != null)
+        {
+            foreach (var m in selected.Milestones)
+            {
+                m.ProjectName = newName;
+            }
+        }
+
         if (selected.HasCustomColor)
         {
             ProjectColorHelper.SetProjectColor(newName, selected.ColorHex);
@@ -502,6 +510,26 @@ public partial class ProjectManagementWindow : Window
         RefreshLists();
         ActiveProjectsListBox.SelectedItem = newProject;
         ProjectsTabControl.SelectedIndex = 0;
+    }
+
+    private void ProjectMilestonesButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = GetSelectedProject();
+        if (selected == null)
+        {
+            ThemedMessageBox.ShowInfo(this, "Please select an active project first to manage its milestones.", "Select Project");
+            return;
+        }
+
+        var dialog = new EditMilestoneDialog(selected.Name, DateTime.Today.AddDays(14), _projects)
+        {
+            Owner = this
+        };
+        if (dialog.ShowDialog() == true && dialog.ResultMilestone != null)
+        {
+            MilestoneService.Instance.AddMilestone(dialog.ResultMilestone);
+            ThemedMessageBox.ShowSuccess(this, $"Milestone \"{dialog.ResultMilestone.Title}\" saved for project \"{selected.Name}\".", "Milestone Saved");
+        }
     }
 
     private void ArchiveProjectButton_Click(object sender, RoutedEventArgs e)

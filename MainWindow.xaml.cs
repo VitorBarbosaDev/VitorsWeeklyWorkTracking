@@ -137,6 +137,11 @@ public partial class MainWindow : Window
         BackupService.Instance.DataRestored += (s, e) => Dispatcher.Invoke(ReloadAllData);
         BackupService.Instance.CreateAutoBackupIfNeeded("App Launch");
 
+        MilestoneService.Instance.MilestonesChanged += () => Dispatcher.Invoke(UpdateProjectMilestonesCard);
+        ThemeManager.ThemeChanged += _ => Dispatcher.Invoke(UpdateProjectMilestonesCard);
+        _homeMilestoneQueueNextOnly = (_workRestSettings.MilestoneDisplayMode != "AllUpcoming");
+        UpdateProjectMilestonesCard();
+
         Loaded += MainWindow_Loaded;
     }
 
@@ -151,11 +156,15 @@ public partial class MainWindow : Window
         if (!_workRestSettings.ShouldShowWelcomePopup(today))
             return;
 
+        var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(today);
+        var activeMilestones = _workRestSettings.MilestoneRemindersEnabled
+            ? MilestoneService.Instance.GetActiveReminders(forceNextOnly: _workRestSettings.MilestoneDisplayMode == "NextOnly")
+            : new List<ProjectMilestone>();
+
         _workRestSettings.MarkWelcomePopupShown(today);
         FocusCompanionStorage.Save(_workRestSettings);
 
-        var todayPlans = CalendarPlanStorage.Instance.GetPlansForDate(today);
-        var welcomeDialog = new WelcomeBackDialog(_workRestSettings.UserName, todayPlans)
+        var welcomeDialog = new WelcomeBackDialog(_workRestSettings.UserName, todayPlans, activeMilestones)
         {
             Owner = this
         };
@@ -917,6 +926,7 @@ public partial class MainWindow : Window
         {
             ThemeManager.ApplyTheme(option.Theme);
             UpdateGoalProgressCard();
+            UpdateProjectMilestonesCard();
             UpdateStatus();
         }
     }
@@ -2183,7 +2193,274 @@ public partial class MainWindow : Window
 
         dialog.ShowDialog();
         UpdateGoalProgressCard();
+        UpdateProjectMilestonesCard();
         RefreshGrid();
+    }
+
+    private bool _homeMilestoneQueueNextOnly = true;
+
+    private void UpdateProjectMilestonesCard()
+    {
+        if (ProjectMilestonesContainer == null) return;
+
+        ProjectMilestonesContainer.Children.Clear();
+
+        if (!_workRestSettings.MilestoneRemindersEnabled)
+        {
+            ProjectMilestonesCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var milestones = MilestoneService.Instance.GetActiveReminders(forceNextOnly: _homeMilestoneQueueNextOnly);
+
+        if (milestones.Count == 0)
+        {
+            ProjectMilestonesCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        ProjectMilestonesCard.Visibility = Visibility.Visible;
+
+        if (MilestonesQueueModeButton != null)
+        {
+            MilestonesQueueModeButton.Content = _homeMilestoneQueueNextOnly ? "🔀 Queue: Next Only" : "📋 Show All";
+            MilestonesQueueModeButton.Style = (Style)FindResource(_homeMilestoneQueueNextOnly ? "PrimaryButton" : "GhostButton");
+        }
+
+        ProjectMilestonesSummaryText.Text = milestones.Count + " upcoming";
+
+        foreach (var milestone in milestones)
+        {
+            var card = CreateMilestoneCardElement(milestone);
+            ProjectMilestonesContainer.Children.Add(card);
+        }
+    }
+
+    private Border CreateMilestoneCardElement(ProjectMilestone milestone)
+    {
+        var card = new Border
+        {
+            Width = 205,
+            MinHeight = 118,
+            Background = milestone.IsCompleted
+                ? (TryFindResource("Theme.CardBackground") as Brush ?? Brushes.White)
+                : (TryFindResource("Theme.CardBackgroundAlt") as Brush ?? Brushes.WhiteSmoke),
+            BorderBrush = milestone.IsCompleted
+                ? (TryFindResource("Theme.CardBorder") as Brush ?? Brushes.LightGray)
+                : milestone.UrgencyBadgeBrush,
+            BorderThickness = new Thickness(milestone.IsCompleted ? 1 : 1.5),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10, 8, 10, 8),
+            Margin = new Thickness(0, 0, 10, 8),
+            Cursor = Cursors.Hand,
+            ToolTip = $"🚩 Project Milestone\nProject: {milestone.ProjectName}\nMilestone: {milestone.Title}\nTarget Date: {milestone.FormattedTargetDate}\nStatus: {milestone.CountdownText}\n{(string.IsNullOrWhiteSpace(milestone.Description) ? "" : $"Notes: {milestone.Description}\n")}Click card to edit milestone"
+        };
+
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 0: Header (Project bullet + Name + Urgency Badge)
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 1: Milestone Title & Target Date
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 2: Daily Reminder Countdown Text
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 3: Action Button (Complete / Reopen)
+
+        // 0. Top Header
+        var headerGrid = new Grid();
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var projStack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var projBullet = new System.Windows.Shapes.Ellipse
+        {
+            Width = 7,
+            Height = 7,
+            Fill = milestone.ProjectBrush,
+            Margin = new Thickness(0, 0, 5, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        projStack.Children.Add(projBullet);
+
+        var projNameText = new TextBlock
+        {
+            Text = milestone.ProjectName,
+            FontWeight = FontWeights.Bold,
+            FontSize = 10.5,
+            Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = 110,
+            ToolTip = milestone.ProjectName,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        projStack.Children.Add(projNameText);
+        Grid.SetColumn(projStack, 0);
+        headerGrid.Children.Add(projStack);
+
+        var badge = new Border
+        {
+            Background = milestone.UrgencyBadgeBackground,
+            BorderBrush = milestone.UrgencyBadgeBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(6, 1.5, 6, 1.5),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        badge.Child = new TextBlock
+        {
+            Text = milestone.UrgencyBadgeText,
+            FontWeight = FontWeights.Bold,
+            FontSize = 9.5,
+            Foreground = milestone.UrgencyBadgeBrush
+        };
+        Grid.SetColumn(badge, 1);
+        headerGrid.Children.Add(badge);
+
+        Grid.SetRow(headerGrid, 0);
+        grid.Children.Add(headerGrid);
+
+        // 1. Milestone Title & Target Date
+        var titleStack = new StackPanel { Margin = new Thickness(0, 4, 0, 2) };
+        var titleText = new TextBlock
+        {
+            Text = milestone.Title,
+            FontWeight = FontWeights.Bold,
+            FontSize = 12,
+            Foreground = TryFindResource("Theme.Foreground") as Brush ?? Brushes.Black,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = 185,
+            ToolTip = milestone.Title
+        };
+        titleStack.Children.Add(titleText);
+
+        var dateText = new TextBlock
+        {
+            Text = $"📅 {milestone.FormattedTargetDate}",
+            FontSize = 9.5,
+            Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+            Margin = new Thickness(0, 1, 0, 0)
+        };
+        titleStack.Children.Add(dateText);
+
+        Grid.SetRow(titleStack, 1);
+        grid.Children.Add(titleStack);
+
+        // 2. Daily Reminder Countdown Text
+        var reminderStack = new StackPanel { Margin = new Thickness(0, 2, 0, 6) };
+        var reminderText = new TextBlock
+        {
+            Text = milestone.DailyReminderText,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 10,
+            Foreground = milestone.IsCompleted
+                ? (TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray)
+                : milestone.UrgencyBadgeBrush,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            ToolTip = milestone.DailyReminderText
+        };
+        reminderStack.Children.Add(reminderText);
+        Grid.SetRow(reminderStack, 2);
+        grid.Children.Add(reminderStack);
+
+        // 3. Action Button (Complete / Reopen)
+        var doneBtn = new Button
+        {
+            Content = milestone.IsCompleted ? "✅ Completed" : "○ Mark Complete",
+            Style = (Style)FindResource(milestone.IsCompleted ? "SuccessButton" : "GhostButton"),
+            Height = 22,
+            FontSize = 10,
+            FontWeight = milestone.IsCompleted ? FontWeights.Bold : FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(6, 0, 6, 0),
+            ToolTip = milestone.IsCompleted ? "Milestone is completed (click to reopen)" : "Mark milestone as completed"
+        };
+        doneBtn.Click += (s, e) =>
+        {
+            e.Handled = true;
+            if (!milestone.IsCompleted)
+            {
+                var confirmResult = ThemedMessageBox.Show(
+                    this,
+                    $"Are you sure you want to mark the milestone \"{milestone.Title}\" for project \"{milestone.ProjectName}\" as completed?",
+                    "Complete Milestone",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                var confirmResult = ThemedMessageBox.Show(
+                    this,
+                    $"Are you sure you want to reopen the completed milestone \"{milestone.Title}\" for project \"{milestone.ProjectName}\"?",
+                    "Reopen Milestone",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            MilestoneService.Instance.ToggleMilestoneCompletion(milestone.Id);
+            UpdateProjectMilestonesCard();
+        };
+        Grid.SetRow(doneBtn, 3);
+        grid.Children.Add(doneBtn);
+
+        card.Child = grid;
+
+        card.MouseLeftButtonUp += (s, e) =>
+        {
+            var dlg = new EditMilestoneDialog(milestone, _projects) { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                if (dlg.IsDeleted)
+                {
+                    MilestoneService.Instance.DeleteMilestone(milestone.Id);
+                }
+                else if (dlg.ResultMilestone != null)
+                {
+                    MilestoneService.Instance.UpdateMilestone(dlg.ResultMilestone);
+                }
+                UpdateProjectMilestonesCard();
+            }
+        };
+
+        return card;
+    }
+
+    private void MilestonesQueueModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        _homeMilestoneQueueNextOnly = !_homeMilestoneQueueNextOnly;
+        UpdateProjectMilestonesCard();
+    }
+
+    private void AddMilestoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new EditMilestoneDialog(projects: _projects) { Owner = this };
+        if (dlg.ShowDialog() == true && dlg.ResultMilestone != null)
+        {
+            MilestoneService.Instance.AddMilestone(dlg.ResultMilestone);
+            UpdateProjectMilestonesCard();
+        }
+    }
+
+    private void OpenCalendarPlannerMilestones_Click(object sender, RoutedEventArgs e)
+    {
+        var plannerWindow = new CalendarPlannerWindow(_entries, _projects, _activities)
+        {
+            Owner = this
+        };
+        plannerWindow.SelectMilestonesTab();
+        plannerWindow.ShowDialog();
+        ReloadAllData();
+    }
+
+    private void OpenMilestonesManager_Click(object sender, RoutedEventArgs e)
+    {
+        OpenCalendarPlannerMilestones_Click(sender, e);
     }
 
     private void ShowDailyGoalNotification(DailyGoalSummary dailySummary, double activeTodayHours)
@@ -2489,6 +2766,7 @@ public partial class MainWindow : Window
         RefreshFilterActivitiesDropdown(currentFilterActivity);
         RefreshGrid();
         UpdateGoalProgressCard();
+        UpdateProjectMilestonesCard();
         UpdateStatus();
     }
 

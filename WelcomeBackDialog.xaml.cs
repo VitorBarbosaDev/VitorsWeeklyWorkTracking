@@ -21,12 +21,18 @@ public partial class WelcomeBackDialog : Window
     }
 
     public WelcomeBackDialog(string? userName, List<PlannedWorkItem> todayGoals)
+        : this(userName, todayGoals, null)
+    {
+    }
+
+    public WelcomeBackDialog(string? userName, List<PlannedWorkItem> todayGoals, List<ProjectMilestone>? milestones)
     {
         InitializeComponent();
         WindowTitleBarHelper.ApplyThemeTitleBar(this);
 
         SetupGreeting(userName);
         SetupDate();
+        SetupMilestones(milestones);
         SetupGoals(todayGoals);
     }
 
@@ -46,6 +52,21 @@ public partial class WelcomeBackDialog : Window
     {
         var now = DateTime.Today;
         DateTextBlock.Text = now.ToString("dddd, dd MMMM yyyy");
+    }
+
+    private void SetupMilestones(List<ProjectMilestone>? milestones)
+    {
+        var activeMilestones = milestones ?? MilestoneService.Instance.GetActiveReminders();
+        if (activeMilestones != null && activeMilestones.Count > 0)
+        {
+            MilestonesPanel.Visibility = Visibility.Visible;
+            MilestonesCountTextBlock.Text = $"{activeMilestones.Count} upcoming";
+            MilestonesItemsControl.ItemsSource = activeMilestones;
+        }
+        else
+        {
+            MilestonesPanel.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void SetupGoals(List<PlannedWorkItem> todayGoals)

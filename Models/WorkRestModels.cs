@@ -95,6 +95,10 @@ public class WorkRestSettings
     public bool WeeklyGoalNotificationEnabled { get; set; } = true;
     public bool ProjectGoalNotificationEnabled { get; set; } = true;
 
+    // Project Milestone Reminders
+    public bool MilestoneRemindersEnabled { get; set; } = true;
+    public string MilestoneDisplayMode { get; set; } = "NextOnly"; // "NextOnly" (Queue mode) or "AllUpcoming"
+
     [JsonIgnore]
     public string RewardIconEmoji => RewardIconHelper.GetIconEmoji(CompletionRewardIcon);
 

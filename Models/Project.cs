@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Windows.Media;
 using VitorsWeeklyWorkTracking.Services;
@@ -9,6 +10,8 @@ public class Project
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public string? ColorHex { get; set; }
+    public List<ProjectMilestone> Milestones { get; set; } = new();
+    public bool ShowOnlyNextMilestone { get; set; } = true;
 
     [JsonIgnore]
     public string DisplayColorHex => ProjectColorHelper.GetProjectColorHex(Name);

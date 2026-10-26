@@ -34,34 +34,84 @@ public partial class EditTaskDialog : Window
     private void PopulateFields()
     {
         // 1. Projects dropdown
-        ProjectComboBox.Items.Clear();
-        var activeProjects = _projects.Where(p => p.IsActive).Select(p => p.Name).ToList();
-        foreach (var pName in activeProjects)
+        var projectList = _projects.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
+        if (projectList.Count == 0 && _projects.Count > 0)
         {
-            ProjectComboBox.Items.Add(pName);
+            projectList = _projects.OrderBy(p => p.Name).ToList();
         }
 
-        if (!string.IsNullOrWhiteSpace(_entry.ProjectName) && !ProjectComboBox.Items.Contains(_entry.ProjectName))
+        if (!string.IsNullOrWhiteSpace(_entry.ProjectName))
         {
-            ProjectComboBox.Items.Add(_entry.ProjectName);
+            var match = projectList.FirstOrDefault(p => p.Name.Equals(_entry.ProjectName, StringComparison.OrdinalIgnoreCase));
+            if (match == null)
+            {
+                var inactiveMatch = _projects.FirstOrDefault(p => p.Name.Equals(_entry.ProjectName, StringComparison.OrdinalIgnoreCase));
+                if (inactiveMatch != null)
+                {
+                    projectList.Insert(0, inactiveMatch);
+                }
+                else
+                {
+                    var customProject = new Project { Name = _entry.ProjectName, IsActive = true };
+                    projectList.Insert(0, customProject);
+                }
+            }
         }
-        ProjectComboBox.SelectedItem = _entry.ProjectName;
-        ProjectComboBox.Text = _entry.ProjectName ?? string.Empty;
+
+        ProjectComboBox.ItemsSource = projectList;
+        if (!string.IsNullOrWhiteSpace(_entry.ProjectName))
+        {
+            var selected = projectList.FirstOrDefault(p => p.Name.Equals(_entry.ProjectName, StringComparison.OrdinalIgnoreCase));
+            if (selected != null)
+            {
+                ProjectComboBox.SelectedItem = selected;
+            }
+            ProjectComboBox.Text = _entry.ProjectName;
+        }
+        else if (projectList.Count > 0)
+        {
+            ProjectComboBox.SelectedIndex = 0;
+        }
 
         // 2. Activities dropdown
-        ActivityComboBox.Items.Clear();
-        var activeActivities = _activities.Where(a => a.IsActive).Select(a => a.Name).ToList();
-        foreach (var aName in activeActivities)
+        var activityList = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
+        if (activityList.Count == 0 && _activities.Count > 0)
         {
-            ActivityComboBox.Items.Add(aName);
+            activityList = _activities.OrderBy(a => a.Name).ToList();
         }
 
-        if (!string.IsNullOrWhiteSpace(_entry.Activity) && !ActivityComboBox.Items.Contains(_entry.Activity))
+        if (!string.IsNullOrWhiteSpace(_entry.Activity))
         {
-            ActivityComboBox.Items.Add(_entry.Activity);
+            var match = activityList.FirstOrDefault(a => a.Name.Equals(_entry.Activity, StringComparison.OrdinalIgnoreCase));
+            if (match == null)
+            {
+                var inactiveMatch = _activities.FirstOrDefault(a => a.Name.Equals(_entry.Activity, StringComparison.OrdinalIgnoreCase));
+                if (inactiveMatch != null)
+                {
+                    activityList.Insert(0, inactiveMatch);
+                }
+                else
+                {
+                    var customActivity = new ActivityItem { Name = _entry.Activity, IsActive = true };
+                    activityList.Insert(0, customActivity);
+                }
+            }
         }
-        ActivityComboBox.SelectedItem = _entry.Activity;
-        ActivityComboBox.Text = _entry.Activity ?? string.Empty;
+
+        ActivityComboBox.ItemsSource = activityList;
+        if (!string.IsNullOrWhiteSpace(_entry.Activity))
+        {
+            var selected = activityList.FirstOrDefault(a => a.Name.Equals(_entry.Activity, StringComparison.OrdinalIgnoreCase));
+            if (selected != null)
+            {
+                ActivityComboBox.SelectedItem = selected;
+            }
+            ActivityComboBox.Text = _entry.Activity;
+        }
+        else if (activityList.Count > 0)
+        {
+            ActivityComboBox.SelectedIndex = 0;
+        }
 
         // 3. Description & Notes
         DescriptionTextBox.Text = _entry.Description ?? string.Empty;
@@ -195,14 +245,28 @@ public partial class EditTaskDialog : Window
             return;
         }
 
-        var selectedProject = ProjectComboBox.SelectedItem as Project;
-        var projectName = selectedProject?.Name ?? ProjectComboBox.Text?.Trim() ?? string.Empty;
+        string projectName;
+        if (ProjectComboBox.SelectedItem is Project p && (string.IsNullOrWhiteSpace(ProjectComboBox.Text) || string.Equals(p.Name, ProjectComboBox.Text.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            projectName = p.Name;
+        }
+        else
+        {
+            projectName = ProjectComboBox.Text?.Trim() ?? string.Empty;
+        }
 
-        var selectedActivity = ActivityComboBox.SelectedItem as ActivityItem;
-        var activity = selectedActivity?.Name ?? ActivityComboBox.Text?.Trim() ?? string.Empty;
+        string activityName;
+        if (ActivityComboBox.SelectedItem is ActivityItem a && (string.IsNullOrWhiteSpace(ActivityComboBox.Text) || string.Equals(a.Name, ActivityComboBox.Text.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            activityName = a.Name;
+        }
+        else
+        {
+            activityName = ActivityComboBox.Text?.Trim() ?? string.Empty;
+        }
 
         _entry.ProjectName = projectName;
-        _entry.Activity = activity;
+        _entry.Activity = activityName;
         _entry.Description = DescriptionTextBox.Text?.Trim() ?? string.Empty;
         _entry.Note = NoteTextBox.Text?.Trim() ?? string.Empty;
         _entry.StartTime = startDateTime;

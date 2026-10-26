@@ -554,10 +554,159 @@ public class ProjectAndActivityColorTests
                     app.InitializeComponent();
                 }
 
+                FocusCompanionStorage.Save(new WorkRestSettings { WelcomePopupEnabled = false, LastWelcomePopupDate = DateTime.Today });
+
                 var window = new MainWindow();
                 Assert.False(window.ProjectComboBox.IsEditable, "ProjectComboBox must not be editable for new time entries");
                 Assert.False(window.ActivityComboBox.IsEditable, "ActivityComboBox must not be editable for new time entries");
                 window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void EditTaskDialog_STA_PopulatesProjectAndActivityDropdowns_WithProperModelsAndColors()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var entry = new TimeEntry
+                {
+                    ProjectName = "Game Engine",
+                    Activity = "Coding",
+                    Description = "Implementing feature",
+                    StartTime = DateTime.Today.AddHours(9),
+                    EndTime = DateTime.Today.AddHours(11)
+                };
+
+                var projects = new List<Project>
+                {
+                    new Project { Name = "Game Engine", IsActive = true, ColorHex = "#2563EB" },
+                    new Project { Name = "Web Portal", IsActive = true, ColorHex = "#10B981" },
+                    new Project { Name = "Old Archive", IsActive = false }
+                };
+
+                var activities = new List<ActivityItem>
+                {
+                    new ActivityItem { Name = "Coding", IsActive = true, ColorHex = "#3B82F6" },
+                    new ActivityItem { Name = "Design", IsActive = true, ColorHex = "#EC4899" },
+                    new ActivityItem { Name = "Retired Act", IsActive = false }
+                };
+
+                var dialog = new EditTaskDialog(entry, projects, activities);
+
+                // 1. ProjectComboBox ItemsSource
+                var projectItems = Assert.IsAssignableFrom<IEnumerable<Project>>(dialog.ProjectComboBox.ItemsSource)?.ToList();
+                Assert.NotNull(projectItems);
+                Assert.Equal(2, projectItems.Count);
+                Assert.Equal("Game Engine", projectItems[0].Name);
+                Assert.NotNull(projectItems[0].Brush);
+
+                var selectedProject = Assert.IsType<Project>(dialog.ProjectComboBox.SelectedItem);
+                Assert.Equal("Game Engine", selectedProject.Name);
+                Assert.Equal("Game Engine", dialog.ProjectComboBox.Text);
+
+                // 2. ActivityComboBox ItemsSource
+                var activityItems = Assert.IsAssignableFrom<IEnumerable<ActivityItem>>(dialog.ActivityComboBox.ItemsSource)?.ToList();
+                Assert.NotNull(activityItems);
+                Assert.Equal(2, activityItems.Count);
+                Assert.Equal("Coding", activityItems[0].Name);
+                Assert.NotNull(activityItems[0].Brush);
+
+                var selectedActivity = Assert.IsType<ActivityItem>(dialog.ActivityComboBox.SelectedItem);
+                Assert.Equal("Coding", selectedActivity.Name);
+                Assert.Equal("Coding", dialog.ActivityComboBox.Text);
+
+                // 3. Inputs
+                Assert.Equal("Implementing feature", dialog.DescriptionTextBox.Text);
+
+                dialog.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void EditTaskDialog_STA_HandlesInactiveOrCustomProjectAndActivity_Gracefully()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var entry = new TimeEntry
+                {
+                    ProjectName = "Custom One-off Project",
+                    Activity = "Special Task",
+                    Description = "Custom entry",
+                    StartTime = DateTime.Today.AddHours(14),
+                    EndTime = DateTime.Today.AddHours(15)
+                };
+
+                var projects = new List<Project>
+                {
+                    new Project { Name = "Game Engine", IsActive = true }
+                };
+
+                var activities = new List<ActivityItem>
+                {
+                    new ActivityItem { Name = "Coding", IsActive = true }
+                };
+
+                var dialog = new EditTaskDialog(entry, projects, activities);
+
+                // Should insert custom project into items and select it
+                var projectItems = Assert.IsAssignableFrom<IEnumerable<Project>>(dialog.ProjectComboBox.ItemsSource)?.ToList();
+                Assert.NotNull(projectItems);
+                Assert.Contains(projectItems, p => p.Name == "Custom One-off Project");
+                Assert.Equal("Custom One-off Project", (dialog.ProjectComboBox.SelectedItem as Project)?.Name);
+
+                // Should insert custom activity into items and select it
+                var activityItems = Assert.IsAssignableFrom<IEnumerable<ActivityItem>>(dialog.ActivityComboBox.ItemsSource)?.ToList();
+                Assert.NotNull(activityItems);
+                Assert.Contains(activityItems, a => a.Name == "Special Task");
+                Assert.Equal("Special Task", (dialog.ActivityComboBox.SelectedItem as ActivityItem)?.Name);
+
+                dialog.Close();
             }
             catch (Exception ex)
             {

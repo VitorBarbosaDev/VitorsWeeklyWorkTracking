@@ -109,7 +109,9 @@ public partial class WorkRestSettingsDialog : Window
             GoalNotificationsEnabled = currentSettings.GoalNotificationsEnabled,
             DailyGoalNotificationEnabled = currentSettings.DailyGoalNotificationEnabled,
             WeeklyGoalNotificationEnabled = currentSettings.WeeklyGoalNotificationEnabled,
-            ProjectGoalNotificationEnabled = currentSettings.ProjectGoalNotificationEnabled
+            ProjectGoalNotificationEnabled = currentSettings.ProjectGoalNotificationEnabled,
+            MilestoneRemindersEnabled = currentSettings.MilestoneRemindersEnabled,
+            MilestoneDisplayMode = currentSettings.MilestoneDisplayMode
         };
 
         InitializeForm();
@@ -146,6 +148,16 @@ public partial class WorkRestSettingsDialog : Window
             if (GranularNotificationsPanel != null)
             {
                 GranularNotificationsPanel.IsEnabled = Settings.GoalNotificationsEnabled;
+            }
+
+            // Project Milestone preferences
+            if (MilestoneRemindersEnabledCheckBox != null)
+            {
+                MilestoneRemindersEnabledCheckBox.IsChecked = Settings.MilestoneRemindersEnabled;
+            }
+            if (MilestoneQueueModeComboBox != null)
+            {
+                MilestoneQueueModeComboBox.SelectedIndex = (Settings.MilestoneDisplayMode == "AllUpcoming") ? 1 : 0;
             }
 
             IntervalModeEnabledCheckBox.IsChecked = Settings.IntervalModeEnabled;
@@ -537,6 +549,8 @@ public partial class WorkRestSettingsDialog : Window
         Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox.IsChecked ?? true;
         Settings.UserName = UserNameTextBox.Text.Trim();
         Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox.IsChecked ?? true;
+        Settings.MilestoneRemindersEnabled = MilestoneRemindersEnabledCheckBox?.IsChecked ?? true;
+        Settings.MilestoneDisplayMode = (MilestoneQueueModeComboBox?.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
         Settings.FocusMinutes = (int)FocusSlider.Value;
         Settings.ShortBreakMinutes = (int)ShortBreakSlider.Value;
         Settings.LongBreakMinutes = (int)LongBreakSlider.Value;

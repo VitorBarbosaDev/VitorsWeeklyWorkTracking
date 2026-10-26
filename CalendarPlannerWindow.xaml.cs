@@ -20,6 +20,7 @@ public partial class CalendarPlannerWindow : Window
     private DateTime _selectedPlanDate;
     private string? _editingPlanId = null;
     private bool _isInitializing = true;
+    private bool _plannerQueueModeOnly = false;
 
     public CalendarPlannerWindow(
         List<TimeEntry> entries,
@@ -46,6 +47,20 @@ public partial class CalendarPlannerWindow : Window
 
         _isInitializing = false;
         LoadWeekData();
+
+        ThemeManager.ThemeChanged += OnThemeChanged;
+        Closed += (s, e) => ThemeManager.ThemeChanged -= OnThemeChanged;
+    }
+
+    private void OnThemeChanged(AppTheme theme)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (!_isInitializing)
+            {
+                LoadWeekData();
+            }
+        });
     }
 
     private void PopulateDropdowns()
@@ -77,6 +92,17 @@ public partial class CalendarPlannerWindow : Window
         if (projectList.Count > 0)
         {
             PlanProjectComboBox.SelectedIndex = 0;
+        }
+
+        if (MilestoneProjectFilterComboBox != null)
+        {
+            MilestoneProjectFilterComboBox.Items.Clear();
+            MilestoneProjectFilterComboBox.Items.Add("All Projects");
+            foreach (var p in projectList)
+            {
+                MilestoneProjectFilterComboBox.Items.Add(p.Name);
+            }
+            MilestoneProjectFilterComboBox.SelectedIndex = 0;
         }
 
         var activityMap = new Dictionary<string, ActivityItem>(StringComparer.OrdinalIgnoreCase);
@@ -190,7 +216,75 @@ public partial class CalendarPlannerWindow : Window
             // Populate day plans panel
             dayPanels[i].Children.Clear();
 
-            if (daySummary.PlannedItems.Count == 0)
+            // Milestone badges for this day
+            var dayMilestones = MilestoneService.Instance.GetAllMilestones().Where(m => m.TargetDate.Date == dayDate.Date).ToList();
+            foreach (var m in dayMilestones)
+            {
+                var mBadge = new Border
+                {
+                    Background = m.UrgencyBadgeBackground,
+                    BorderBrush = m.UrgencyBadgeBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(5),
+                    Padding = new Thickness(5, 3, 5, 3),
+                    Margin = new Thickness(0, 0, 0, 4),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    ToolTip = $"🚩 Project Milestone\nProject: {m.ProjectName}\nMilestone: {m.Title}\nStatus: {m.UrgencyBadgeText}\nClick to edit"
+                };
+
+                var mGrid = new Grid();
+                mGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                mGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var flagText = new TextBlock
+                {
+                    Text = m.IsCompleted ? "✅ " : "🚩 ",
+                    FontSize = 10,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(flagText, 0);
+                mGrid.Children.Add(flagText);
+
+                var titleStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var mTitle = new TextBlock
+                {
+                    Text = m.Title,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 9.5,
+                    Foreground = m.UrgencyBadgeBrush,
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+                var mProj = new TextBlock
+                {
+                    Text = m.ProjectName,
+                    FontSize = 8.5,
+                    Foreground = TryFindResource("Theme.ForegroundMuted") as Brush ?? Brushes.Gray,
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+                titleStack.Children.Add(mTitle);
+                titleStack.Children.Add(mProj);
+                Grid.SetColumn(titleStack, 1);
+                mGrid.Children.Add(titleStack);
+
+                mBadge.Child = mGrid;
+                mBadge.MouseLeftButtonUp += (s, ev) =>
+                {
+                    ev.Handled = true;
+                    var dlg = new EditMilestoneDialog(m, _allProjects) { Owner = this };
+                    if (dlg.ShowDialog() == true)
+                    {
+                        if (dlg.IsDeleted)
+                            MilestoneService.Instance.DeleteMilestone(m.Id);
+                        else if (dlg.ResultMilestone != null)
+                            MilestoneService.Instance.UpdateMilestone(dlg.ResultMilestone);
+                        LoadWeekData();
+                    }
+                };
+
+                dayPanels[i].Children.Add(mBadge);
+            }
+
+            if (daySummary.PlannedItems.Count == 0 && dayMilestones.Count == 0)
             {
                 var emptyBlock = new TextBlock
                 {
@@ -234,6 +328,9 @@ public partial class CalendarPlannerWindow : Window
         ProjectGoalsDataGrid.ItemsSource = null;
         ProjectGoalsDataGrid.ItemsSource = projectComparisons;
         ProjectGoalsEmptyStatePanel.Visibility = projectComparisons.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Update Milestones tab
+        LoadMilestonesData();
 
         UpdateDaySelectionUI();
     }
@@ -1072,6 +1169,186 @@ public partial class CalendarPlannerWindow : Window
     private void PlannerTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // Keep tables updated
+    }
+
+    public void SelectMilestonesTab()
+    {
+        MilestonesTabItem.IsSelected = true;
+    }
+
+    private void LoadMilestonesData()
+    {
+        if (MilestonesDataGrid == null) return;
+
+        List<ProjectMilestone> list;
+        if (_plannerQueueModeOnly)
+        {
+            list = MilestoneService.Instance.GetActiveReminders(forceNextOnly: true);
+        }
+        else
+        {
+            list = MilestoneService.Instance.GetAllMilestones();
+        }
+
+        // Apply Project Filter
+        string selectedProject = MilestoneProjectFilterComboBox?.SelectedItem as string ?? "All Projects";
+        if (!string.Equals(selectedProject, "All Projects", StringComparison.OrdinalIgnoreCase))
+        {
+            list = list.Where(m => string.Equals(m.ProjectName, selectedProject, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        // Apply Status Filter
+        int statusIndex = MilestoneStatusFilterComboBox?.SelectedIndex ?? 0;
+        if (statusIndex == 0) // Active Only
+        {
+            list = list.Where(m => !m.IsCompleted).ToList();
+        }
+        else if (statusIndex == 2) // Completed Only
+        {
+            list = list.Where(m => m.IsCompleted).ToList();
+        }
+
+        MilestonesDataGrid.ItemsSource = null;
+        MilestonesDataGrid.ItemsSource = list;
+        MilestonesEmptyStatePanel.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void MilestoneFilter_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        LoadMilestonesData();
+    }
+
+    private void PlannerQueueModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        _plannerQueueModeOnly = !_plannerQueueModeOnly;
+        PlannerQueueModeButton.Content = _plannerQueueModeOnly ? "🔀 Queue Mode: Next Only" : "📋 Show All Milestones";
+        PlannerQueueModeButton.Style = (Style)FindResource(_plannerQueueModeOnly ? "PrimaryButton" : "GhostButton");
+        LoadMilestonesData();
+    }
+
+    private void PlannerAddMilestoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        string? preselectedProj = null;
+        if (MilestoneProjectFilterComboBox.SelectedItem is string p && !p.Equals("All Projects", StringComparison.OrdinalIgnoreCase))
+        {
+            preselectedProj = p;
+        }
+
+        var dialog = new EditMilestoneDialog(preselectedProj, DateTime.Today.AddDays(14), _allProjects)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && dialog.ResultMilestone != null)
+        {
+            MilestoneService.Instance.AddMilestone(dialog.ResultMilestone);
+            LoadWeekData();
+        }
+    }
+
+    private void ToggleMilestoneDone_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is ProjectMilestone m)
+        {
+            if (!m.IsCompleted)
+            {
+                var confirmResult = ThemedMessageBox.Show(
+                    this,
+                    $"Are you sure you want to mark the milestone \"{m.Title}\" for project \"{m.ProjectName}\" as completed?",
+                    "Complete Milestone",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                var confirmResult = ThemedMessageBox.Show(
+                    this,
+                    $"Are you sure you want to reopen the completed milestone \"{m.Title}\" for project \"{m.ProjectName}\"?",
+                    "Reopen Milestone",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirmResult != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            MilestoneService.Instance.ToggleMilestoneCompletion(m.Id);
+            LoadWeekData();
+        }
+    }
+
+    private void MilestoneMoveUp_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is ProjectMilestone m)
+        {
+            MilestoneService.Instance.ReorderMilestone(m.ProjectName, m.Id, -1);
+            LoadWeekData();
+        }
+    }
+
+    private void MilestoneMoveDown_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is ProjectMilestone m)
+        {
+            MilestoneService.Instance.ReorderMilestone(m.ProjectName, m.Id, 1);
+            LoadWeekData();
+        }
+    }
+
+    private void EditMilestoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is ProjectMilestone m)
+        {
+            EditMilestone(m);
+        }
+    }
+
+    private void DeleteMilestoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is ProjectMilestone m)
+        {
+            if (ThemedMessageBox.ConfirmDelete(this, "milestone", m.Title))
+            {
+                MilestoneService.Instance.DeleteMilestone(m.Id);
+                LoadWeekData();
+            }
+        }
+    }
+
+    private void MilestonesDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (MilestonesDataGrid.SelectedItem is ProjectMilestone m)
+        {
+            EditMilestone(m);
+        }
+    }
+
+    private void EditMilestone(ProjectMilestone m)
+    {
+        var dialog = new EditMilestoneDialog(m, _allProjects)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            if (dialog.IsDeleted)
+            {
+                MilestoneService.Instance.DeleteMilestone(m.Id);
+            }
+            else if (dialog.ResultMilestone != null)
+            {
+                MilestoneService.Instance.UpdateMilestone(dialog.ResultMilestone);
+            }
+            LoadWeekData();
+        }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

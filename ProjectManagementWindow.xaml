@@ -103,6 +103,12 @@
                         </Border>
                     </Grid>
                     <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
+                        <Button Content="🚩 Milestones"
+                                Style="{StaticResource GhostButton}"
+                                Padding="8 4"
+                                Margin="0 0 6 0"
+                                ToolTip="Add and manage milestones for the selected project"
+                                Click="ProjectMilestonesButton_Click"/>
                         <Button Content="✏️ Rename"
                                 Style="{StaticResource GhostButton}"
                                 Padding="8 4"

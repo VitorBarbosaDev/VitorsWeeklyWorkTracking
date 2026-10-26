@@ -33,9 +33,11 @@
             <RowDefinition Height="*"/>
             <!-- 6: Weekly & Daily Goal Progress Card -->
             <RowDefinition Height="Auto"/>
-            <!-- 7: Summary Stats Card -->
+            <!-- 7: Project Milestones Card -->
             <RowDefinition Height="Auto"/>
-            <!-- 8: Bottom Action Bar -->
+            <!-- 8: Summary Stats Card -->
+            <RowDefinition Height="Auto"/>
+            <!-- 9: Bottom Action Bar -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -970,8 +972,78 @@
             </Grid>
         </Border>
 
-        <!-- 8. Summary Statistics Bar (4 KPI Cards) -->
-        <Grid Grid.Row="7" Margin="0 10 0 0">
+        <!-- 8. Project Milestones & Target Dates Card -->
+        <Border x:Name="ProjectMilestonesCard"
+                Grid.Row="7"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14 10"
+                Margin="0 10 0 0"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <!-- Header -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Milestones Cubes Container -->
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header: Title, Count, Queue Mode Toggle & Quick Add -->
+                <Grid Grid.Row="0" Margin="0 0 0 8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Title & Count -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🚩" FontSize="14" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                        <TextBlock Text="PROJECT MILESTONES:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Theme.Primary}" VerticalAlignment="Center" Margin="0 0 6 0"/>
+                        <TextBlock x:Name="ProjectMilestonesSummaryText" Text="0 milestones" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Queue Mode Toggle & Quick Add -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 0 8 0">
+                        <Button x:Name="MilestonesQueueModeButton"
+                                Content="🔀 Queue: Next Only"
+                                ToolTip="Toggle between showing only the next upcoming milestone in queue per project vs all milestones"
+                                Style="{StaticResource GhostButton}"
+                                Height="24"
+                                Padding="8 0"
+                                FontSize="10.5"
+                                FontWeight="SemiBold"
+                                Margin="0 0 6 0"
+                                Click="MilestonesQueueModeButton_Click"/>
+                        <Button Content="➕ Add Milestone"
+                                Style="{StaticResource GhostButton}"
+                                Height="24"
+                                Padding="8 0"
+                                FontSize="10.5"
+                                FontWeight="SemiBold"
+                                Click="AddMilestoneButton_Click"/>
+                    </StackPanel>
+
+                    <!-- Open Planner Button -->
+                    <Button Grid.Column="2"
+                            Content="🏁 Milestones Planner"
+                            Style="{StaticResource GhostButton}"
+                            Height="24"
+                            Padding="8 0"
+                            FontSize="10.5"
+                            FontWeight="SemiBold"
+                            Click="OpenCalendarPlannerMilestones_Click"/>
+                </Grid>
+
+                <!-- Milestones Cubes Container -->
+                <WrapPanel x:Name="ProjectMilestonesContainer" Grid.Row="1" Orientation="Horizontal"/>
+            </Grid>
+        </Border>
+
+        <!-- 9. Summary Statistics Bar (4 KPI Cards) -->
+        <Grid Grid.Row="8" Margin="0 10 0 0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -1036,8 +1108,8 @@
             </Border>
         </Grid>
 
-        <!-- 9. Bottom Action Bar -->
-        <Grid Grid.Row="8" Margin="0 10 0 0">
+        <!-- 10. Bottom Action Bar -->
+        <Grid Grid.Row="9" Margin="0 10 0 0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button Content="📅 Work Planner / Goals"
                         Style="{StaticResource PrimaryButton}"

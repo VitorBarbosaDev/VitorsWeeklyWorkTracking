@@ -93,6 +93,46 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Project Milestone Reminders Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🚩 Project Milestone Reminders" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,6"/>
+                        <CheckBox x:Name="MilestoneRemindersEnabledCheckBox"
+                                  Content="Enable Project Milestone Reminders &amp; Countdowns"
+                                  FontWeight="Bold"
+                                  FontSize="12"
+                                  Foreground="{DynamicResource Theme.Primary}"
+                                  IsChecked="True"/>
+                        <TextBlock Text="Receive daily reminders and countdowns on the home page and daily welcome popup for important project release dates and milestones."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="24,4,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <Grid Margin="24,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Default Queue Mode:"
+                                       FontWeight="SemiBold"
+                                       FontSize="11.5"
+                                       VerticalAlignment="Center"/>
+                            <ComboBox x:Name="MilestoneQueueModeComboBox"
+                                      Grid.Column="1"
+                                      Height="28">
+                                <ComboBoxItem Content="🔀 Next Milestone in Queue Only (Sequential)" IsSelected="True"/>
+                                <ComboBoxItem Content="📋 Show All Active Milestones"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <!-- Goal Milestone Rewards & Notification Preferences Card -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
