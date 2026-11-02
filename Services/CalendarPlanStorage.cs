@@ -9,6 +9,13 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class CalendarPlanStorage
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
+
     private readonly string _filePath;
     private static CalendarPlanStorage? _instance;
     public static CalendarPlanStorage Instance => _instance ??= new CalendarPlanStorage();
@@ -70,7 +77,7 @@ public class CalendarPlanStorage
                 }
 
                 string json = File.ReadAllText(_filePath);
-                var items = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json) ?? new List<PlannedWorkItem>();
+                var items = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json, JsonOptions) ?? new List<PlannedWorkItem>();
                 foreach (var item in items)
                 {
                     SanitizePlanItem(item);

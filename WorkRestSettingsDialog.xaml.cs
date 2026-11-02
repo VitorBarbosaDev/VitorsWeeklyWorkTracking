@@ -299,6 +299,8 @@ public partial class WorkRestSettingsDialog : Window
 
             AutoAdvanceCheckBox.IsChecked = Settings.AutoAdvancePhases;
             CompanionVisibleCheckBox.IsChecked = Settings.CompanionVisible;
+
+            LoadStreakSettingsToUI();
         }
         finally
         {
@@ -679,6 +681,20 @@ public partial class WorkRestSettingsDialog : Window
         };
         Settings.MiniWidgetEnabled = MiniTimerEnabledCheckBox.IsChecked ?? true;
 
+        // Save Streak settings
+        var streakProfile = StreakService.Instance.Profile;
+        streakProfile.Enabled = StreakSystemEnabledCheckBox?.IsChecked ?? true;
+        var excludedDays = new List<DayOfWeek>();
+        if (SettingsExcludeMonCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Monday);
+        if (SettingsExcludeTueCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Tuesday);
+        if (SettingsExcludeWedCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Wednesday);
+        if (SettingsExcludeThuCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Thursday);
+        if (SettingsExcludeFriCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Friday);
+        if (SettingsExcludeSatCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Saturday);
+        if (SettingsExcludeSunCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Sunday);
+        streakProfile.ExcludedDays = excludedDays;
+        StreakService.Instance.SaveProfile();
+
         DialogResult = true;
         Close();
     }
@@ -827,5 +843,39 @@ public partial class WorkRestSettingsDialog : Window
             Owner = this
         };
         dialog.ShowDialog();
+    }
+
+    private void LoadStreakSettingsToUI()
+    {
+        var streakProfile = StreakService.Instance.Profile;
+        if (StreakSystemEnabledCheckBox != null)
+        {
+            StreakSystemEnabledCheckBox.IsChecked = streakProfile.Enabled;
+        }
+
+        var excluded = streakProfile.ExcludedDays ?? new List<DayOfWeek>();
+        if (SettingsExcludeMonCheckBox != null) SettingsExcludeMonCheckBox.IsChecked = excluded.Contains(DayOfWeek.Monday);
+        if (SettingsExcludeTueCheckBox != null) SettingsExcludeTueCheckBox.IsChecked = excluded.Contains(DayOfWeek.Tuesday);
+        if (SettingsExcludeWedCheckBox != null) SettingsExcludeWedCheckBox.IsChecked = excluded.Contains(DayOfWeek.Wednesday);
+        if (SettingsExcludeThuCheckBox != null) SettingsExcludeThuCheckBox.IsChecked = excluded.Contains(DayOfWeek.Thursday);
+        if (SettingsExcludeFriCheckBox != null) SettingsExcludeFriCheckBox.IsChecked = excluded.Contains(DayOfWeek.Friday);
+        if (SettingsExcludeSatCheckBox != null) SettingsExcludeSatCheckBox.IsChecked = excluded.Contains(DayOfWeek.Saturday);
+        if (SettingsExcludeSunCheckBox != null) SettingsExcludeSunCheckBox.IsChecked = excluded.Contains(DayOfWeek.Sunday);
+
+        int remainingSick = StreakService.Instance.GetRemainingSickDays(DateTime.Today);
+        if (SettingsSickDaysInfoText != null)
+        {
+            SettingsSickDaysInfoText.Text = string.Format("💊 Monthly Sick Days: {0} / {1} remaining (refreshes monthly)", remainingSick, streakProfile.MonthlySickDaysAllowance);
+        }
+    }
+
+    private void OpenStreakManagerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new StreakDialog(null, StreakService.Instance)
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+        LoadStreakSettingsToUI();
     }
 }

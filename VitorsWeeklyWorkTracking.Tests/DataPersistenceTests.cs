@@ -250,4 +250,239 @@ public class DataPersistenceTests
                 Directory.Delete(tempDir, true);
         }
     }
+
+    [Theory]
+    [InlineData("{\"Theme\":\"DarkSlate\"}", AppTheme.DarkSlate)]
+    [InlineData("{\"theme\":\"NordicFrost\"}", AppTheme.NordicFrost)]
+    [InlineData("{\"currentTheme\":\"CyberpunkSynthwave\"}", AppTheme.CyberpunkSynthwave)]
+    [InlineData("{\"selectedTheme\":\"MidnightNeon\"}", AppTheme.MidnightNeon)]
+    [InlineData("{\"Theme\":1}", AppTheme.PitchBlack)]
+    [InlineData("\"EmeraldForest\"", AppTheme.EmeraldForest)]
+    [InlineData("SunsetGlow", AppTheme.SunsetGlow)]
+    public void ThemeManager_LoadsLegacyThemeFormats_Successfully(string jsonContent, AppTheme expectedTheme)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"theme_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        StoragePathHelper.OverrideAppDataFolder = tempDir;
+
+        try
+        {
+            var themeFile = Path.Combine(tempDir, "theme.json");
+            File.WriteAllText(themeFile, jsonContent);
+
+            ThemeManager.Initialize();
+            Assert.Equal(expectedTheme, ThemeManager.CurrentTheme);
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void FocusCompanionStorage_LoadsLegacyCamelCaseAndAliasedSettings_Successfully()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"focus_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        StoragePathHelper.OverrideAppDataFolder = tempDir;
+
+        try
+        {
+            // Write legacy camelCase settings file
+            var settingsFile = Path.Combine(tempDir, "focus-settings.json");
+            var legacyJson = """
+            {
+              "intervalModeEnabled": true,
+              "focusMinutes": 45,
+              "shortBreakMinutes": 10,
+              "longBreakMinutes": 20,
+              "soundVolume": 85,
+              "userName": "Vitor Programmer",
+              "selectedSceneId": "coffee_jazz",
+              "miniWidgetEnabled": true,
+              "miniWidgetCorner": "BottomLeft",
+              "completionRewardIcon": "Trophy",
+              "completionRewardColor": "Gold"
+            }
+            """;
+            File.WriteAllText(settingsFile, legacyJson);
+
+            var loaded = FocusCompanionStorage.Load();
+            Assert.True(loaded.IntervalModeEnabled);
+            Assert.Equal(45, loaded.FocusMinutes);
+            Assert.Equal(10, loaded.ShortBreakMinutes);
+            Assert.Equal(20, loaded.LongBreakMinutes);
+            Assert.Equal(85, loaded.SoundVolume);
+            Assert.Equal("Vitor Programmer", loaded.UserName);
+            Assert.Equal("coffee_jazz", loaded.SelectedSceneId);
+            Assert.Equal("BottomLeft", loaded.MiniWidgetCorner);
+            Assert.Equal("Trophy", loaded.CompletionRewardIcon);
+            Assert.Equal("Gold", loaded.CompletionRewardColor);
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void StoragePathHelper_MigratesFilesFromLegacyLocations_WhenTargetDoesNotExist()
+    {
+        var activeDir = Path.Combine(Path.GetTempPath(), $"active_data_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(activeDir);
+
+        var legacyDir = Path.Combine(Path.GetTempPath(), $"legacy_data_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(legacyDir);
+
+        var legacyFile = Path.Combine(legacyDir, "focus_companion_settings.json");
+        var legacyJson = "{\"FocusMinutes\":50,\"UserName\":\"UpdatedUser\"}";
+
+        try
+        {
+            File.WriteAllText(legacyFile, legacyJson);
+            StoragePathHelper.OverrideAppDataFolder = activeDir;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = new List<string> { legacyDir };
+
+            var targetPath = StoragePathHelper.GetFilePath("focus-settings.json", "focus_companion_settings.json");
+
+            Assert.True(File.Exists(targetPath));
+            var content = File.ReadAllText(targetPath);
+            Assert.Contains("UpdatedUser", content);
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = null;
+            if (Directory.Exists(legacyDir))
+                Directory.Delete(legacyDir, true);
+            if (Directory.Exists(activeDir))
+                Directory.Delete(activeDir, true);
+        }
+    }
+
+    [Fact]
+    public void StoragePathHelper_MigrateAllLegacyData_CopiesAllMonitoredFilesAndBackups()
+    {
+        var activeDir = Path.Combine(Path.GetTempPath(), $"active_migrate_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(activeDir);
+
+        var legacyDir = Path.Combine(Path.GetTempPath(), $"legacy_migrate_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(legacyDir);
+
+        var legacyTheme = Path.Combine(legacyDir, "theme.json");
+        var legacyTimeEntries = Path.Combine(legacyDir, "time_entries.json");
+
+        var legacyBackupsDir = Path.Combine(legacyDir, "backups", "backup_legacy_001");
+        Directory.CreateDirectory(legacyBackupsDir);
+        var backupFile = Path.Combine(legacyBackupsDir, "theme.json");
+
+        try
+        {
+            File.WriteAllText(legacyTheme, "{\"Theme\":\"MidnightNeon\"}");
+            File.WriteAllText(legacyTimeEntries, "[{\"TaskName\":\"Legacy Task\"}]");
+            File.WriteAllText(backupFile, "{\"Theme\":\"PitchBlack\"}");
+
+            StoragePathHelper.OverrideAppDataFolder = activeDir;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = new List<string> { legacyDir };
+
+            int count = StoragePathHelper.MigrateAllLegacyData();
+            Assert.True(count >= 2);
+
+            var activeTheme = Path.Combine(activeDir, "theme.json");
+            var activeEntries = Path.Combine(activeDir, "time-entries.json");
+            var activeBackup = Path.Combine(activeDir, "backups", "backup_legacy_001", "theme.json");
+
+            Assert.True(File.Exists(activeTheme));
+            Assert.True(File.Exists(activeEntries));
+            Assert.True(File.Exists(activeBackup));
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = null;
+            if (Directory.Exists(legacyDir))
+                Directory.Delete(legacyDir, true);
+            if (Directory.Exists(activeDir))
+                Directory.Delete(activeDir, true);
+        }
+    }
+
+    [Fact]
+    public void FocusCompanionStorage_DeserializeSettings_SupportsLegacyPropertyAliases()
+    {
+        var legacyJson = """
+        {
+          "user_name": "Vitor Programmer",
+          "show_welcome_back_popup": true,
+          "reward_icon": "Fire",
+          "auto_advance_sessions": true,
+          "reward_color": "Amber"
+        }
+        """;
+
+        var settings = FocusCompanionStorage.DeserializeSettings(legacyJson);
+
+        Assert.Equal("Vitor Programmer", settings.UserName);
+        Assert.True(settings.WelcomePopupEnabled);
+        Assert.Equal("Fire", settings.CompletionRewardIcon);
+        Assert.True(settings.AutoAdvancePhases);
+        Assert.Equal("Amber", settings.CompletionRewardColor);
+    }
+
+    [Fact]
+    public void FocusCompanionStorage_MergeFromCandidateLegacySettings_RestoresSettingsWhenPrimaryEmpty()
+    {
+        var activeDir = Path.Combine(Path.GetTempPath(), $"active_merge_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(activeDir);
+
+        var legacyDir = Path.Combine(Path.GetTempPath(), $"legacy_merge_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(legacyDir);
+
+        // Active file has empty user name and default icon
+        var activeSettingsFile = Path.Combine(activeDir, "focus-settings.json");
+        var activeJson = """
+        {
+          "UserName": "",
+          "CompletionRewardIcon": "Star",
+          "AutoAdvancePhases": false
+        }
+        """;
+        File.WriteAllText(activeSettingsFile, activeJson);
+
+        // Older alias file has the actual user settings
+        var legacyFile = Path.Combine(legacyDir, "work-rest-settings.json");
+        var legacyJson = """
+        {
+          "user_name": "Vitor Master",
+          "completion_reward_icon": "Diamond",
+          "auto_advance": true
+        }
+        """;
+        File.WriteAllText(legacyFile, legacyJson);
+
+        try
+        {
+            StoragePathHelper.OverrideAppDataFolder = activeDir;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = new List<string> { legacyDir };
+
+            var loaded = FocusCompanionStorage.Load();
+
+            Assert.Equal("Vitor Master", loaded.UserName);
+            Assert.Equal("Diamond", loaded.CompletionRewardIcon);
+            Assert.True(loaded.AutoAdvancePhases);
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = null;
+            if (Directory.Exists(legacyDir))
+                Directory.Delete(legacyDir, true);
+            if (Directory.Exists(activeDir))
+                Directory.Delete(activeDir, true);
+        }
+    }
 }

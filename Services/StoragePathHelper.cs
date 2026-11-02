@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace VitorsWeeklyWorkTracking.Services;
 
 /// <summary>
 /// Centralized helper for managing persistent data paths in %LOCALAPPDATA%.
 /// Prevents write permission errors when installed in Program Files and provides seamless
-/// migration from legacy working directory files.
+/// migration from legacy working directory files and prior application versions.
 /// </summary>
 public static class StoragePathHelper
 {
@@ -14,9 +16,33 @@ public static class StoragePathHelper
     private static readonly string AppDataFolder;
 
     /// <summary>
+    /// Standard application data and settings files monitored for updates and backups.
+    /// </summary>
+    public static readonly string[] MonitoredFiles = new[]
+    {
+        "time-entries.json",
+        "projects.json",
+        "activities.json",
+        "calendar-plans.json",
+        "focus-settings.json",
+        "theme.json",
+        "streaks.json"
+    };
+
+    /// <summary>
     /// For testing purposes only. Allows overriding the data folder.
     /// </summary>
     public static string? OverrideAppDataFolder { get; set; }
+
+    /// <summary>
+    /// For testing purposes only. Allows enabling legacy migration when OverrideAppDataFolder is set.
+    /// </summary>
+    public static bool EnableLegacyMigrationInTest { get; set; } = false;
+
+    /// <summary>
+    /// For testing purposes only. Allows specifying custom legacy directories to test migration from.
+    /// </summary>
+    public static List<string>? CustomLegacyDirectoriesForTesting { get; set; }
 
     static StoragePathHelper()
     {
@@ -67,6 +93,277 @@ public static class StoragePathHelper
     }
 
     /// <summary>
+    /// Returns all candidate directories where legacy data or settings from previous versions
+    /// or portable runs may be located.
+    /// </summary>
+    public static IReadOnlyList<string> GetCandidateLegacyDirectories()
+    {
+        if (CustomLegacyDirectoriesForTesting != null)
+        {
+            return CustomLegacyDirectoriesForTesting;
+        }
+
+        if (OverrideAppDataFolder != null && !EnableLegacyMigrationInTest)
+        {
+            return Array.Empty<string>();
+        }
+
+        var currentFolder = GetDataFolder();
+        var candidates = new List<string>();
+
+        // 1. Base directory and base Data subfolder
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
+            {
+                candidates.Add(Path.Combine(AppContext.BaseDirectory, "Data"));
+                candidates.Add(AppContext.BaseDirectory);
+            }
+        }
+        catch { }
+
+        // 2. Current working directory and Data subfolder
+        try
+        {
+            var curDir = Environment.CurrentDirectory;
+            if (!string.IsNullOrWhiteSpace(curDir))
+            {
+                candidates.Add(Path.Combine(curDir, "Data"));
+                candidates.Add(curDir);
+            }
+        }
+        catch { }
+
+        // 3. LocalAppData variants (Inno Setup name, WiX name, plain name, Programs subfolder)
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                var folderNames = new[]
+                {
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorWeeklyWorkTracking",
+                    "VitorsWeeklyWorkTracking",
+                    "Programs\\VitorsWeeklyWorkTracking",
+                    "Programs\\Vitors Weekly Work Tracking",
+                    "Programs\\Vitor's Weekly Work Tracking",
+                    "Programs\\VitorWeeklyWorkTracking"
+                };
+
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(localAppData, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
+            }
+        }
+        catch { }
+
+        // 4. Roaming AppData variants
+        try
+        {
+            var roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (!string.IsNullOrWhiteSpace(roamingAppData))
+            {
+                var folderNames = new[]
+                {
+                    "VitorsWeeklyWorkTracking",
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorWeeklyWorkTracking"
+                };
+
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(roamingAppData, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
+            }
+        }
+        catch { }
+
+        // 5. Program Files installation directories
+        try
+        {
+            var progFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            if (!string.IsNullOrWhiteSpace(progFiles))
+            {
+                candidates.Add(Path.Combine(progFiles, "VitorsWeeklyWorkTracking", "Data"));
+                candidates.Add(Path.Combine(progFiles, "VitorsWeeklyWorkTracking"));
+                candidates.Add(Path.Combine(progFiles, "Vitors Weekly Work Tracking", "Data"));
+                candidates.Add(Path.Combine(progFiles, "Vitors Weekly Work Tracking"));
+            }
+
+            var progFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            if (!string.IsNullOrWhiteSpace(progFilesX86))
+            {
+                candidates.Add(Path.Combine(progFilesX86, "VitorsWeeklyWorkTracking", "Data"));
+                candidates.Add(Path.Combine(progFilesX86, "VitorsWeeklyWorkTracking"));
+            }
+        }
+        catch { }
+
+        // 5. User Profile folder variants
+        try
+        {
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(userProfile))
+            {
+                candidates.Add(Path.Combine(userProfile, "VitorsWeeklyWorkTracking"));
+                candidates.Add(Path.Combine(userProfile, ".vitorsweeklyworktracking"));
+            }
+        }
+        catch { }
+
+        // Deduplicate and filter out the current active folder
+        var distinct = new List<string>();
+        foreach (var c in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(c)) continue;
+            var fullPath = Path.GetFullPath(c);
+            if (string.Equals(fullPath, Path.GetFullPath(currentFolder), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!distinct.Any(d => string.Equals(d, fullPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                distinct.Add(fullPath);
+            }
+        }
+
+        return distinct;
+    }
+
+    /// <summary>
+    /// Returns candidate file names including common legacy naming variations.
+    /// </summary>
+    public static List<string> GetCandidateFileNames(string fileName, string? legacyFileName = null)
+    {
+        var names = new List<string> { fileName };
+
+        if (!string.IsNullOrWhiteSpace(legacyFileName) && !names.Contains(legacyFileName, StringComparer.OrdinalIgnoreCase))
+        {
+            names.Add(legacyFileName);
+        }
+
+        var normalized = fileName.ToLowerInvariant();
+        if (normalized.Contains("focus") || normalized.Contains("setting"))
+        {
+            var aliases = new[]
+            {
+                "focus-settings.json",
+                "focus_companion_settings.json",
+                "focus-companion-settings.json",
+                "focus_settings.json",
+                "work-rest-settings.json",
+                "work_rest_settings.json",
+                "settings.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("theme"))
+        {
+            var aliases = new[]
+            {
+                "theme.json",
+                "theme-settings.json",
+                "theme_settings.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("streak"))
+        {
+            var aliases = new[]
+            {
+                "streaks.json",
+                "streak-settings.json",
+                "streak_settings.json",
+                "streak.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("time") || normalized.Contains("entri") || normalized.Contains("entry"))
+        {
+            var aliases = new[]
+            {
+                "time-entries.json",
+                "time_entries.json",
+                "entries.json",
+                "time-tracking.json",
+                "time_tracking.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("calendar") || normalized.Contains("plan"))
+        {
+            var aliases = new[]
+            {
+                "calendar-plans.json",
+                "calendar_plans.json",
+                "plans.json",
+                "planner.json",
+                "calendar-planner.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("project"))
+        {
+            var aliases = new[]
+            {
+                "projects.json",
+                "project-list.json",
+                "projects_data.json",
+                "project_list.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+        else if (normalized.Contains("activit"))
+        {
+            var aliases = new[]
+            {
+                "activities.json",
+                "activity-list.json",
+                "activities_data.json",
+                "activity_list.json"
+            };
+            foreach (var alias in aliases)
+            {
+                if (!names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                    names.Add(alias);
+            }
+        }
+
+        return names;
+    }
+
+    /// <summary>
     /// Gets the full path to a file in the user's LocalApplicationData folder,
     /// automatically creating directories and migrating legacy files if present.
     /// </summary>
@@ -75,42 +372,131 @@ public static class StoragePathHelper
         var folder = GetDataFolder();
         var targetPath = Path.Combine(folder, fileName);
 
-        // Migrate legacy file if destination does not exist
+        // Migrate legacy file if destination does not exist or is empty
         try
         {
-            if (!File.Exists(targetPath))
+            bool destinationNeedsFile = !File.Exists(targetPath) || new FileInfo(targetPath).Length == 0;
+            if (destinationNeedsFile)
             {
-                var candidateNames = new List<string> { fileName };
-                if (!string.IsNullOrWhiteSpace(legacyFileName) && !candidateNames.Contains(legacyFileName))
-                {
-                    candidateNames.Add(legacyFileName);
-                }
+                var candidateNames = GetCandidateFileNames(fileName, legacyFileName);
 
+                // 1. Check if candidate file exists under an alias name within the current data folder itself
                 foreach (var name in candidateNames)
                 {
-                    // Check base directory
-                    var baseDirPath = Path.Combine(AppContext.BaseDirectory, name);
-                    if (File.Exists(baseDirPath))
+                    var localSource = Path.Combine(folder, name);
+                    if (!string.Equals(Path.GetFullPath(localSource), Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase)
+                        && File.Exists(localSource) && new FileInfo(localSource).Length > 0)
                     {
-                        File.Copy(baseDirPath, targetPath, overwrite: false);
+                        EnsureDirectoryExists(Path.GetDirectoryName(targetPath));
+                        File.Copy(localSource, targetPath, overwrite: true);
+                        destinationNeedsFile = false;
                         break;
                     }
+                }
 
-                    // Check working directory
-                    if (File.Exists(name))
+                // 2. Check candidate legacy directories
+                if (destinationNeedsFile)
+                {
+                    var legacyDirs = GetCandidateLegacyDirectories();
+
+                    foreach (var dir in legacyDirs)
                     {
-                        File.Copy(name, targetPath, overwrite: false);
-                        break;
+                        if (!Directory.Exists(dir)) continue;
+
+                        foreach (var name in candidateNames)
+                        {
+                            var sourcePath = Path.Combine(dir, name);
+                            if (File.Exists(sourcePath) && new FileInfo(sourcePath).Length > 0)
+                            {
+                                EnsureDirectoryExists(Path.GetDirectoryName(targetPath));
+                                File.Copy(sourcePath, targetPath, overwrite: true);
+                                destinationNeedsFile = false;
+                                break;
+                            }
+                        }
+
+                        if (!destinationNeedsFile) break;
                     }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore migration failure and continue with target path
+            LogError(ex, $"StoragePathHelper.GetFilePath({fileName})");
         }
 
         return targetPath;
+    }
+
+    /// <summary>
+    /// Scans all candidate legacy locations and imports missing data files and backup snapshots
+    /// into the current user data folder to guarantee seamless updates across all versions.
+    /// </summary>
+    public static int MigrateAllLegacyData()
+    {
+        int migratedCount = 0;
+        try
+        {
+            // 1. Migrate all monitored data files
+            foreach (var file in MonitoredFiles)
+            {
+                var targetPath = Path.Combine(GetDataFolder(), file);
+                bool wasMissing = !File.Exists(targetPath) || new FileInfo(targetPath).Length == 0;
+                var resolved = GetFilePath(file);
+                if (wasMissing && File.Exists(resolved) && new FileInfo(resolved).Length > 0)
+                {
+                    migratedCount++;
+                }
+            }
+
+            // 2. Discover and migrate legacy backup snapshots if any
+            var targetBackupsDir = GetBackupFolderPath();
+            var legacyDirs = GetCandidateLegacyDirectories();
+
+            foreach (var dir in legacyDirs)
+            {
+                var legacyBackupsDir = Path.Combine(dir, "backups");
+                if (Directory.Exists(legacyBackupsDir) && !string.Equals(Path.GetFullPath(legacyBackupsDir), Path.GetFullPath(targetBackupsDir), StringComparison.OrdinalIgnoreCase))
+                {
+                    var backupSubDirs = Directory.GetDirectories(legacyBackupsDir);
+                    foreach (var subDir in backupSubDirs)
+                    {
+                        var dirName = Path.GetFileName(subDir);
+                        var targetSubDir = Path.Combine(targetBackupsDir, dirName);
+                        if (!Directory.Exists(targetSubDir))
+                        {
+                            try
+                            {
+                                CopyDirectoryRecursively(subDir, targetSubDir);
+                                migratedCount++;
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, "StoragePathHelper.MigrateAllLegacyData");
+        }
+
+        return migratedCount;
+    }
+
+    private static void CopyDirectoryRecursively(string sourceDir, string targetDir)
+    {
+        EnsureDirectoryExists(targetDir);
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            var destFile = Path.Combine(targetDir, Path.GetFileName(file));
+            File.Copy(file, destFile, overwrite: true);
+        }
+        foreach (var subDir in Directory.GetDirectories(sourceDir))
+        {
+            var destSubDir = Path.Combine(targetDir, Path.GetFileName(subDir));
+            CopyDirectoryRecursively(subDir, destSubDir);
+        }
     }
 
     /// <summary>

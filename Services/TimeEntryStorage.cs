@@ -9,6 +9,13 @@ namespace VitorsWeeklyWorkTracking;
 
 public class TimeEntryStorage
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
+
     private readonly string _filePath;
 
     public TimeEntryStorage()
@@ -25,7 +32,7 @@ public class TimeEntryStorage
 
             string json = File.ReadAllText(_filePath);
 
-            return JsonSerializer.Deserialize<List<TimeEntry>>(json)
+            return JsonSerializer.Deserialize<List<TimeEntry>>(json, JsonOptions)
                 ?? new List<TimeEntry>();
         }
         catch (Exception ex)

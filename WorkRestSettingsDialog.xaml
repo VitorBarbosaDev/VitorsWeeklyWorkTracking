@@ -133,6 +133,57 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Duo Streak System & Tier Rewards Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🔥 Duo Streak &amp; Tier Rewards" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,6"/>
+                        <CheckBox x:Name="StreakSystemEnabledCheckBox"
+                                  Content="Enable Duolingo-style Daily Streak System"
+                                  FontWeight="Bold"
+                                  FontSize="12"
+                                  Foreground="{DynamicResource Theme.Primary}"
+                                  IsChecked="True"/>
+                        <TextBlock Text="Earn Bronze (any work saved), Silver (1+ project goals completed), and Gold (all daily goals completed) tiers. Protect your streak with excluded rest days, pre-notified holidays, and 3 monthly sick days."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="24,4,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <StackPanel Margin="24,0,0,0">
+                            <TextBlock Text="Excluded Rest Days (No work required):" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,6"/>
+                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <CheckBox x:Name="SettingsExcludeMonCheckBox" Content="Mon" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeTueCheckBox" Content="Tue" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeWedCheckBox" Content="Wed" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeThuCheckBox" Content="Thu" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeFriCheckBox" Content="Fri" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeSatCheckBox" Content="Sat" IsChecked="True" Margin="0,0,10,4"/>
+                                <CheckBox x:Name="SettingsExcludeSunCheckBox" Content="Sun" IsChecked="True" Margin="0,0,10,4"/>
+                            </WrapPanel>
+
+                            <TextBlock x:Name="SettingsSickDaysInfoText" 
+                                       Text="💊 Monthly Sick Days: 3 / 3 remaining (refreshes monthly)" 
+                                       FontSize="11" 
+                                       Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                       Margin="0,0,0,6"/>
+                            <Button x:Name="OpenStreakManagerButton" 
+                                    Content="🔥 Manage Holidays &amp; Sick Days..." 
+                                    Style="{StaticResource GhostButton}" 
+                                    Height="28" 
+                                    Padding="12,0" 
+                                    FontSize="11" 
+                                    HorizontalAlignment="Left" 
+                                    Margin="0,0,0,4" 
+                                    Click="OpenStreakManagerButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Goal Milestone Rewards & Notification Preferences Card -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"

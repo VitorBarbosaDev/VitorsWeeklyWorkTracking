@@ -1078,6 +1078,28 @@ public static class SoundEffectManager
         PlaySound(SoundEffectType.WeeklyGoalAchieved, settings);
     }
 
+    public static void PlayStreakTierAchievedSound(StreakTier tier, WorkRestSettings? settings = null)
+    {
+        switch (tier)
+        {
+            case StreakTier.Gold:
+                PlayWeeklyGoalAchievedSound(settings);
+                break;
+            case StreakTier.Silver:
+                PlayGoalAchievedSound(settings);
+                break;
+            case StreakTier.Bronze:
+            default:
+                PlayDailyGoalAchievedSound(settings);
+                break;
+        }
+    }
+
+    public static void PlayStreakMilestoneAchievedSound(WorkRestSettings? settings = null)
+    {
+        PlayWeeklyGoalAchievedSound(settings);
+    }
+
     public static void PlayBreakStartSound(WorkRestSettings? settings = null)
     {
         PlaySound(SoundEffectType.BreakStart, settings);

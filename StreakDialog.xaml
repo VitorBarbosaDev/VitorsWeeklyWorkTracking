@@ -1,0 +1,682 @@
+<Window x:Class="VitorsWeeklyWorkTracking.StreakDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔥 Streak System &amp; Tier Rewards"
+        Icon="VitorWeeklyWorkTracking.ico"
+        Height="680"
+        Width="780"
+        MinHeight="580"
+        MinWidth="660"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Theme.WindowBackground}"
+        Foreground="{DynamicResource Theme.Foreground}">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <!-- 0: Header Area -->
+            <RowDefinition Height="Auto"/>
+            <!-- 1: Main Scrollable Content -->
+            <RowDefinition Height="*"/>
+            <!-- 2: Action Footer -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 0. Header Area -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16 12"
+                Margin="0 0 0 12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Width="44"
+                        Height="44"
+                        CornerRadius="8"
+                        Background="#EA580C"
+                        Margin="0 0 12 0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="🔥" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Duo Streak &amp; Tier Rewards" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}"/>
+                    <TextBlock Text="Build daily habits, earn Gold, Silver &amp; Bronze tiers, protect with rest days, holidays &amp; sick days."
+                               FontSize="11.5"
+                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                               Margin="0 2 0 0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="StreakEnabledCheckBox"
+                              Content="🔥 Streak System Active"
+                              FontWeight="Bold"
+                              FontSize="12"
+                              Foreground="{DynamicResource Theme.Primary}"
+                              VerticalAlignment="Center"
+                              Checked="StreakEnabledCheckBox_Changed"
+                              Unchecked="StreakEnabledCheckBox_Changed"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 1. Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0 0 0 12">
+            <StackPanel>
+                <!-- Hero Streak Summary Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0 0 0 12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Top Stat Row -->
+                        <Grid Grid.Row="0" Margin="0 0 0 14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Current Streak -->
+                            <Border Grid.Column="0" Background="{DynamicResource Theme.StatCard2Bg}" BorderBrush="{DynamicResource Theme.StatCard2Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="0 0 6 0">
+                                <StackPanel>
+                                    <TextBlock Text="CURRENT STREAK" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
+                                    <TextBlock x:Name="CurrentStreakTextBlock" Text="🔥 0 Days" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0 4 0 0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Longest Streak -->
+                            <Border Grid.Column="1" Background="{DynamicResource Theme.StatCard1Bg}" BorderBrush="{DynamicResource Theme.StatCard1Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="3 0 3 0">
+                                <StackPanel>
+                                    <TextBlock Text="LONGEST STREAK" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
+                                    <TextBlock x:Name="LongestStreakTextBlock" Text="🏆 0 Days" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 4 0 0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Today's Tier -->
+                            <Border Grid.Column="2" Background="{DynamicResource Theme.StatCard3Bg}" BorderBrush="{DynamicResource Theme.StatCard3Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="3 0 3 0">
+                                <StackPanel>
+                                    <TextBlock Text="TODAY'S TIER" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Title}"/>
+                                    <TextBlock x:Name="TodayTierTextBlock" Text="⚪ None Yet" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Text}" Margin="0 4 0 0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Sick Days Remaining -->
+                            <Border Grid.Column="3" Background="{DynamicResource Theme.StatCard4Bg}" BorderBrush="{DynamicResource Theme.StatCard4Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="6 0 0 0">
+                                <StackPanel>
+                                    <TextBlock Text="SICK DAYS (MONTH)" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
+                                    <TextBlock x:Name="SickDaysRemainingTextBlock" Text="💊 3 / 3 Left" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 4 0 0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Tier Awarding Breakdown Banner -->
+                        <Grid Grid.Row="1" Margin="0 0 0 14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Bronze Tier Card -->
+                            <Border Grid.Column="0" Background="#1A130B" BorderBrush="#CD7F32" BorderThickness="1.5" CornerRadius="8" Padding="12 10" Margin="0 0 6 0">
+                                <StackPanel>
+                                    <Border Background="#CD7F32" CornerRadius="4" Padding="6 2" HorizontalAlignment="Left" Margin="0 0 0 6">
+                                        <TextBlock Text="🥉 BRONZE TIER" FontWeight="Bold" FontSize="10.5" Foreground="#FFFFFF"/>
+                                    </Border>
+                                    <TextBlock Text="Save any work progress on that day" FontSize="11" Foreground="#E2D9D0" TextWrapping="Wrap" Margin="0 2 0 6"/>
+                                    <TextBlock x:Name="BronzeCountTextBlock" Text="0 Bronze days" FontSize="12" FontWeight="Bold" Foreground="#F59E0B"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Silver Tier Card -->
+                            <Border Grid.Column="1" Background="#0F172A" BorderBrush="#94A3B8" BorderThickness="1.5" CornerRadius="8" Padding="12 10" Margin="3 0 3 0">
+                                <StackPanel>
+                                    <Border Background="#64748B" CornerRadius="4" Padding="6 2" HorizontalAlignment="Left" Margin="0 0 0 6">
+                                        <TextBlock Text="🥈 SILVER TIER" FontWeight="Bold" FontSize="10.5" Foreground="#FFFFFF"/>
+                                    </Border>
+                                    <TextBlock Text="Complete 1+ scheduled project goal" FontSize="11" Foreground="#E2E8F0" TextWrapping="Wrap" Margin="0 2 0 6"/>
+                                    <TextBlock x:Name="SilverCountTextBlock" Text="0 Silver days" FontSize="12" FontWeight="Bold" Foreground="#38BDF8"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Gold Tier Card -->
+                            <Border Grid.Column="2" Background="#1C1500" BorderBrush="#F59E0B" BorderThickness="1.5" CornerRadius="8" Padding="12 10" Margin="6 0 0 0">
+                                <StackPanel>
+                                    <Border Background="#D97706" CornerRadius="4" Padding="6 2" HorizontalAlignment="Left" Margin="0 0 0 6">
+                                        <TextBlock Text="🥇 GOLD TIER" FontWeight="Bold" FontSize="10.5" Foreground="#FFFFFF"/>
+                                    </Border>
+                                    <TextBlock Text="Complete ALL planned goals for the day" FontSize="11" Foreground="#FEF08A" TextWrapping="Wrap" Margin="0 2 0 6"/>
+                                    <TextBlock x:Name="GoldCountTextBlock" Text="0 Gold days" FontSize="12" FontWeight="Bold" Foreground="#FBBF24"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Recent Days Timeline (Last 14 Days) & Monthly Streak Explorer -->
+                        <StackPanel Grid.Row="2">
+                            <!-- Header with View Mode and Month Navigation -->
+                            <Grid Margin="0 0 0 6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TimelineTitleTextBlock"
+                                               Text="📅 Recent 14-Day Streak Timeline"
+                                               FontWeight="SemiBold"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource Theme.Foreground}"
+                                               VerticalAlignment="Center"/>
+                                    <Border x:Name="ActiveViewBadgeBorder"
+                                            Background="{DynamicResource Theme.Primary}"
+                                            CornerRadius="4"
+                                            Padding="6 1"
+                                            Margin="8 0 0 0"
+                                            VerticalAlignment="Center">
+                                        <TextBlock x:Name="ActiveViewBadgeText"
+                                                   Text="Last 14 Days"
+                                                   FontSize="10"
+                                                   FontWeight="Bold"
+                                                   Foreground="#FFFFFF"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Top Right Quick Controls -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button x:Name="Show14DaysTimelineButton"
+                                            Content="📅 Last 14 Days"
+                                            Style="{DynamicResource PrimaryButton}"
+                                            Height="24"
+                                            Padding="8 0"
+                                            FontSize="10.5"
+                                            FontWeight="SemiBold"
+                                            Margin="0 0 6 0"
+                                            ToolTip="Show last 14 days streak timeline"
+                                            Click="Show14DaysTimelineButton_Click"/>
+
+                                    <Button x:Name="PrevMonthTopButton"
+                                            Content="◀"
+                                            Style="{DynamicResource GhostButton}"
+                                            Height="24"
+                                            Width="26"
+                                            Padding="0"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            ToolTip="Previous Month"
+                                            Click="PrevMonthButton_Click"/>
+
+                                    <TextBlock x:Name="SelectedMonthTopTextBlock"
+                                               Text="Nov 2026"
+                                               FontWeight="Bold"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="6 0"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+
+                                    <Button x:Name="NextMonthTopButton"
+                                            Content="▶"
+                                            Style="{DynamicResource GhostButton}"
+                                            Height="24"
+                                            Width="26"
+                                            Padding="0"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            ToolTip="Next Month"
+                                            Click="NextMonthButton_Click"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="RecentDaysItemsControl">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding CardBackground}"
+                                                    BorderBrush="{Binding CardBorderBrush}"
+                                                    BorderThickness="{Binding CardBorderThickness}"
+                                                    CornerRadius="6"
+                                                    Padding="8 6"
+                                                    Margin="0 0 6 6"
+                                                    MinWidth="85"
+                                                    ToolTip="{Binding ShortDescription}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding Date, StringFormat='{}{0:ddd, MMM d}'}"
+                                                               FontSize="10"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{Binding CardMutedForeground}"
+                                                               HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding TierEmoji}"
+                                                               FontSize="16"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0 2"/>
+                                                    <Border Background="{Binding BadgeBackground}"
+                                                            CornerRadius="3"
+                                                            Padding="4 1"
+                                                            HorizontalAlignment="Center"
+                                                            Margin="0 1 0 0">
+                                                        <TextBlock Text="{Binding TierBadgeText}"
+                                                                   FontSize="9"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{Binding BadgeForeground}"
+                                                                   HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- Bottom Controls: Color Coded Legend (Line 1) & Month Cycle Controls (Line 2) -->
+                            <StackPanel Margin="0 8 0 0">
+                                <TextBlock x:Name="TimelineSummaryStatusText"
+                                           Text="Color coded: 🥇 Gold | 🥈 Silver | 🥉 Bronze | 🏖️ Rest | 🌴 Holiday | 💊 Sick Day"
+                                           FontSize="10.5"
+                                           Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                           Margin="0 0 0 6"/>
+
+                                <!-- Month Navigation Cycle Controls on Bottom Right (Own Line) -->
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Button x:Name="CyclePrevMonthButton"
+                                            Content="◀ Prev Month"
+                                            Style="{DynamicResource GhostButton}"
+                                            Height="26"
+                                            Padding="8 0"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Margin="0 0 4 0"
+                                            ToolTip="Cycle to previous month's streak history"
+                                            Click="PrevMonthButton_Click"/>
+
+                                    <Button x:Name="CycleMonthButton"
+                                            Content="🗓️ Cycle Month (Nov 2026)"
+                                            Style="{DynamicResource SecondaryButton}"
+                                            Height="26"
+                                            Padding="10 0"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Margin="0 0 4 0"
+                                            ToolTip="Cycle through months to view full monthly streak calendar"
+                                            Click="CycleMonthButton_Click"/>
+
+                                    <Button x:Name="CycleNextMonthButton"
+                                            Content="Next Month ▶"
+                                            Style="{DynamicResource GhostButton}"
+                                            Height="26"
+                                            Padding="8 0"
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            ToolTip="Cycle to next month's streak history"
+                                            Click="NextMonthButton_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Rest Days (Excluded Days of the Week) -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0 0 0 12">
+                    <StackPanel>
+                        <TextBlock Text="🏖️ Excluded Rest Days (Days you don't want to work)" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <TextBlock Text="Check days you regularly take off. Missing work on these days will preserve your streak without breaking it."
+                                   FontSize="11.5"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0 2 0 10"
+                                   TextWrapping="Wrap"/>
+
+                        <WrapPanel Orientation="Horizontal">
+                            <CheckBox x:Name="ExcludeMondayCheckBox" Content="Monday" Margin="0 0 16 6" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeTuesdayCheckBox" Content="Tuesday" Margin="0 0 16 6" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeWednesdayCheckBox" Content="Wednesday" Margin="0 0 16 6" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeThursdayCheckBox" Content="Thursday" Margin="0 0 16 6" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeFridayCheckBox" Content="Friday" Margin="0 0 16 6" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeSaturdayCheckBox" Content="Saturday (Weekend)" Margin="0 0 16 6" IsChecked="True" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                            <CheckBox x:Name="ExcludeSundayCheckBox" Content="Sunday (Weekend)" Margin="0 0 16 6" IsChecked="True" Checked="ExcludedDays_Changed" Unchecked="ExcludedDays_Changed"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Pre-Notified Holidays & Vacation Days -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0 0 0 12">
+                    <StackPanel>
+                        <TextBlock Text="🌴 Pre-Notified Holidays &amp; Vacations" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <TextBlock Text="Pre-notify dates you will be away or on holiday. Your streak remains frozen and safe across these days."
+                                   FontSize="11.5"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0 2 0 10"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Add Holiday Controls -->
+                        <StackPanel Margin="0 0 0 10">
+                            <!-- Mode & Presets Row -->
+                            <Grid Margin="0 0 0 6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox x:Name="HolidayDateRangeCheckBox"
+                                          Content="📅 Pick Date Range (Multi-day vacation / trip)"
+                                          FontSize="11.5"
+                                          FontWeight="SemiBold"
+                                          Foreground="{DynamicResource Theme.Foreground}"
+                                          VerticalAlignment="Center"
+                                          Checked="HolidayDateRangeCheckBox_Changed"
+                                          Unchecked="HolidayDateRangeCheckBox_Changed"/>
+
+                                <TextBlock x:Name="HolidayRangeDurationText"
+                                           Grid.Column="1"
+                                           Text=" (1 day)"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Theme.Primary}"
+                                           VerticalAlignment="Center"
+                                           Margin="8 0 0 0"
+                                           Visibility="Collapsed"/>
+
+                                <StackPanel x:Name="HolidayQuickPresetsPanel"
+                                            Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            Visibility="Collapsed">
+                                    <TextBlock Text="Quick:" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center" Margin="0 0 4 0"/>
+                                    <Button Content="+3d" Style="{DynamicResource GhostButton}" Height="22" Padding="5 0" Margin="0 0 3 0" FontSize="10.5" ToolTip="3-day range" Click="HolidayQuickPreset_Click" Tag="3"/>
+                                    <Button Content="+5d" Style="{DynamicResource GhostButton}" Height="22" Padding="5 0" Margin="0 0 3 0" FontSize="10.5" ToolTip="5-day range" Click="HolidayQuickPreset_Click" Tag="5"/>
+                                    <Button Content="+7d (1 wk)" Style="{DynamicResource GhostButton}" Height="22" Padding="5 0" Margin="0 0 3 0" FontSize="10.5" ToolTip="7-day range (1 week)" Click="HolidayQuickPreset_Click" Tag="7"/>
+                                    <Button Content="+14d (2 wks)" Style="{DynamicResource GhostButton}" Height="22" Padding="5 0" FontSize="10.5" ToolTip="14-day range (2 weeks)" Click="HolidayQuickPreset_Click" Tag="14"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Inputs Row -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0 0 6 0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="HolidayStartLabel" Text="From: " VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0" Visibility="Collapsed"/>
+                                        <DatePicker x:Name="HolidayDatePicker" Height="28" Width="135" SelectedDateChanged="HolidayDatePicker_SelectedDateChanged"/>
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="HolidayEndDateContainer" Orientation="Horizontal" Margin="6 0 0 0" Visibility="Collapsed">
+                                        <TextBlock Text="To: " VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 4 0"/>
+                                        <DatePicker x:Name="HolidayEndDatePicker" Height="28" Width="135" SelectedDateChanged="HolidayDatePicker_SelectedDateChanged"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <TextBox x:Name="HolidayDescriptionTextBox"
+                                         Grid.Column="1"
+                                         Height="28"
+                                         VerticalContentAlignment="Center"
+                                         Padding="6 2"
+                                         ToolTip="Holiday or vacation description (e.g. Christmas Day, Summer Vacation)"
+                                         Margin="0 0 6 0"/>
+
+                                <Button x:Name="AddHolidayButton"
+                                        Grid.Column="2"
+                                        Content="➕ Add Holiday"
+                                        Style="{DynamicResource PrimaryButton}"
+                                        Height="28"
+                                        Padding="12 0"
+                                        Click="AddHolidayButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Holidays List Header -->
+                        <Grid Margin="0 0 0 4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="HolidaysCountTextBlock" Text="Scheduled Holidays:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center"/>
+                            <Button x:Name="ClearAllHolidaysButton" Grid.Column="1" Content="Clear All" Style="{DynamicResource GhostButton}" FontSize="10.5" Height="20" Padding="6 0" Visibility="Collapsed" Click="ClearAllHolidaysButton_Click"/>
+                        </Grid>
+
+                        <!-- Holidays List -->
+                        <ListBox x:Name="HolidaysListBox"
+                                 MaxHeight="120"
+                                 Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                 BorderBrush="{DynamicResource Theme.CardBorder}"
+                                 BorderThickness="1">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2 3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Date, StringFormat='{}{0:yyyy-MM-dd (ddd)}'}" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Description}" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="8 0"/>
+                                        <Button Grid.Column="2" Content="🗑️" Style="{DynamicResource GhostDangerButton}" Width="26" Height="22" Padding="0" ToolTip="Remove holiday" Tag="{Binding Id}" Click="DeleteHolidayButton_Click"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- Monthly Sick Days Pool (3 per month, refreshes monthly) -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="💊 Monthly Sick Day Protection (3 Days / Month)" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <TextBlock Text="If you are sick or miss a day unexpectedly, using a sick day restores your streak for that day. You have 3 sick days available per calendar month, which refreshes automatically each month."
+                                   FontSize="11.5"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0 2 0 10"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Streak Interrupted Missed Day Restoration Card -->
+                        <Border x:Name="MissedDayRestorationCard"
+                                Background="#2D1A1A"
+                                BorderBrush="#EF4444"
+                                BorderThickness="1.5"
+                                CornerRadius="8"
+                                Padding="12 10"
+                                Margin="0 0 0 10"
+                                Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="⚠️" FontSize="20" VerticalAlignment="Center" Margin="0 0 10 0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0 0 8 0">
+                                    <TextBlock Text="Missed Day Interrupted Your Streak!" FontWeight="Bold" FontSize="12" Foreground="#FCA5A5"/>
+                                    <TextBlock x:Name="MissedDayRestorationDetailsText"
+                                               Text="You missed work recently. Use a sick day to restore your streak!"
+                                               FontSize="11"
+                                               Foreground="#FEE2E2"
+                                               TextWrapping="Wrap"
+                                               Margin="0 1 0 0"/>
+                                </StackPanel>
+
+                                <Button x:Name="RestoreStreakSickDayButton"
+                                        Grid.Column="2"
+                                        Content="💊 Use Sick Day"
+                                        Style="{DynamicResource SuccessButton}"
+                                        Height="28"
+                                        Padding="10 0"
+                                        FontWeight="Bold"
+                                        VerticalAlignment="Center"
+                                        Click="RestoreStreakSickDayButton_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <CheckBox x:Name="AutoApplySickDaysCheckBox"
+                                  Content="💊 Automatically use a sick day if a regular workday is missed (if monthly allowance remains)"
+                                  IsChecked="True"
+                                  Margin="0 0 0 10"
+                                  Checked="AutoApplySickDays_Changed"
+                                  Unchecked="AutoApplySickDays_Changed"/>
+
+                        <!-- Missed Workdays List (Last 30 Days) -->
+                        <TextBlock Text="Missed Workdays (Eligible for Sick Day Protection - Last 30 Days):"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0 2 0 4"/>
+
+                        <ListBox x:Name="MissedDaysListBox"
+                                 MaxHeight="120"
+                                 Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                 BorderBrush="{DynamicResource Theme.CardBorder}"
+                                 BorderThickness="1"
+                                 Margin="0 0 0 8">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2 3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Date, StringFormat='❄️ {0:yyyy-MM-dd (dddd)}'}" FontWeight="SemiBold" FontSize="11.5" Foreground="#EF4444"/>
+                                            <TextBlock Text=" — Missed Workday" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="💊 Use Sick Day"
+                                                Style="{DynamicResource SuccessButton}"
+                                                Height="22"
+                                                Padding="8 0"
+                                                FontSize="10.5"
+                                                ToolTip="Apply sick day protection to restore streak for this date"
+                                                Tag="{Binding Date}"
+                                                Click="ApplySickDayToDateButton_Click"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock x:Name="NoMissedDaysTextBlock"
+                                   Text="✓ No missed workdays in the last 30 days! All workdays are completed or protected."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.Success}"
+                                   Margin="0 0 0 8"
+                                   Visibility="Collapsed"/>
+
+                        <!-- Manual Apply Sick Day Controls -->
+                        <Grid Margin="0 2 0 10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DatePicker x:Name="SickDatePicker" Height="28" Margin="0 0 6 0"/>
+                            <TextBlock Grid.Column="1" x:Name="SickDaysStatusDetailText" Text="Remaining this month: 3 / 3" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="6 0"/>
+                            <Button x:Name="ApplySickDayButton" Grid.Column="2" Content="💊 Apply Sick Day" Style="{DynamicResource SuccessButton}" Height="28" Padding="12 0" Click="ApplySickDayButton_Click"/>
+                        </Grid>
+
+                        <!-- Used Sick Dates List -->
+                        <TextBlock Text="Recorded Sick Days (Last 30 Days / Worked):" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 0 0 4"/>
+                        <ListBox x:Name="UsedSickDatesListBox"
+                                 MaxHeight="100"
+                                 Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                 BorderBrush="{DynamicResource Theme.CardBorder}"
+                                 BorderThickness="1">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2 3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding StringFormat='💊 {0:yyyy-MM-dd (dddd)} - Streak Restored'}" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                        <Button Grid.Column="1" Content="Revoke" Style="{DynamicResource GhostButton}" Height="22" Padding="6 0" FontSize="10.5" ToolTip="Remove sick day and return to monthly allowance" Tag="{Binding}" Click="RevokeSickDayButton_Click"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 2. Action Footer -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12 8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="FooterStatusTextBlock"
+                           Text="🔥 Keep your streak alive by logging work daily!"
+                           VerticalAlignment="Center"
+                           FontSize="11.5"
+                           Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,8,0">
+                    <Button x:Name="PreviewCelebrationButton"
+                            Content="✨ Preview Tier Celebration"
+                            Style="{DynamicResource GhostButton}"
+                            Height="28"
+                            Padding="10,0"
+                            Margin="0,0,6,0"
+                            Click="PreviewCelebrationButton_Click"/>
+
+                    <Button x:Name="PreviewMilestoneButton"
+                            Content="🏆 Preview Milestone"
+                            Style="{DynamicResource GhostButton}"
+                            Height="28"
+                            Padding="10,0"
+                            Click="PreviewMilestoneButton_Click"/>
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Content="Close"
+                        Style="{DynamicResource PrimaryButton}"
+                        Width="90"
+                        Height="28"
+                        Click="CloseButton_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

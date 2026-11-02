@@ -2,7 +2,7 @@
 ; Inno Setup 6.x Script
 
 #define MyAppName "Vitor's Weekly Work Tracking"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Vitor"
 #define MyAppURL "https://github.com/vitor/VitorsWeeklyWorkTracking"
 #define MyAppExeName "VitorsWeeklyWorkTracking.exe"

@@ -9,6 +9,13 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class ProjectStorage
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
+
     private readonly string? _customFilePath;
     private string FilePath => _customFilePath ?? StoragePathHelper.GetFilePath("projects.json");
 
@@ -27,7 +34,7 @@ public class ProjectStorage
             if (File.Exists(FilePath))
             {
                 string json = File.ReadAllText(FilePath);
-                list = JsonSerializer.Deserialize<List<Project>>(json) ?? new List<Project>();
+                list = JsonSerializer.Deserialize<List<Project>>(json, JsonOptions) ?? new List<Project>();
             }
             else
             {
@@ -143,7 +150,7 @@ public class ProjectStorage
                 if (File.Exists(entriesPath))
                 {
                     string json = File.ReadAllText(entriesPath);
-                    var list = JsonSerializer.Deserialize<List<TimeEntry>>(json);
+                    var list = JsonSerializer.Deserialize<List<TimeEntry>>(json, JsonOptions);
                     if (list != null)
                     {
                         foreach (var e in list)
@@ -176,7 +183,7 @@ public class ProjectStorage
                 if (File.Exists(plansPath))
                 {
                     string json = File.ReadAllText(plansPath);
-                    var list = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json);
+                    var list = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json, JsonOptions);
                     if (list != null)
                     {
                         foreach (var p in list)

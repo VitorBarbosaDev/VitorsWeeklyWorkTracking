@@ -9,6 +9,13 @@ namespace VitorsWeeklyWorkTracking.Services;
 
 public class ActivityStorage
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
+
     private readonly string _filePath;
 
     public ActivityStorage(string? filePath = null)
@@ -41,7 +48,7 @@ public class ActivityStorage
             if (File.Exists(_filePath))
             {
                 string json = File.ReadAllText(_filePath);
-                list = JsonSerializer.Deserialize<List<ActivityItem>>(json) ?? new List<ActivityItem>();
+                list = JsonSerializer.Deserialize<List<ActivityItem>>(json, JsonOptions) ?? new List<ActivityItem>();
             }
             else
             {
@@ -166,7 +173,7 @@ public class ActivityStorage
                 if (File.Exists(entriesPath))
                 {
                     string json = File.ReadAllText(entriesPath);
-                    var list = JsonSerializer.Deserialize<List<TimeEntry>>(json);
+                    var list = JsonSerializer.Deserialize<List<TimeEntry>>(json, JsonOptions);
                     if (list != null)
                     {
                         foreach (var e in list)
@@ -199,7 +206,7 @@ public class ActivityStorage
                 if (File.Exists(plansPath))
                 {
                     string json = File.ReadAllText(plansPath);
-                    var list = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json);
+                    var list = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json, JsonOptions);
                     if (list != null)
                     {
                         foreach (var p in list)

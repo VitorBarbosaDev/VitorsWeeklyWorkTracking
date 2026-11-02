@@ -89,6 +89,7 @@ public partial class App : Application
 
         try
         {
+            StoragePathHelper.MigrateAllLegacyData();
             ThemeManager.Initialize();
             WindowTitleBarHelper.Initialize();
 

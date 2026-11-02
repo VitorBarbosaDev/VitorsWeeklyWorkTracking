@@ -53,6 +53,8 @@ public partial class MainWindow : Window
     private bool _hasPlayedGoalAchievedSound = false;
     private readonly GoalMilestoneTracker _goalMilestoneTracker = new();
     private bool _isShowingGoalNotification = false;
+    private StreakTier _highestStreakTierShownToday = StreakTier.None;
+    private bool _isShowingStreakNotification = false;
     private DateTime _lastGoalCheckDate = DateTime.Today;
     private GoalOption? _selectedGoal;
     private List<GoalOption> _goalOptions = new();
@@ -124,11 +126,16 @@ public partial class MainWindow : Window
         RefreshFilterProjectsDropdown();
         RefreshFilterActivitiesDropdown();
 
+        var initialStreak = StreakService.Instance.CalculateStreak(DateTime.Today, _entries);
+        _highestStreakTierShownToday = initialStreak.TodayTier;
+
         _isInitializing = false;
         RefreshGrid();
         UpdateGoalProgressCard();
+        UpdateStreakUI();
 
         CalendarPlanStorage.Instance.PlansChanged += () => Dispatcher.Invoke(UpdateGoalProgressCard);
+        StreakService.Instance.StreakUpdated += () => Dispatcher.Invoke(UpdateStreakUI);
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
@@ -138,7 +145,11 @@ public partial class MainWindow : Window
         BackupService.Instance.CreateAutoBackupIfNeeded("App Launch");
 
         MilestoneService.Instance.MilestonesChanged += () => Dispatcher.Invoke(UpdateProjectMilestonesCard);
-        ThemeManager.ThemeChanged += _ => Dispatcher.Invoke(UpdateProjectMilestonesCard);
+        ThemeManager.ThemeChanged += _ => Dispatcher.Invoke(() =>
+        {
+            UpdateProjectMilestonesCard();
+            UpdateStreakUI();
+        });
         _homeMilestoneQueueNextOnly = (_workRestSettings.MilestoneDisplayMode != "AllUpcoming");
         UpdateProjectMilestonesCard();
 
@@ -160,11 +171,12 @@ public partial class MainWindow : Window
         var activeMilestones = _workRestSettings.MilestoneRemindersEnabled
             ? MilestoneService.Instance.GetActiveReminders(forceNextOnly: _workRestSettings.MilestoneDisplayMode == "NextOnly")
             : new List<ProjectMilestone>();
+        var streakSummary = StreakService.Instance.CalculateStreak(today, _entries);
 
         _workRestSettings.MarkWelcomePopupShown(today);
         FocusCompanionStorage.Save(_workRestSettings);
 
-        var welcomeDialog = new WelcomeBackDialog(_workRestSettings.UserName, todayPlans, activeMilestones)
+        var welcomeDialog = new WelcomeBackDialog(_workRestSettings.UserName, todayPlans, activeMilestones, streakSummary)
         {
             Owner = this
         };
@@ -367,6 +379,97 @@ public partial class MainWindow : Window
         if (_miniWidget != null)
         {
             //_miniWidget.SetPomodoroState(enabled);
+        }
+    }
+
+    private void StreakQuickButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new StreakDialog(_entries, StreakService.Instance)
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+        UpdateStreakUI();
+        UpdateGoalProgressCard();
+    }
+
+    private void UpdateStreakUI()
+    {
+        var streakSummary = StreakService.Instance.CalculateStreak(DateTime.Today, _entries);
+        if (StreakQuickButton != null)
+        {
+            StreakColorHelper.ApplyStreakButtonStyle(StreakQuickButton, streakSummary, this);
+        }
+
+        CheckStreakTierAchieved(streakSummary);
+        CheckStreakMilestoneAchieved(streakSummary);
+    }
+
+    private void CheckStreakTierAchieved(StreakSummary streakSummary)
+    {
+        if (_isInitializing || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
+            return;
+
+        if (streakSummary.TodayTier > _highestStreakTierShownToday && streakSummary.TodayTier != StreakTier.None)
+        {
+            var newTier = streakSummary.TodayTier;
+            _highestStreakTierShownToday = newTier;
+            _isShowingStreakNotification = true;
+
+            try
+            {
+                SoundEffectManager.PlayStreakTierAchievedSound(newTier, _workRestSettings);
+
+                var dialog = new StreakTierAchievedDialog(newTier, streakSummary, _workRestSettings)
+                {
+                    Owner = this
+                };
+
+                dialog.ShowDialog();
+
+                if (dialog.RequestOpenStreakDialog)
+                {
+                    StreakQuickButton_Click(this, new RoutedEventArgs());
+                }
+            }
+            finally
+            {
+                _isShowingStreakNotification = false;
+            }
+        }
+    }
+
+    private void CheckStreakMilestoneAchieved(StreakSummary streakSummary)
+    {
+        if (_isInitializing || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
+            return;
+
+        var uncelebratedMilestone = StreakService.Instance.CheckForUncelebratedMilestone(streakSummary);
+        if (uncelebratedMilestone != null)
+        {
+            StreakService.Instance.MarkMilestoneCelebrated(uncelebratedMilestone.Days);
+            _isShowingStreakNotification = true;
+
+            try
+            {
+                SoundEffectManager.PlayStreakMilestoneAchievedSound(_workRestSettings);
+
+                var dialog = new StreakMilestoneAchievedDialog(uncelebratedMilestone, streakSummary, _workRestSettings)
+                {
+                    Owner = this
+                };
+
+                dialog.ShowDialog();
+
+                if (dialog.RequestOpenStreakDialog)
+                {
+                    StreakQuickButton_Click(this, new RoutedEventArgs());
+                }
+            }
+            finally
+            {
+                _isShowingStreakNotification = false;
+            }
         }
     }
 
@@ -927,6 +1030,7 @@ public partial class MainWindow : Window
             ThemeManager.ApplyTheme(option.Theme);
             UpdateGoalProgressCard();
             UpdateProjectMilestonesCard();
+            UpdateStreakUI();
             UpdateStatus();
         }
     }
@@ -1843,6 +1947,9 @@ public partial class MainWindow : Window
 
         // Sync with floating mini timer widget
         _miniWidget?.UpdateWeeklyAndDailyGoals(weeklySummary, todaySummary);
+
+        // Update Streak Widget
+        UpdateStreakUI();
     }
 
     private void UpdateTodayPlansSection()
@@ -2759,6 +2866,7 @@ public partial class MainWindow : Window
 
         _goalMilestoneTracker.Settings = _workRestSettings;
         _goalMilestoneTracker.Initialize(DateTime.Today, _entries);
+        StreakService.Instance.Reload();
 
         RefreshProjectsDropdown(currentSelectedProject);
         RefreshActivitiesDropdown(currentSelectedActivity);
@@ -2767,6 +2875,7 @@ public partial class MainWindow : Window
         RefreshGrid();
         UpdateGoalProgressCard();
         UpdateProjectMilestonesCard();
+        UpdateStreakUI();
         UpdateStatus();
     }
 

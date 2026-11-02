@@ -57,6 +57,86 @@
         <!-- Content Area -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,12">
             <StackPanel>
+                <!-- 0. Daily Streak Status Section (Shown if Streak System is enabled) -->
+                <Border x:Name="StreakPanel"
+                        Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12 10"
+                        Margin="0 0 0 10"
+                        Visibility="Visible">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header Row -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="StreakIconTextBlock" Text="🔥" FontSize="14" Margin="0 0 6 0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="StreakTitleTextBlock"
+                                           Text="Daily Streak"
+                                           FontWeight="Bold"
+                                           FontSize="12.5"
+                                           Foreground="{DynamicResource Theme.Foreground}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text=" • " FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="StreakCountTextBlock"
+                                           Text="7 Days"
+                                           FontWeight="Bold"
+                                           FontSize="12"
+                                           Foreground="#F59E0B"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Streak Status / Tier Badge -->
+                            <Border x:Name="StreakStatusBadgeBorder"
+                                    Grid.Column="1"
+                                    Background="{DynamicResource Theme.Primary}"
+                                    CornerRadius="10"
+                                    Padding="8 2"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="StreakStatusBadgeTextBlock"
+                                           Text="🥇 Gold Completed"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="#FFFFFF"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Subtitle / Details Row -->
+                        <Grid Grid.Row="1" Margin="0 6 0 0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock x:Name="StreakDetailsTextBlock"
+                                       Text="🔥 Streak is active today! You've completed your daily goals."
+                                       FontSize="11"
+                                       Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="StreakBestTextBlock"
+                                       Grid.Column="1"
+                                       Text="🏆 Best: 14 Days"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                       VerticalAlignment="Center"
+                                       Margin="8 0 0 0"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+
                 <!-- 1. Milestone Reminders Section -->
                 <Border x:Name="MilestonesPanel"
                         Background="{DynamicResource Theme.CardBackground}"
@@ -268,7 +348,7 @@
                                    MaxWidth="380"
                                    Margin="0,0,0,10"/>
                         <Button Content="📅 Plan Today's Goals"
-                                Style="{StaticResource GhostButton}"
+                                Style="{DynamicResource GhostButton}"
                                 Padding="12,5"
                                 HorizontalAlignment="Center"
                                 Click="PlanDayButton_Click"/>
@@ -301,13 +381,13 @@
 
             <Button x:Name="OpenPlannerButton"
                     Content="📅 Open Planner"
-                    Style="{StaticResource GhostButton}"
+                    Style="{DynamicResource GhostButton}"
                     Padding="14,7"
                     Click="OpenPlannerButton_Click"/>
 
             <Button Grid.Column="2"
                     Content="🚀 Let's Get Started!"
-                    Style="{StaticResource PrimaryButton}"
+                    Style="{DynamicResource PrimaryButton}"
                     Padding="20,7"
                     FontWeight="Bold"
                     Click="StartButton_Click"/>

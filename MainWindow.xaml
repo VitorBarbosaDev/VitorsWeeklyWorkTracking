@@ -55,7 +55,7 @@
                     <TextBlock Text="⏱️" FontSize="18" Margin="0 0 6 0" VerticalAlignment="Center"/>
                     <TextBlock Text="Fun Work Tracker" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock Text="Track hours, manage projects &amp; analyze your work" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="26 2 0 0"/>
+                <TextBlock Text="Plan, track &amp; analyze" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="26 2 0 0"/>
             </StackPanel>
 
             <!-- Center Live Status Badge -->
@@ -77,18 +77,45 @@
 
             <!-- Right Controls: Mini Timer Corner Selector & Theme Switcher -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <!--~1~ Pomodoro Mode Quick Toggle Button @1@
-                <Button x:Name="PomodoroQuickToggleButton"
-                        Content="🍅 Pomodoro: OFF"
-                        ToolTip="Toggle Pomodoro Interval Mode (Focus sprints &amp; rest breaks vs continuous tracking)"
-                        Style="{StaticResource GhostButton}"
+                <!-- Streak Quick Button -->
+                <Button x:Name="StreakQuickButton"
+                        Content="🔥 0"
+                        ToolTip="View Duo Streak System, Tier Badges, Holidays &amp; Sick Days"
                         Height="28"
-                        Padding="6 0"
+                        Padding="8 0"
                         FontSize="11"
                         FontWeight="SemiBold"
                         Margin="0 0 6 0"
-                        Click="PomodoroQuickToggleButton_Click"/>-->
-                
+                        Click="StreakQuickButton_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="{x:Type Button}">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  RecognizesAccessKey="True"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.88"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.75"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                                    <Setter Property="Cursor" Value="Arrow"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
 
                 <!-- Companion Toggle Button -->
                 <Button x:Name="CompanionQuickToggleButton"

@@ -1,0 +1,240 @@
+<Window x:Class="VitorsWeeklyWorkTracking.StreakTierAchievedDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔥 Streak Tier Achieved!"
+        Icon="VitorWeeklyWorkTracking.ico"
+        Width="550"
+        Height="540"
+        MinWidth="460"
+        MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Theme.WindowBackground}"
+        Foreground="{DynamicResource Theme.Foreground}">
+    <Border Padding="18">
+        <Grid>
+            <Grid.RowDefinitions>
+                <!-- 0: Main Scrollable Content -->
+                <RowDefinition Height="*"/>
+                <!-- 1: Action Buttons Footer -->
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 0. Scrollable Content Area -->
+            <ScrollViewer Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Focusable="False"
+                          Margin="0,0,0,12">
+                <StackPanel>
+                    <!-- 0. Header Celebration Banner -->
+                    <Border x:Name="HeaderBannerBorder"
+                            Background="{DynamicResource Theme.StatCard2Bg}"
+                            BorderBrush="{DynamicResource Theme.StatCard2Border}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="16"
+                            Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border x:Name="TierBadgeBorder"
+                                            Background="{DynamicResource Theme.Success}"
+                                            CornerRadius="10"
+                                            Padding="10,3"
+                                            Margin="0,0,8,0">
+                                        <TextBlock x:Name="TierBadgeTextBlock"
+                                                   Text="🥇 GOLD TIER ACHIEVED!"
+                                                   FontSize="10.5"
+                                                   FontWeight="Bold"
+                                                   Foreground="#FFFFFF"/>
+                                    </Border>
+                                    <TextBlock x:Name="DateTextBlock"
+                                               Text="Monday, 19 October 2026"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock x:Name="StreakHeadlineTextBlock"
+                                           Text="🔥 7 Day Streak Burning Bright!"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource Theme.Foreground}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,2"/>
+
+                                <TextBlock x:Name="TierSubtitleTextBlock"
+                                           Text="Gold Tier: All scheduled goals completed today!"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Theme.Primary}"
+                                           TextWrapping="Wrap"/>
+
+                                <TextBlock x:Name="TierDescriptionTextBlock"
+                                           Text="Outstanding dedication! You conquered your targets and kept your daily streak alive."
+                                           FontSize="11.5"
+                                           Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                           Margin="0,4,0,0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="1"
+                                    Width="64"
+                                    Height="64"
+                                    CornerRadius="12"
+                                    Background="#1A130B"
+                                    BorderBrush="#F59E0B"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center"
+                                    Margin="12,0,0,0">
+                                <TextBlock x:Name="CelebrationEmojiTextBlock"
+                                           Text="🔥"
+                                           FontSize="36"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- 1. Stats Summary Row -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Current Streak Card -->
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource Theme.CardBackground}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Margin="0,0,4,0">
+                            <StackPanel>
+                                <TextBlock Text="🔥 Current Streak" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                <TextBlock x:Name="CurrentStreakTextBlock" Text="7 Days" FontSize="16" FontWeight="Bold" Foreground="#F59E0B" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Longest Streak Card -->
+                        <Border Grid.Column="1"
+                                Background="{DynamicResource Theme.CardBackground}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Margin="2,0,2,0">
+                            <StackPanel>
+                                <TextBlock Text="🏆 Best Streak" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                <TextBlock x:Name="LongestStreakTextBlock" Text="14 Days" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tracked Hours Card -->
+                        <Border Grid.Column="2"
+                                Background="{DynamicResource Theme.CardBackground}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Margin="4,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="⏱️ Today's Work" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                <TextBlock x:Name="TrackedHoursTextBlock" Text="2.5 hrs" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Success}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- 2. Achievement Details Card -->
+                    <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                            BorderBrush="{DynamicResource Theme.CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="14"
+                            Margin="0,0,0,4">
+                        <StackPanel>
+                            <TextBlock Text="🌟 STREAK TIER HIGHLIGHT"
+                                       FontWeight="Bold"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,10"/>
+
+                            <TextBlock x:Name="AsciiArtBannerTextBlock"
+                                       FontFamily="Consolas, Courier New, monospace"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="#F59E0B"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       Margin="0,0,0,10"/>
+
+                            <Border Background="{DynamicResource Theme.CardBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock x:Name="RewardCriteriaTextBlock"
+                                               Text="🥉 Bronze: Save any work progress today"
+                                               FontSize="11.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Theme.Foreground}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,3"/>
+                                    <TextBlock x:Name="NextTierHintTextBlock"
+                                               Text="Next tier: Complete a project goal to unlock Silver Tier! 🥈"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 1. Action Buttons Footer -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="AutoDismissTextBlock"
+                           Grid.Column="0"
+                           Text="⏱️ Fading out in 25s"
+                           FontSize="11"
+                           Foreground="{DynamicResource Theme.ForegroundMuted}"
+                           VerticalAlignment="Center"/>
+
+                <Button x:Name="OpenStreakDashboardButton"
+                        Grid.Column="1"
+                        Content="🔥 View Streak Dashboard"
+                        Style="{DynamicResource GhostButton}"
+                        HorizontalAlignment="Right"
+                        Padding="14,6"
+                        Margin="0,0,8,0"
+                        Click="OpenStreakDashboardButton_Click"/>
+
+                <Button x:Name="KeepWorkingButton"
+                        Grid.Column="2"
+                        Content="⚡ Keep Crushing It (25s)"
+                        Style="{DynamicResource PrimaryButton}"
+                        Padding="16,6"
+                        Click="KeepWorkingButton_Click"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
