@@ -670,6 +670,38 @@ public class StreakSystemTests : IDisposable
     }
 
     [Fact]
+    public void AutoApplySickDays_DoesNotApplyOnCurrentDay_OnlyAppliesAfterDayHasPassed()
+    {
+        var monday = new DateTime(2026, 11, 2);
+        var tuesdayCurrentDay = new DateTime(2026, 11, 3);
+        var wednesdayNextDay = new DateTime(2026, 11, 4);
+
+        _streakService.Profile.AutoApplySickDays = true;
+        _streakService.SaveProfile();
+
+        var entries = new List<TimeEntry>
+        {
+            new() { ProjectName = "P1", StartTime = monday.AddHours(9), EndTime = monday.AddHours(12) }
+        };
+
+        // On Tuesday (today), no work has been done yet. Sick day should NOT auto-apply because Tuesday has not passed yet.
+        var summaryTuesday = _streakService.CalculateStreak(tuesdayCurrentDay, entries);
+
+        Assert.Equal(1, summaryTuesday.CurrentStreak); // Preserved from Monday
+        Assert.Equal(StreakDayStatus.Future, summaryTuesday.TodayStatus);
+        Assert.False(_streakService.Profile.IsSickDay(tuesdayCurrentDay));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(tuesdayCurrentDay)); // No sick day consumed
+
+        // On Wednesday, Tuesday is now in the past without work. Sick day should now auto-apply to Tuesday.
+        var summaryWednesday = _streakService.CalculateStreak(wednesdayNextDay, entries);
+
+        Assert.True(_streakService.Profile.IsSickDay(tuesdayCurrentDay));
+        Assert.False(_streakService.Profile.IsSickDay(wednesdayNextDay)); // Wednesday is now today, not auto-applied
+        Assert.Equal(2, _streakService.GetRemainingSickDays(wednesdayNextDay)); // 1 sick day consumed for Tuesday
+        Assert.Equal(1, summaryWednesday.CurrentStreak); // Streak preserved over Monday + Tuesday(sick)
+    }
+
+    [Fact]
     public void SickDaySystem_ExceedingMonthlyAllowance_FailsAndBreaksStreak()
     {
         var nov1 = new DateTime(2026, 11, 2); // Mon - Work
@@ -1644,6 +1676,60 @@ public class StreakSystemTests : IDisposable
             _streakService.UseSickDay(yesterday);
             var summaryAfter = _streakService.CalculateStreak(today, entries);
             Assert.Equal(2, summaryAfter.CurrentStreak);
+        });
+    }
+
+    [Fact]
+    public void StreakDialog_AddingHolidayOnMissedDay_HidesMissedDayRestorationAlert()
+    {
+        RunInSta(() =>
+        {
+            var today = DateTime.Today;
+            var yesterday = today.AddDays(-1);
+            var twoDaysAgo = today.AddDays(-2);
+
+            _streakService.Profile.AutoApplySickDays = false;
+            _streakService.SetExcludedDays(Array.Empty<DayOfWeek>());
+
+            var entries = new List<TimeEntry>
+            {
+                new()
+                {
+                    ProjectName = "Project Alpha",
+                    StartTime = twoDaysAgo.AddHours(9),
+                    EndTime = twoDaysAgo.AddHours(12)
+                }
+            };
+
+            var dialog = new StreakDialog(entries, _streakService);
+
+            // Yesterday was missed and broke streak -> Interruption alert card is visible
+            Assert.Equal(System.Windows.Visibility.Visible, dialog.MissedDayRestorationCard.Visibility);
+            Assert.Equal(yesterday.Date, (DateTime)dialog.RestoreStreakSickDayButton.Tag);
+
+            // Add a holiday for yesterday
+            dialog.HolidayDatePicker.SelectedDate = yesterday;
+            dialog.HolidayDescriptionTextBox.Text = "Vacation Day";
+            _streakService.AddHoliday(yesterday, "Vacation Day");
+            dialog.RefreshHolidaysList();
+            dialog.RefreshDashboard();
+
+            // Interruption alert should immediately be hidden and yesterday removed from missed days
+            Assert.Equal(System.Windows.Visibility.Collapsed, dialog.MissedDayRestorationCard.Visibility);
+            var missedDaysAfter = (dialog.MissedDaysListBox.ItemsSource as IEnumerable<StreakDayEvaluation>)?.ToList();
+            Assert.NotNull(missedDaysAfter);
+            Assert.DoesNotContain(missedDaysAfter, m => m.Date == yesterday.Date);
+
+            // Removing the holiday should make the interruption alert visible again
+            _streakService.ClearAllHolidays();
+            dialog.RefreshHolidaysList();
+            dialog.RefreshDashboard();
+
+            Assert.Equal(System.Windows.Visibility.Visible, dialog.MissedDayRestorationCard.Visibility);
+            Assert.Equal(yesterday.Date, (DateTime)dialog.RestoreStreakSickDayButton.Tag);
+            var missedDaysRestored = (dialog.MissedDaysListBox.ItemsSource as IEnumerable<StreakDayEvaluation>)?.ToList();
+            Assert.NotNull(missedDaysRestored);
+            Assert.Contains(missedDaysRestored, m => m.Date == yesterday.Date);
         });
     }
 

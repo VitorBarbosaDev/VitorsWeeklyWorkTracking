@@ -590,6 +590,38 @@ public partial class ThemedMessageBox : Window
     }
 
     /// <summary>
+    /// Displays a themed confirmation popup for unsaved changes with Save, Don't Save, and Cancel options.
+    /// </summary>
+    public static MessageBoxResult ConfirmSave(
+        Window? owner,
+        string message = "You have unsaved changes in your settings.\n\nWould you like to save them before exiting?",
+        string title = "Unsaved Changes",
+        string saveButtonText = "💾 Save Settings",
+        string dontSaveButtonText = "Discard Changes",
+        string cancelButtonText = "Keep Editing",
+        string? detailText = null,
+        string? subtitle = "Unsaved modifications detected")
+    {
+        var dialog = new ThemedMessageBox();
+        SetOwner(dialog, owner);
+        dialog.Configure(
+            message,
+            title,
+            subtitle,
+            ThemedDialogType.Warning,
+            MessageBoxButton.YesNoCancel,
+            MessageBoxResult.Yes,
+            saveButtonText,
+            dontSaveButtonText,
+            cancelButtonText,
+            detailText);
+
+        PlaySystemSound(ThemedDialogType.Warning);
+        dialog.ShowDialog();
+        return dialog.Result;
+    }
+
+    /// <summary>
     /// Displays a standard yes/no question confirmation dialog.
     /// </summary>
     public static bool Confirm(

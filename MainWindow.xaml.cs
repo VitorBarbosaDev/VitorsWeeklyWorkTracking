@@ -62,6 +62,12 @@ public partial class MainWindow : Window
     private WorkRestSettings _workRestSettings;
     private readonly FocusIntervalManager _intervalManager;
 
+    private readonly Action _plansChangedHandler;
+    private readonly Action _streakUpdatedHandler;
+    private readonly EventHandler _dataRestoredHandler;
+    private readonly Action _milestonesChangedHandler;
+    private readonly Action<AppTheme> _themeChangedHandler;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -80,10 +86,17 @@ public partial class MainWindow : Window
         _intervalManager.AlertTriggered += IntervalManager_AlertTriggered;
         _intervalManager.AlertDismissed += (s, e) =>
         {
-            Dispatcher.Invoke(() =>
+            if (Dispatcher.CheckAccess())
             {
                 IntervalAlertBanner.Visibility = Visibility.Collapsed;
-            });
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    IntervalAlertBanner.Visibility = Visibility.Collapsed;
+                });
+            }
         };
         _intervalManager.PhaseChanged += IntervalManager_PhaseChanged;
 
@@ -134,22 +147,56 @@ public partial class MainWindow : Window
         UpdateGoalProgressCard();
         UpdateStreakUI();
 
-        CalendarPlanStorage.Instance.PlansChanged += () => Dispatcher.Invoke(UpdateGoalProgressCard);
-        StreakService.Instance.StreakUpdated += () => Dispatcher.Invoke(UpdateStreakUI);
+        _plansChangedHandler = () =>
+        {
+            if (Dispatcher.CheckAccess()) UpdateGoalProgressCard();
+            else Dispatcher.Invoke(UpdateGoalProgressCard);
+        };
+        CalendarPlanStorage.Instance.PlansChanged += _plansChangedHandler;
+
+        _streakUpdatedHandler = () =>
+        {
+            if (Dispatcher.CheckAccess()) UpdateStreakUI();
+            else Dispatcher.Invoke(UpdateStreakUI);
+        };
+        StreakService.Instance.StreakUpdated += _streakUpdatedHandler;
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (s, e) => UpdateStatus();
         UpdateStatus();
 
-        BackupService.Instance.DataRestored += (s, e) => Dispatcher.Invoke(ReloadAllData);
+        _dataRestoredHandler = (s, e) =>
+        {
+            if (Dispatcher.CheckAccess()) ReloadAllData();
+            else Dispatcher.Invoke(ReloadAllData);
+        };
+        BackupService.Instance.DataRestored += _dataRestoredHandler;
         BackupService.Instance.CreateAutoBackupIfNeeded("App Launch");
 
-        MilestoneService.Instance.MilestonesChanged += () => Dispatcher.Invoke(UpdateProjectMilestonesCard);
-        ThemeManager.ThemeChanged += _ => Dispatcher.Invoke(() =>
+        _milestonesChangedHandler = () =>
         {
-            UpdateProjectMilestonesCard();
-            UpdateStreakUI();
-        });
+            if (Dispatcher.CheckAccess()) UpdateProjectMilestonesCard();
+            else Dispatcher.Invoke(UpdateProjectMilestonesCard);
+        };
+        MilestoneService.Instance.MilestonesChanged += _milestonesChangedHandler;
+
+        _themeChangedHandler = _ =>
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                UpdateProjectMilestonesCard();
+                UpdateStreakUI();
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    UpdateProjectMilestonesCard();
+                    UpdateStreakUI();
+                });
+            }
+        };
+        ThemeManager.ThemeChanged += _themeChangedHandler;
         _homeMilestoneQueueNextOnly = (_workRestSettings.MilestoneDisplayMode != "AllUpcoming");
         UpdateProjectMilestonesCard();
 
@@ -240,7 +287,7 @@ public partial class MainWindow : Window
 
     private void IntervalManager_AlertTriggered(object? sender, IntervalAlertEventArgs e)
     {
-        Dispatcher.Invoke(() =>
+        void Action()
         {
             if (e.NewPhase == IntervalPhase.Focus)
             {
@@ -263,19 +310,25 @@ public partial class MainWindow : Window
             }
             IntervalAlertBanner.Visibility = Visibility.Visible;
             UpdateStatus();
-        });
+        }
+
+        if (Dispatcher.CheckAccess()) Action();
+        else Dispatcher.Invoke(Action);
     }
 
     private void IntervalManager_PhaseChanged(object? sender, IntervalPhase phase)
     {
-        Dispatcher.Invoke(() =>
+        void Action()
         {
             if (!_intervalManager.IsAlertPending || phase == IntervalPhase.Focus || phase == IntervalPhase.None)
             {
                 IntervalAlertBanner.Visibility = Visibility.Collapsed;
             }
             UpdateStatus();
-        });
+        }
+
+        if (Dispatcher.CheckAccess()) Action();
+        else Dispatcher.Invoke(Action);
     }
 
     private void IntervalAlertPrimaryAction_Click(object sender, RoutedEventArgs e)
@@ -970,7 +1023,7 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
         CleanupAndCloseApplication();
-        if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
+        if (Application.Current != null && Application.Current.Dispatcher.CheckAccess() && Application.Current.MainWindow == this)
         {
             Application.Current.Shutdown();
         }
@@ -980,6 +1033,17 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (_plansChangedHandler != null)
+                CalendarPlanStorage.Instance.PlansChanged -= _plansChangedHandler;
+            if (_streakUpdatedHandler != null)
+                StreakService.Instance.StreakUpdated -= _streakUpdatedHandler;
+            if (_dataRestoredHandler != null)
+                BackupService.Instance.DataRestored -= _dataRestoredHandler;
+            if (_milestonesChangedHandler != null)
+                MilestoneService.Instance.MilestonesChanged -= _milestonesChangedHandler;
+            if (_themeChangedHandler != null)
+                ThemeManager.ThemeChanged -= _themeChangedHandler;
+
             _timer.Stop();
 
             if (_miniWidget != null)
@@ -992,7 +1056,7 @@ public partial class MainWindow : Window
                 _miniWidget = null;
             }
 
-            if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
+            if (Application.Current != null && Application.Current.Dispatcher.CheckAccess() && Application.Current.MainWindow == this)
             {
                 foreach (var win in Application.Current.Windows.OfType<Window>().ToArray())
                 {

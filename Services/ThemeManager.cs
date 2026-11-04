@@ -802,16 +802,22 @@ public static class ThemeManager
     {
         try
         {
+            AppTheme? currentFoundTheme = null;
+
             if (File.Exists(SettingsFilePath))
             {
                 var json = File.ReadAllText(SettingsFilePath).Trim();
                 if (TryParseThemeFromJson(json, out var parsed))
                 {
-                    return parsed;
+                    if (parsed != AppTheme.ModernLight)
+                    {
+                        return parsed;
+                    }
+                    currentFoundTheme = parsed;
                 }
             }
 
-            // Fallback scan candidate legacy directories
+            // Fallback scan candidate legacy directories to restore customized themes across updates
             var candidateNames = StoragePathHelper.GetCandidateFileNames("theme.json", "theme-settings.json");
             var legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories();
 
@@ -829,13 +835,21 @@ public static class ThemeManager
                             var json = File.ReadAllText(candidateFile).Trim();
                             if (TryParseThemeFromJson(json, out var legacyTheme))
                             {
-                                SaveTheme(legacyTheme);
-                                return legacyTheme;
+                                if (legacyTheme != AppTheme.ModernLight)
+                                {
+                                    SaveTheme(legacyTheme);
+                                    return legacyTheme;
+                                }
                             }
                         }
                         catch { }
                     }
                 }
+            }
+
+            if (currentFoundTheme.HasValue)
+            {
+                return currentFoundTheme.Value;
             }
         }
         catch (Exception ex)

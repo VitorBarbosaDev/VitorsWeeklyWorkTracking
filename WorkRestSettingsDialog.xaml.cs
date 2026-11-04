@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,6 +13,50 @@ public partial class WorkRestSettingsDialog : Window
 {
     public WorkRestSettings Settings { get; private set; }
     private bool _isUpdatingUi = false;
+    private bool _isExplicitlySaved = false;
+    private bool _suppressClosingPrompt = false;
+
+    // Baseline snapshot fields for unsaved changes detection
+    private bool _initialIntervalModeEnabled;
+    private string _initialUserName = string.Empty;
+    private bool _initialWelcomePopupEnabled;
+    private bool _initialMilestoneRemindersEnabled;
+    private string _initialMilestoneDisplayMode = "NextOnly";
+    private int _initialFocusMinutes;
+    private int _initialShortBreakMinutes;
+    private int _initialLongBreakMinutes;
+    private int _initialCyclesBeforeLongBreak;
+    private bool _initialSoundAlertEnabled;
+    private int _initialSoundVolume;
+    private int _initialGoalMilestoneSoundVolume;
+    private bool _initialSoundOnStartEnabled;
+    private bool _initialSoundOnEndEnabled;
+    private bool _initialSoundOnGoalAchievedEnabled;
+    private bool _initialSoundOnDailyGoalAchievedEnabled;
+    private bool _initialSoundOnWeeklyGoalAchievedEnabled;
+    private bool _initialSoundOnBreakStartEnabled;
+    private bool _initialSoundOnBreakEndEnabled;
+    private bool _initialSoundOnCheerEnabled;
+    private HashSet<string> _initialSoundVariations = new();
+    private bool _initialAutoAdvancePhases;
+    private bool _initialCompanionVisible;
+    private string _initialRewardIcon = string.Empty;
+    private string _initialRewardColor = string.Empty;
+    private bool _initialGoalNotificationsEnabled;
+    private bool _initialDailyGoalNotificationEnabled;
+    private bool _initialWeeklyGoalNotificationEnabled;
+    private bool _initialProjectGoalNotificationEnabled;
+    private string _initialTargetMonitor = string.Empty;
+    private int _initialMonitorIndex;
+    private string _initialCorner = "BottomRight";
+    private bool _initialMiniWidgetEnabled;
+    private bool _initialStreakEnabled;
+    private HashSet<DayOfWeek> _initialStreakExcludedDays = new();
+
+    /// <summary>
+    /// Optional override for unsaved changes confirmation prompt (useful for unit tests).
+    /// </summary>
+    public Func<MessageBoxResult>? PromptUnsavedChangesHandler { get; set; }
 
     private readonly List<IntervalPreset> _presets = new()
     {
@@ -67,7 +112,14 @@ public partial class WorkRestSettingsDialog : Window
         _isUpdatingUi = true;
         InitializeComponent();
         WindowTitleBarHelper.ApplyThemeTitleBar(this);
-        Settings = new WorkRestSettings
+        Settings = CloneSettings(currentSettings);
+
+        InitializeForm();
+    }
+
+    private static WorkRestSettings CloneSettings(WorkRestSettings currentSettings)
+    {
+        return new WorkRestSettings
         {
             IntervalModeEnabled = currentSettings.IntervalModeEnabled,
             FocusMinutes = currentSettings.FocusMinutes,
@@ -113,8 +165,6 @@ public partial class WorkRestSettingsDialog : Window
             MilestoneRemindersEnabled = currentSettings.MilestoneRemindersEnabled,
             MilestoneDisplayMode = currentSettings.MilestoneDisplayMode
         };
-
-        InitializeForm();
     }
 
     private void InitializeForm()
@@ -301,6 +351,7 @@ public partial class WorkRestSettingsDialog : Window
             CompanionVisibleCheckBox.IsChecked = Settings.CompanionVisible;
 
             LoadStreakSettingsToUI();
+            SnapshotInitialState();
         }
         finally
         {
@@ -548,155 +599,419 @@ public partial class WorkRestSettingsDialog : Window
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox.IsChecked ?? true;
-        Settings.UserName = UserNameTextBox.Text.Trim();
-        Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox.IsChecked ?? true;
+        SaveSettingsToModel();
+        _isExplicitlySaved = true;
+        _suppressClosingPrompt = true;
+        DialogResult = true;
+        Close();
+    }
+
+    /// <summary>
+    /// Extracts all current settings from the UI controls into the Settings model and saves the streak profile.
+    /// </summary>
+    public void SaveSettingsToModel()
+    {
+        Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox?.IsChecked ?? true;
+        Settings.UserName = UserNameTextBox?.Text.Trim() ?? string.Empty;
+        Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox?.IsChecked ?? true;
         Settings.MilestoneRemindersEnabled = MilestoneRemindersEnabledCheckBox?.IsChecked ?? true;
         Settings.MilestoneDisplayMode = (MilestoneQueueModeComboBox?.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
-        Settings.FocusMinutes = (int)FocusSlider.Value;
-        Settings.ShortBreakMinutes = (int)ShortBreakSlider.Value;
-        Settings.LongBreakMinutes = (int)LongBreakSlider.Value;
-        Settings.CyclesBeforeLongBreak = (int)CyclesSlider.Value;
+        Settings.FocusMinutes = (int)(FocusSlider?.Value ?? Settings.FocusMinutes);
+        Settings.ShortBreakMinutes = (int)(ShortBreakSlider?.Value ?? Settings.ShortBreakMinutes);
+        Settings.LongBreakMinutes = (int)(LongBreakSlider?.Value ?? Settings.LongBreakMinutes);
+        Settings.CyclesBeforeLongBreak = (int)(CyclesSlider?.Value ?? Settings.CyclesBeforeLongBreak);
 
-        Settings.SoundAlertEnabled = SoundAlertCheckBox.IsChecked ?? true;
-        Settings.SoundVolume = (int)VolumeSlider.Value;
+        Settings.SoundAlertEnabled = SoundAlertCheckBox?.IsChecked ?? true;
+        Settings.SoundVolume = (int)(VolumeSlider?.Value ?? Settings.SoundVolume);
         Settings.GoalMilestoneSoundVolume = (int)(GoalMilestoneVolumeSlider?.Value ?? (AudioTabGoalVolumeSlider?.Value ?? Settings.GoalMilestoneSoundVolume));
-        Settings.SoundOnStartEnabled = SoundOnStartCheckBox.IsChecked ?? true;
-        Settings.SoundOnEndEnabled = SoundOnEndCheckBox.IsChecked ?? true;
-        Settings.SoundOnGoalAchievedEnabled = SoundOnGoalCheckBox.IsChecked ?? true;
-        Settings.SoundOnDailyGoalAchievedEnabled = SoundOnDailyGoalCheckBox.IsChecked ?? true;
-        Settings.SoundOnWeeklyGoalAchievedEnabled = SoundOnWeeklyGoalCheckBox.IsChecked ?? true;
-        Settings.SoundOnBreakStartEnabled = SoundOnBreakStartCheckBox.IsChecked ?? true;
-        Settings.SoundOnBreakEndEnabled = SoundOnBreakEndCheckBox.IsChecked ?? true;
-        Settings.SoundOnCheerEnabled = SoundOnCheerCheckBox.IsChecked ?? true;
+        Settings.SoundOnStartEnabled = SoundOnStartCheckBox?.IsChecked ?? true;
+        Settings.SoundOnEndEnabled = SoundOnEndCheckBox?.IsChecked ?? true;
+        Settings.SoundOnGoalAchievedEnabled = SoundOnGoalCheckBox?.IsChecked ?? true;
+        Settings.SoundOnDailyGoalAchievedEnabled = SoundOnDailyGoalCheckBox?.IsChecked ?? true;
+        Settings.SoundOnWeeklyGoalAchievedEnabled = SoundOnWeeklyGoalCheckBox?.IsChecked ?? true;
+        Settings.SoundOnBreakStartEnabled = SoundOnBreakStartCheckBox?.IsChecked ?? true;
+        Settings.SoundOnBreakEndEnabled = SoundOnBreakEndCheckBox?.IsChecked ?? true;
+        Settings.SoundOnCheerEnabled = SoundOnCheerCheckBox?.IsChecked ?? true;
 
-        Settings.EnabledSoundVariations = new List<string>();
-        ReadVariationCheckState(Var_start_ascending, "start_ascending");
-        ReadVariationCheckState(Var_start_pop, "start_pop");
-        ReadVariationCheckState(Var_start_marimba, "start_marimba");
-        ReadVariationCheckState(Var_start_digital, "start_digital");
+        Settings.EnabledSoundVariations = GetSelectedSoundVariations();
 
-        ReadVariationCheckState(Var_end_completion, "end_completion");
-        ReadVariationCheckState(Var_end_accomplished, "end_accomplished");
-        ReadVariationCheckState(Var_end_sparkle, "end_sparkle");
-        ReadVariationCheckState(Var_end_calm, "end_calm");
-
-        ReadVariationCheckState(Var_goal_victory, "goal_victory");
-        ReadVariationCheckState(Var_goal_levelup, "goal_levelup");
-        ReadVariationCheckState(Var_goal_bell, "goal_bell");
-        ReadVariationCheckState(Var_goal_cosmic, "goal_cosmic");
-
-        ReadVariationCheckState(Var_daily_triumph, "daily_triumph");
-        ReadVariationCheckState(Var_daily_sunburst, "daily_sunburst");
-        ReadVariationCheckState(Var_daily_chime, "daily_chime");
-        ReadVariationCheckState(Var_daily_quest, "daily_quest");
-
-        ReadVariationCheckState(Var_weekly_grand, "weekly_grand");
-        ReadVariationCheckState(Var_weekly_champions, "weekly_champions");
-        ReadVariationCheckState(Var_weekly_fiesta, "weekly_fiesta");
-        ReadVariationCheckState(Var_weekly_celestial, "weekly_celestial");
-
-        ReadVariationCheckState(Var_breakstart_zen, "breakstart_zen");
-        ReadVariationCheckState(Var_breakstart_lofi, "breakstart_lofi");
-        ReadVariationCheckState(Var_breakstart_bowl, "breakstart_bowl");
-        ReadVariationCheckState(Var_breakstart_waterdrop, "breakstart_waterdrop");
-
-        ReadVariationCheckState(Var_breakend_wakeup, "breakend_wakeup");
-        ReadVariationCheckState(Var_breakend_ready, "breakend_ready");
-        ReadVariationCheckState(Var_breakend_morning, "breakend_morning");
-        ReadVariationCheckState(Var_breakend_focusbell, "breakend_focusbell");
-
-        // Scene cheer variations
-        ReadVariationCheckState(Var_cheer_cycling_bell, "cheer_cycling_bell");
-        ReadVariationCheckState(Var_cheer_cycling_bark, "cheer_cycling_bark");
-        ReadVariationCheckState(Var_cheer_cycling_whistle, "cheer_cycling_whistle");
-
-        ReadVariationCheckState(Var_cheer_cafe_cup, "cheer_cafe_cup");
-        ReadVariationCheckState(Var_cheer_cafe_raindrop, "cheer_cafe_raindrop");
-        ReadVariationCheckState(Var_cheer_cafe_steam, "cheer_cafe_steam");
-
-        ReadVariationCheckState(Var_cheer_jazz_sax, "cheer_jazz_sax");
-        ReadVariationCheckState(Var_cheer_jazz_piano, "cheer_jazz_piano");
-        ReadVariationCheckState(Var_cheer_jazz_sparkle, "cheer_jazz_sparkle");
-
-        ReadVariationCheckState(Var_cheer_icecream_jingle, "cheer_icecream_jingle");
-        ReadVariationCheckState(Var_cheer_icecream_pop, "cheer_icecream_pop");
-        ReadVariationCheckState(Var_cheer_icecream_bell, "cheer_icecream_bell");
-
-        ReadVariationCheckState(Var_cheer_metro_melody, "cheer_metro_melody");
-        ReadVariationCheckState(Var_cheer_metro_lofi, "cheer_metro_lofi");
-        ReadVariationCheckState(Var_cheer_metro_doors, "cheer_metro_doors");
-
-        ReadVariationCheckState(Var_cheer_cat_meow, "cheer_cat_meow");
-        ReadVariationCheckState(Var_cheer_cat_purr, "cheer_cat_purr");
-        ReadVariationCheckState(Var_cheer_cat_bounce, "cheer_cat_bounce");
-
-        ReadVariationCheckState(Var_cheer_rocket_laser, "cheer_rocket_laser");
-        ReadVariationCheckState(Var_cheer_rocket_beacon, "cheer_rocket_beacon");
-        ReadVariationCheckState(Var_cheer_rocket_warp, "cheer_rocket_warp");
-
-        ReadVariationCheckState(Var_cheer_runner_whistle, "cheer_runner_whistle");
-        ReadVariationCheckState(Var_cheer_runner_horn, "cheer_runner_horn");
-        ReadVariationCheckState(Var_cheer_runner_squeak, "cheer_runner_squeak");
-
-        ReadVariationCheckState(Var_cheer_pet_happy, "cheer_pet_happy");
-        ReadVariationCheckState(Var_cheer_pet_levelup, "cheer_pet_levelup");
-        ReadVariationCheckState(Var_cheer_pet_heart, "cheer_pet_heart");
-
-        ReadVariationCheckState(Var_cheer_lumberjack_chop, "cheer_lumberjack_chop");
-        ReadVariationCheckState(Var_cheer_lumberjack_timber, "cheer_lumberjack_timber");
-        ReadVariationCheckState(Var_cheer_lumberjack_van, "cheer_lumberjack_van");
-
-        Settings.AutoAdvancePhases = AutoAdvanceCheckBox.IsChecked ?? false;
-        Settings.CompanionVisible = CompanionVisibleCheckBox.IsChecked ?? true;
+        Settings.AutoAdvancePhases = AutoAdvanceCheckBox?.IsChecked ?? false;
+        Settings.CompanionVisible = CompanionVisibleCheckBox?.IsChecked ?? true;
 
         // Save Reward Icon and Goal Notifications
-        if (RewardIconComboBox.SelectedItem is RewardIconOption selectedReward)
+        if (RewardIconComboBox?.SelectedItem is RewardIconOption selectedReward)
         {
             Settings.CompletionRewardIcon = selectedReward.Key;
         }
 
-        if (RewardColorComboBox.SelectedItem is RewardColorOption selectedColor)
+        if (RewardColorComboBox?.SelectedItem is RewardColorOption selectedColor)
         {
             Settings.CompletionRewardColor = selectedColor.Key;
         }
 
-        Settings.GoalNotificationsEnabled = GoalNotificationsEnabledCheckBox.IsChecked ?? true;
-        Settings.DailyGoalNotificationEnabled = DailyGoalNotificationCheckBox.IsChecked ?? true;
-        Settings.WeeklyGoalNotificationEnabled = WeeklyGoalNotificationCheckBox.IsChecked ?? true;
-        Settings.ProjectGoalNotificationEnabled = ProjectGoalNotificationCheckBox.IsChecked ?? true;
+        Settings.GoalNotificationsEnabled = GoalNotificationsEnabledCheckBox?.IsChecked ?? true;
+        Settings.DailyGoalNotificationEnabled = DailyGoalNotificationCheckBox?.IsChecked ?? true;
+        Settings.WeeklyGoalNotificationEnabled = WeeklyGoalNotificationCheckBox?.IsChecked ?? true;
+        Settings.ProjectGoalNotificationEnabled = ProjectGoalNotificationCheckBox?.IsChecked ?? true;
 
-        if (MiniMonitorComboBox.SelectedItem is MonitorDisplayInfo mon)
+        if (MiniMonitorComboBox?.SelectedItem is MonitorDisplayInfo mon)
         {
             Settings.MiniWidgetTargetMonitor = mon.DeviceName;
             Settings.MiniWidgetMonitorIndex = mon.Index;
         }
 
-        Settings.MiniWidgetCorner = MiniCornerComboBox.SelectedIndex switch
+        Settings.MiniWidgetCorner = MiniCornerComboBox?.SelectedIndex switch
         {
             1 => "BottomLeft",
             2 => "TopRight",
             3 => "TopLeft",
             _ => "BottomRight"
         };
-        Settings.MiniWidgetEnabled = MiniTimerEnabledCheckBox.IsChecked ?? true;
+        Settings.MiniWidgetEnabled = MiniTimerEnabledCheckBox?.IsChecked ?? true;
 
         // Save Streak settings
         var streakProfile = StreakService.Instance.Profile;
         streakProfile.Enabled = StreakSystemEnabledCheckBox?.IsChecked ?? true;
-        var excludedDays = new List<DayOfWeek>();
-        if (SettingsExcludeMonCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Monday);
-        if (SettingsExcludeTueCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Tuesday);
-        if (SettingsExcludeWedCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Wednesday);
-        if (SettingsExcludeThuCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Thursday);
-        if (SettingsExcludeFriCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Friday);
-        if (SettingsExcludeSatCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Saturday);
-        if (SettingsExcludeSunCheckBox?.IsChecked == true) excludedDays.Add(DayOfWeek.Sunday);
-        streakProfile.ExcludedDays = excludedDays;
+        streakProfile.ExcludedDays = GetCurrentExcludedDays().ToList();
         StreakService.Instance.SaveProfile();
+    }
 
-        DialogResult = true;
-        Close();
+    private void SnapshotInitialState()
+    {
+        _initialIntervalModeEnabled = IntervalModeEnabledCheckBox.IsChecked ?? true;
+        _initialUserName = UserNameTextBox.Text.Trim();
+        _initialWelcomePopupEnabled = WelcomePopupEnabledCheckBox.IsChecked ?? true;
+        _initialMilestoneRemindersEnabled = MilestoneRemindersEnabledCheckBox?.IsChecked ?? true;
+        _initialMilestoneDisplayMode = (MilestoneQueueModeComboBox?.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
+        _initialFocusMinutes = (int)FocusSlider.Value;
+        _initialShortBreakMinutes = (int)ShortBreakSlider.Value;
+        _initialLongBreakMinutes = (int)LongBreakSlider.Value;
+        _initialCyclesBeforeLongBreak = (int)CyclesSlider.Value;
+        _initialSoundAlertEnabled = SoundAlertCheckBox.IsChecked ?? true;
+        _initialSoundVolume = (int)VolumeSlider.Value;
+        _initialGoalMilestoneSoundVolume = (int)(GoalMilestoneVolumeSlider?.Value ?? (AudioTabGoalVolumeSlider?.Value ?? Settings.GoalMilestoneSoundVolume));
+        _initialSoundOnStartEnabled = SoundOnStartCheckBox.IsChecked ?? true;
+        _initialSoundOnEndEnabled = SoundOnEndCheckBox.IsChecked ?? true;
+        _initialSoundOnGoalAchievedEnabled = SoundOnGoalCheckBox.IsChecked ?? true;
+        _initialSoundOnDailyGoalAchievedEnabled = SoundOnDailyGoalCheckBox.IsChecked ?? true;
+        _initialSoundOnWeeklyGoalAchievedEnabled = SoundOnWeeklyGoalCheckBox.IsChecked ?? true;
+        _initialSoundOnBreakStartEnabled = SoundOnBreakStartCheckBox.IsChecked ?? true;
+        _initialSoundOnBreakEndEnabled = SoundOnBreakEndCheckBox.IsChecked ?? true;
+        _initialSoundOnCheerEnabled = SoundOnCheerCheckBox.IsChecked ?? true;
+        _initialSoundVariations = new HashSet<string>(GetSelectedSoundVariations());
+        _initialAutoAdvancePhases = AutoAdvanceCheckBox.IsChecked ?? false;
+        _initialCompanionVisible = CompanionVisibleCheckBox.IsChecked ?? true;
+        _initialRewardIcon = (RewardIconComboBox.SelectedItem as RewardIconOption)?.Key ?? Settings.CompletionRewardIcon;
+        _initialRewardColor = (RewardColorComboBox.SelectedItem as RewardColorOption)?.Key ?? Settings.CompletionRewardColor;
+        _initialGoalNotificationsEnabled = GoalNotificationsEnabledCheckBox.IsChecked ?? true;
+        _initialDailyGoalNotificationEnabled = DailyGoalNotificationCheckBox.IsChecked ?? true;
+        _initialWeeklyGoalNotificationEnabled = WeeklyGoalNotificationCheckBox.IsChecked ?? true;
+        _initialProjectGoalNotificationEnabled = ProjectGoalNotificationCheckBox.IsChecked ?? true;
+        _initialTargetMonitor = (MiniMonitorComboBox.SelectedItem as MonitorDisplayInfo)?.DeviceName ?? Settings.MiniWidgetTargetMonitor;
+        _initialMonitorIndex = (MiniMonitorComboBox.SelectedItem as MonitorDisplayInfo)?.Index ?? Settings.MiniWidgetMonitorIndex;
+        _initialCorner = GetCurrentCorner();
+        _initialMiniWidgetEnabled = MiniTimerEnabledCheckBox.IsChecked ?? true;
+
+        var streakProfile = StreakService.Instance.Profile;
+        _initialStreakEnabled = StreakSystemEnabledCheckBox?.IsChecked ?? streakProfile.Enabled;
+        _initialStreakExcludedDays = GetCurrentExcludedDays();
+    }
+
+    private string GetCurrentCorner()
+    {
+        return MiniCornerComboBox?.SelectedIndex switch
+        {
+            1 => "BottomLeft",
+            2 => "TopRight",
+            3 => "TopLeft",
+            _ => "BottomRight"
+        };
+    }
+
+    /// <summary>
+    /// Checks whether any configuration values in the UI currently differ from their initial values.
+    /// </summary>
+    public bool HasUnsavedChanges()
+    {
+        if (_isUpdatingUi) return false;
+
+        if ((IntervalModeEnabledCheckBox?.IsChecked ?? true) != _initialIntervalModeEnabled)
+            return true;
+
+        if (!string.Equals((UserNameTextBox?.Text?.Trim() ?? string.Empty), _initialUserName, StringComparison.Ordinal))
+            return true;
+
+        if ((WelcomePopupEnabledCheckBox?.IsChecked ?? true) != _initialWelcomePopupEnabled)
+            return true;
+
+        if ((MilestoneRemindersEnabledCheckBox?.IsChecked ?? true) != _initialMilestoneRemindersEnabled)
+            return true;
+
+        var currentMilestoneMode = (MilestoneQueueModeComboBox?.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
+        if (!string.Equals(currentMilestoneMode, _initialMilestoneDisplayMode, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ((int)(FocusSlider?.Value ?? _initialFocusMinutes) != _initialFocusMinutes)
+            return true;
+
+        if ((int)(ShortBreakSlider?.Value ?? _initialShortBreakMinutes) != _initialShortBreakMinutes)
+            return true;
+
+        if ((int)(LongBreakSlider?.Value ?? _initialLongBreakMinutes) != _initialLongBreakMinutes)
+            return true;
+
+        if ((int)(CyclesSlider?.Value ?? _initialCyclesBeforeLongBreak) != _initialCyclesBeforeLongBreak)
+            return true;
+
+        if ((SoundAlertCheckBox?.IsChecked ?? true) != _initialSoundAlertEnabled)
+            return true;
+
+        if ((int)(VolumeSlider?.Value ?? _initialSoundVolume) != _initialSoundVolume)
+            return true;
+
+        int currentGoalVol = (int)(GoalMilestoneVolumeSlider?.Value ?? (AudioTabGoalVolumeSlider?.Value ?? _initialGoalMilestoneSoundVolume));
+        if (currentGoalVol != _initialGoalMilestoneSoundVolume)
+            return true;
+
+        if ((SoundOnStartCheckBox?.IsChecked ?? true) != _initialSoundOnStartEnabled)
+            return true;
+
+        if ((SoundOnEndCheckBox?.IsChecked ?? true) != _initialSoundOnEndEnabled)
+            return true;
+
+        if ((SoundOnGoalCheckBox?.IsChecked ?? true) != _initialSoundOnGoalAchievedEnabled)
+            return true;
+
+        if ((SoundOnDailyGoalCheckBox?.IsChecked ?? true) != _initialSoundOnDailyGoalAchievedEnabled)
+            return true;
+
+        if ((SoundOnWeeklyGoalCheckBox?.IsChecked ?? true) != _initialSoundOnWeeklyGoalAchievedEnabled)
+            return true;
+
+        if ((SoundOnBreakStartCheckBox?.IsChecked ?? true) != _initialSoundOnBreakStartEnabled)
+            return true;
+
+        if ((SoundOnBreakEndCheckBox?.IsChecked ?? true) != _initialSoundOnBreakEndEnabled)
+            return true;
+
+        if ((SoundOnCheerCheckBox?.IsChecked ?? true) != _initialSoundOnCheerEnabled)
+            return true;
+
+        var currentVars = GetSelectedSoundVariations();
+        if (!_initialSoundVariations.SetEquals(currentVars))
+            return true;
+
+        if ((AutoAdvanceCheckBox?.IsChecked ?? false) != _initialAutoAdvancePhases)
+            return true;
+
+        if ((CompanionVisibleCheckBox?.IsChecked ?? true) != _initialCompanionVisible)
+            return true;
+
+        var selectedReward = RewardIconComboBox?.SelectedItem as RewardIconOption;
+        var currentRewardIcon = selectedReward?.Key ?? _initialRewardIcon;
+        if (!string.Equals(currentRewardIcon, _initialRewardIcon, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var selectedColor = RewardColorComboBox?.SelectedItem as RewardColorOption;
+        var currentRewardColor = selectedColor?.Key ?? _initialRewardColor;
+        if (!string.Equals(currentRewardColor, _initialRewardColor, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ((GoalNotificationsEnabledCheckBox?.IsChecked ?? true) != _initialGoalNotificationsEnabled)
+            return true;
+
+        if ((DailyGoalNotificationCheckBox?.IsChecked ?? true) != _initialDailyGoalNotificationEnabled)
+            return true;
+
+        if ((WeeklyGoalNotificationCheckBox?.IsChecked ?? true) != _initialWeeklyGoalNotificationEnabled)
+            return true;
+
+        if ((ProjectGoalNotificationCheckBox?.IsChecked ?? true) != _initialProjectGoalNotificationEnabled)
+            return true;
+
+        if (MiniMonitorComboBox?.SelectedItem is MonitorDisplayInfo mon)
+        {
+            if (mon.DeviceName != _initialTargetMonitor || mon.Index != _initialMonitorIndex)
+                return true;
+        }
+
+        string currentCorner = GetCurrentCorner();
+        if (!string.Equals(currentCorner, _initialCorner, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ((MiniTimerEnabledCheckBox?.IsChecked ?? true) != _initialMiniWidgetEnabled)
+            return true;
+
+        if (StreakSystemEnabledCheckBox != null && (StreakSystemEnabledCheckBox.IsChecked ?? true) != _initialStreakEnabled)
+            return true;
+
+        var currentExcluded = GetCurrentExcludedDays();
+        if (!_initialStreakExcludedDays.SetEquals(currentExcluded))
+            return true;
+
+        return false;
+    }
+
+    private MessageBoxResult PromptUnsavedChanges()
+    {
+        if (PromptUnsavedChangesHandler != null)
+        {
+            return PromptUnsavedChangesHandler();
+        }
+
+        return ThemedMessageBox.ConfirmSave(
+            this,
+            message: "You have unsaved changes in your settings.\n\nWould you like to save them before exiting?",
+            title: "Unsaved Changes",
+            saveButtonText: "💾 Save Settings",
+            dontSaveButtonText: "Discard Changes",
+            cancelButtonText: "Keep Editing",
+            subtitle: "Unsaved modifications detected");
+    }
+
+    private HashSet<DayOfWeek> GetCurrentExcludedDays()
+    {
+        var excluded = new HashSet<DayOfWeek>();
+        if (SettingsExcludeMonCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Monday);
+        if (SettingsExcludeTueCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Tuesday);
+        if (SettingsExcludeWedCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Wednesday);
+        if (SettingsExcludeThuCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Thursday);
+        if (SettingsExcludeFriCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Friday);
+        if (SettingsExcludeSatCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Saturday);
+        if (SettingsExcludeSunCheckBox?.IsChecked == true) excluded.Add(DayOfWeek.Sunday);
+        return excluded;
+    }
+
+    private List<string> GetSelectedSoundVariations()
+    {
+        var list = new List<string>();
+        AddIfVariationChecked(Var_start_ascending, "start_ascending", list);
+        AddIfVariationChecked(Var_start_pop, "start_pop", list);
+        AddIfVariationChecked(Var_start_marimba, "start_marimba", list);
+        AddIfVariationChecked(Var_start_digital, "start_digital", list);
+
+        AddIfVariationChecked(Var_end_completion, "end_completion", list);
+        AddIfVariationChecked(Var_end_accomplished, "end_accomplished", list);
+        AddIfVariationChecked(Var_end_sparkle, "end_sparkle", list);
+        AddIfVariationChecked(Var_end_calm, "end_calm", list);
+
+        AddIfVariationChecked(Var_goal_victory, "goal_victory", list);
+        AddIfVariationChecked(Var_goal_levelup, "goal_levelup", list);
+        AddIfVariationChecked(Var_goal_bell, "goal_bell", list);
+        AddIfVariationChecked(Var_goal_cosmic, "goal_cosmic", list);
+
+        AddIfVariationChecked(Var_daily_triumph, "daily_triumph", list);
+        AddIfVariationChecked(Var_daily_sunburst, "daily_sunburst", list);
+        AddIfVariationChecked(Var_daily_chime, "daily_chime", list);
+        AddIfVariationChecked(Var_daily_quest, "daily_quest", list);
+
+        AddIfVariationChecked(Var_weekly_grand, "weekly_grand", list);
+        AddIfVariationChecked(Var_weekly_champions, "weekly_champions", list);
+        AddIfVariationChecked(Var_weekly_fiesta, "weekly_fiesta", list);
+        AddIfVariationChecked(Var_weekly_celestial, "weekly_celestial", list);
+
+        AddIfVariationChecked(Var_breakstart_zen, "breakstart_zen", list);
+        AddIfVariationChecked(Var_breakstart_lofi, "breakstart_lofi", list);
+        AddIfVariationChecked(Var_breakstart_bowl, "breakstart_bowl", list);
+        AddIfVariationChecked(Var_breakstart_waterdrop, "breakstart_waterdrop", list);
+
+        AddIfVariationChecked(Var_breakend_wakeup, "breakend_wakeup", list);
+        AddIfVariationChecked(Var_breakend_ready, "breakend_ready", list);
+        AddIfVariationChecked(Var_breakend_morning, "breakend_morning", list);
+        AddIfVariationChecked(Var_breakend_focusbell, "breakend_focusbell", list);
+
+        // Scene cheer variations
+        AddIfVariationChecked(Var_cheer_cycling_bell, "cheer_cycling_bell", list);
+        AddIfVariationChecked(Var_cheer_cycling_bark, "cheer_cycling_bark", list);
+        AddIfVariationChecked(Var_cheer_cycling_whistle, "cheer_cycling_whistle", list);
+
+        AddIfVariationChecked(Var_cheer_cafe_cup, "cheer_cafe_cup", list);
+        AddIfVariationChecked(Var_cheer_cafe_raindrop, "cheer_cafe_raindrop", list);
+        AddIfVariationChecked(Var_cheer_cafe_steam, "cheer_cafe_steam", list);
+
+        AddIfVariationChecked(Var_cheer_jazz_sax, "cheer_jazz_sax", list);
+        AddIfVariationChecked(Var_cheer_jazz_piano, "cheer_jazz_piano", list);
+        AddIfVariationChecked(Var_cheer_jazz_sparkle, "cheer_jazz_sparkle", list);
+
+        AddIfVariationChecked(Var_cheer_icecream_jingle, "cheer_icecream_jingle", list);
+        AddIfVariationChecked(Var_cheer_icecream_pop, "cheer_icecream_pop", list);
+        AddIfVariationChecked(Var_cheer_icecream_bell, "cheer_icecream_bell", list);
+
+        AddIfVariationChecked(Var_cheer_metro_melody, "cheer_metro_melody", list);
+        AddIfVariationChecked(Var_cheer_metro_lofi, "cheer_metro_lofi", list);
+        AddIfVariationChecked(Var_cheer_metro_doors, "cheer_metro_doors", list);
+
+        AddIfVariationChecked(Var_cheer_cat_meow, "cheer_cat_meow", list);
+        AddIfVariationChecked(Var_cheer_cat_purr, "cheer_cat_purr", list);
+        AddIfVariationChecked(Var_cheer_cat_bounce, "cheer_cat_bounce", list);
+
+        AddIfVariationChecked(Var_cheer_rocket_laser, "cheer_rocket_laser", list);
+        AddIfVariationChecked(Var_cheer_rocket_beacon, "cheer_rocket_beacon", list);
+        AddIfVariationChecked(Var_cheer_rocket_warp, "cheer_rocket_warp", list);
+
+        AddIfVariationChecked(Var_cheer_runner_whistle, "cheer_runner_whistle", list);
+        AddIfVariationChecked(Var_cheer_runner_horn, "cheer_runner_horn", list);
+        AddIfVariationChecked(Var_cheer_runner_squeak, "cheer_runner_squeak", list);
+
+        AddIfVariationChecked(Var_cheer_pet_happy, "cheer_pet_happy", list);
+        AddIfVariationChecked(Var_cheer_pet_levelup, "cheer_pet_levelup", list);
+        AddIfVariationChecked(Var_cheer_pet_heart, "cheer_pet_heart", list);
+
+        AddIfVariationChecked(Var_cheer_lumberjack_chop, "cheer_lumberjack_chop", list);
+        AddIfVariationChecked(Var_cheer_lumberjack_timber, "cheer_lumberjack_timber", list);
+        AddIfVariationChecked(Var_cheer_lumberjack_van, "cheer_lumberjack_van", list);
+
+        return list;
+    }
+
+    private static void AddIfVariationChecked(CheckBox? cb, string variationId, List<string> list)
+    {
+        if (cb?.IsChecked == true)
+        {
+            list.Add(variationId);
+        }
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_suppressClosingPrompt || _isExplicitlySaved)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        if (HasUnsavedChanges())
+        {
+            var result = PromptUnsavedChanges();
+            if (result == MessageBoxResult.Yes)
+            {
+                SaveSettingsToModel();
+                _isExplicitlySaved = true;
+                _suppressClosingPrompt = true;
+                try
+                {
+                    DialogResult = true;
+                }
+                catch { }
+            }
+            else if (result == MessageBoxResult.No)
+            {
+                _suppressClosingPrompt = true;
+                try
+                {
+                    DialogResult = false;
+                }
+                catch { }
+            }
+            else
+            {
+                // Cancel or dismissed dialog
+                e.Cancel = true;
+                return;
+            }
+        }
+
+        base.OnClosing(e);
     }
 
     private void RewardIconComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -748,7 +1063,6 @@ public partial class WorkRestSettingsDialog : Window
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
         Close();
     }
 

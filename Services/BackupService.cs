@@ -34,7 +34,8 @@ public class BackupService
         "activities.json",
         "calendar-plans.json",
         "focus-settings.json",
-        "theme.json"
+        "theme.json",
+        "streaks.json"
     };
 
     /// <summary>

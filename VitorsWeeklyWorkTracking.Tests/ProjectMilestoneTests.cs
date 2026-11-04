@@ -574,7 +574,11 @@ public class ProjectMilestoneTests
 
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        bool completed = thread.Join(TimeSpan.FromSeconds(30));
+        if (!completed)
+        {
+            throw new TimeoutException("ProjectMilestone_UIViewsAndTheming_RenderAndColorCodeAccurately timed out after 30 seconds.");
+        }
 
         if (threadException != null)
         {

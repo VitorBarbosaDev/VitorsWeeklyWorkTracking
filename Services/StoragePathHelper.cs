@@ -231,17 +231,37 @@ public static class StoragePathHelper
             var progFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             if (!string.IsNullOrWhiteSpace(progFiles))
             {
-                candidates.Add(Path.Combine(progFiles, "VitorsWeeklyWorkTracking", "Data"));
-                candidates.Add(Path.Combine(progFiles, "VitorsWeeklyWorkTracking"));
-                candidates.Add(Path.Combine(progFiles, "Vitors Weekly Work Tracking", "Data"));
-                candidates.Add(Path.Combine(progFiles, "Vitors Weekly Work Tracking"));
+                var folderNames = new[]
+                {
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorsWeeklyWorkTracking",
+                    "VitorWeeklyWorkTracking"
+                };
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(progFiles, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
             }
 
             var progFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             if (!string.IsNullOrWhiteSpace(progFilesX86))
             {
-                candidates.Add(Path.Combine(progFilesX86, "VitorsWeeklyWorkTracking", "Data"));
-                candidates.Add(Path.Combine(progFilesX86, "VitorsWeeklyWorkTracking"));
+                var folderNames = new[]
+                {
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorsWeeklyWorkTracking",
+                    "VitorWeeklyWorkTracking"
+                };
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(progFilesX86, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
             }
         }
         catch { }
@@ -252,8 +272,24 @@ public static class StoragePathHelper
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             if (!string.IsNullOrWhiteSpace(userProfile))
             {
-                candidates.Add(Path.Combine(userProfile, "VitorsWeeklyWorkTracking"));
-                candidates.Add(Path.Combine(userProfile, ".vitorsweeklyworktracking"));
+                var folderNames = new[]
+                {
+                    "VitorsWeeklyWorkTracking",
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorWeeklyWorkTracking",
+                    ".vitorsweeklyworktracking",
+                    "Downloads\\VitorsWeeklyWorkTracking",
+                    "Downloads\\Vitor's Weekly Work Tracking",
+                    "Desktop\\VitorsWeeklyWorkTracking",
+                    "Desktop\\Vitor's Weekly Work Tracking"
+                };
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(userProfile, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
             }
         }
         catch { }
@@ -514,6 +550,19 @@ public static class StoragePathHelper
                     }
                 }
             }
+
+            // 3. Ensure streak data and companion settings are merged from legacy stores
+            try
+            {
+                StreakStorage.Instance.Load();
+            }
+            catch { }
+
+            try
+            {
+                FocusCompanionStorage.Load();
+            }
+            catch { }
         }
         catch (Exception ex)
         {

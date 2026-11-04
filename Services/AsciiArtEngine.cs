@@ -105,7 +105,7 @@ public static class AsciiArtEngine
             sb.AppendLine("     __o                            ||          ||               |  _   [ ] |  ");
             sb.AppendLine("   _ \\<_   Ready to pedal home... 🍃                             | | |  🐶  |  ");
             sb.AppendLine("  (_)/(_) ═══════════════════════════════════════════════════════┴─┴────────┴──");
-            sb.AppendLine(" 🌾🌾 [🏁 25%] 🌾🌾🌾 [🏁 50%] 🌾🌾🌾 [🏁 75%] 🌾🌾🌾 [🏡 HOME 100%] 🌾🌾");
+            sb.AppendLine(" 🌾🌾🌾 [🏁 25%] 🌾🌾🌾 [🏁 50%] 🌾🌾🌾 [🏁 75%] 🌾🌾🌾 [🏡 HOME 100%] 🌾🌾🌾");
 
             return new RenderedArtScene
             {
@@ -131,7 +131,7 @@ public static class AsciiArtEngine
         string cloudGap = new string(' ', 8 - cloudShift);
         string bird = (f % 2 == 0) ? "🕊️ " : " 🕊️";
 
-        string[] pedalFrames0 = { "    __o  ", "  _ \\<_  ", "=(_)/(_)" };
+        string[] pedalFrames0 = { "    __o  ", "  _ \\<_  ", "=(_)/(_) " };
         string[] pedalFrames1 = { "    __o  ", "~ _ `\\_  ", " (_)/(_) " };
         string[] pedalFrames2 = { "    __o  ", "  _ /\\_  ", "~(_)/(_) " };
 
@@ -149,7 +149,7 @@ public static class AsciiArtEngine
         sb.AppendLine($"{padSpaces}{boyFrame[0]}{gapSpaces}{fixedGap}|  _   [ ] |  ");
         sb.AppendLine($"{padSpaces}{boyFrame[1]}{gapSpaces}{fixedGap}| | |  🐶  |  ");
         sb.AppendLine($"{padRoad}{boyFrame[2]}{gapRoad}{fixedRoad}┴─┴────────┴──");
-        sb.AppendLine(" 🌾🌾 [🏁 25%] 🌾🌾🌾 [🏁 50%] 🌾🌾🌾 [🏁 75%] 🌾🌾🌾 [🏡 HOME 100%] 🌾🌾");
+        sb.AppendLine(" 🌾🌾🌾 [🏁 25%] 🌾🌾🌾 [🏁 50%] 🌾🌾🌾 [🏁 75%] 🌾🌾🌾 [🏡 HOME 100%] 🌾🌾🌾");
 
         int percentInt = (int)(progress * 100.0);
         double kmRemaining = Math.Max(0.0, (1.0 - progress) * 10.0);

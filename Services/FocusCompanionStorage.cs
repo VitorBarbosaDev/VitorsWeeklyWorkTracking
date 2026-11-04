@@ -322,6 +322,167 @@ public class FocusCompanionStorage
                         break;
                     }
                 }
+
+                // 18. Sound and Notification Toggles
+                string[] soundStartAliases = { "soundOnStartEnabled", "sound_on_start_enabled", "soundOnStart", "sound_on_start" };
+                foreach (var alias in soundStartAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnStartEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundEndAliases = { "soundOnEndEnabled", "sound_on_end_enabled", "soundOnEnd", "sound_on_end" };
+                foreach (var alias in soundEndAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnEndEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundGoalAliases = { "soundOnGoalAchievedEnabled", "sound_on_goal_achieved_enabled", "soundOnGoal", "sound_on_goal" };
+                foreach (var alias in soundGoalAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnGoalAchievedEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundDailyGoalAliases = { "soundOnDailyGoalAchievedEnabled", "sound_on_daily_goal_achieved_enabled" };
+                foreach (var alias in soundDailyGoalAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnDailyGoalAchievedEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundWeeklyGoalAliases = { "soundOnWeeklyGoalAchievedEnabled", "sound_on_weekly_goal_achieved_enabled" };
+                foreach (var alias in soundWeeklyGoalAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnWeeklyGoalAchievedEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundBreakStartAliases = { "soundOnBreakStartEnabled", "sound_on_break_start_enabled" };
+                foreach (var alias in soundBreakStartAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnBreakStartEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundBreakEndAliases = { "soundOnBreakEndEnabled", "sound_on_break_end_enabled" };
+                foreach (var alias in soundBreakEndAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnBreakEndEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] soundCheerAliases = { "soundOnCheerEnabled", "sound_on_cheer_enabled" };
+                foreach (var alias in soundCheerAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.SoundOnCheerEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] companionVisAliases = { "companionVisible", "companion_visible", "showCompanion", "companionShow" };
+                foreach (var alias in companionVisAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.CompanionVisible = bVal;
+                        break;
+                    }
+                }
+
+                string[] companionExpAliases = { "companionExpanded", "companion_expanded", "expandCompanion" };
+                foreach (var alias in companionExpAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.CompanionExpanded = bVal;
+                        break;
+                    }
+                }
+
+                string[] goalNotifAliases = { "goalNotificationsEnabled", "goal_notifications_enabled" };
+                foreach (var alias in goalNotifAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.GoalNotificationsEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] dailyGoalNotifAliases = { "dailyGoalNotificationEnabled", "daily_goal_notification_enabled" };
+                foreach (var alias in dailyGoalNotifAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.DailyGoalNotificationEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] weeklyGoalNotifAliases = { "weeklyGoalNotificationEnabled", "weekly_goal_notification_enabled" };
+                foreach (var alias in weeklyGoalNotifAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.WeeklyGoalNotificationEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] projectGoalNotifAliases = { "projectGoalNotificationEnabled", "project_goal_notification_enabled" };
+                foreach (var alias in projectGoalNotifAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.ProjectGoalNotificationEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] milestoneRemindAliases = { "milestoneRemindersEnabled", "milestone_reminders_enabled" };
+                foreach (var alias in milestoneRemindAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.MilestoneRemindersEnabled = bVal;
+                        break;
+                    }
+                }
+
+                string[] milestoneModeAliases = { "milestoneDisplayMode", "milestone_display_mode" };
+                foreach (var alias in milestoneModeAliases)
+                {
+                    if (TryGetStringProperty(root, alias, out var val) && !string.IsNullOrWhiteSpace(val))
+                    {
+                        settings.MilestoneDisplayMode = val.Trim();
+                        break;
+                    }
+                }
             }
         }
         catch { }
@@ -386,13 +547,22 @@ public class FocusCompanionStorage
         return false;
     }
 
-    private static bool MergeFromCandidateLegacySettings(WorkRestSettings targetSettings)
+    public static bool MergeFromCandidateLegacySettings(WorkRestSettings targetSettings, IEnumerable<string>? customLegacyDirectories = null)
     {
         bool anyMerged = false;
         var candidateNames = StoragePathHelper.GetCandidateFileNames("focus-settings.json", "focus_companion_settings.json");
-        var legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories().ToList();
-        var currentFolder = StoragePathHelper.GetDataFolder();
-        legacyDirs.Insert(0, currentFolder);
+        List<string> legacyDirs;
+
+        if (customLegacyDirectories != null)
+        {
+            legacyDirs = customLegacyDirectories.ToList();
+        }
+        else
+        {
+            legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories().ToList();
+            var currentFolder = StoragePathHelper.GetDataFolder();
+            legacyDirs.Insert(0, currentFolder);
+        }
 
         var discoveredFiles = new List<(string FilePath, DateTime LastWriteTime)>();
 
@@ -544,6 +714,143 @@ public class FocusCompanionStorage
                 {
                     targetSettings.MilestoneDisplayMode = legacySettings.MilestoneDisplayMode;
                     anyMerged = true;
+                }
+
+                // Sound toggles (defaults are true, merge false if user disabled them)
+                if (targetSettings.SoundAlertEnabled && !legacySettings.SoundAlertEnabled)
+                {
+                    targetSettings.SoundAlertEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnStartEnabled && !legacySettings.SoundOnStartEnabled)
+                {
+                    targetSettings.SoundOnStartEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnEndEnabled && !legacySettings.SoundOnEndEnabled)
+                {
+                    targetSettings.SoundOnEndEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnGoalAchievedEnabled && !legacySettings.SoundOnGoalAchievedEnabled)
+                {
+                    targetSettings.SoundOnGoalAchievedEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnDailyGoalAchievedEnabled && !legacySettings.SoundOnDailyGoalAchievedEnabled)
+                {
+                    targetSettings.SoundOnDailyGoalAchievedEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnWeeklyGoalAchievedEnabled && !legacySettings.SoundOnWeeklyGoalAchievedEnabled)
+                {
+                    targetSettings.SoundOnWeeklyGoalAchievedEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnBreakStartEnabled && !legacySettings.SoundOnBreakStartEnabled)
+                {
+                    targetSettings.SoundOnBreakStartEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnBreakEndEnabled && !legacySettings.SoundOnBreakEndEnabled)
+                {
+                    targetSettings.SoundOnBreakEndEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.SoundOnCheerEnabled && !legacySettings.SoundOnCheerEnabled)
+                {
+                    targetSettings.SoundOnCheerEnabled = false;
+                    anyMerged = true;
+                }
+
+                // Companion & Widget toggles
+                if (targetSettings.CompanionVisible && !legacySettings.CompanionVisible)
+                {
+                    targetSettings.CompanionVisible = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.CompanionExpanded && !legacySettings.CompanionExpanded)
+                {
+                    targetSettings.CompanionExpanded = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.MiniWidgetEnabled && !legacySettings.MiniWidgetEnabled)
+                {
+                    targetSettings.MiniWidgetEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.WelcomePopupEnabled && !legacySettings.WelcomePopupEnabled)
+                {
+                    targetSettings.WelcomePopupEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.LastWelcomePopupDate == null && legacySettings.LastWelcomePopupDate != null)
+                {
+                    targetSettings.LastWelcomePopupDate = legacySettings.LastWelcomePopupDate;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.ForceWelcomePopupOnNextLaunch && legacySettings.ForceWelcomePopupOnNextLaunch)
+                {
+                    targetSettings.ForceWelcomePopupOnNextLaunch = true;
+                    anyMerged = true;
+                }
+
+                // Notification toggles
+                if (targetSettings.GoalNotificationsEnabled && !legacySettings.GoalNotificationsEnabled)
+                {
+                    targetSettings.GoalNotificationsEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.DailyGoalNotificationEnabled && !legacySettings.DailyGoalNotificationEnabled)
+                {
+                    targetSettings.DailyGoalNotificationEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.WeeklyGoalNotificationEnabled && !legacySettings.WeeklyGoalNotificationEnabled)
+                {
+                    targetSettings.WeeklyGoalNotificationEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.ProjectGoalNotificationEnabled && !legacySettings.ProjectGoalNotificationEnabled)
+                {
+                    targetSettings.ProjectGoalNotificationEnabled = false;
+                    anyMerged = true;
+                }
+
+                if (targetSettings.MilestoneRemindersEnabled && !legacySettings.MilestoneRemindersEnabled)
+                {
+                    targetSettings.MilestoneRemindersEnabled = false;
+                    anyMerged = true;
+                }
+
+                // Sound variations
+                if (legacySettings.EnabledSoundVariations != null && legacySettings.EnabledSoundVariations.Count > 0)
+                {
+                    targetSettings.EnabledSoundVariations ??= new();
+                    foreach (var v in legacySettings.EnabledSoundVariations)
+                    {
+                        if (!targetSettings.EnabledSoundVariations.Contains(v))
+                        {
+                            targetSettings.EnabledSoundVariations.Add(v);
+                            anyMerged = true;
+                        }
+                    }
                 }
             }
             catch { }

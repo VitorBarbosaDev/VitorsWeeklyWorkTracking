@@ -63,7 +63,7 @@ public partial class StreakDialog : Window
         RefreshSickDaysList();
     }
 
-    private void RefreshDashboard()
+    internal void RefreshDashboard()
     {
         var summary = _streakService.CalculateStreak(DateTime.Today, _entries);
 
@@ -100,6 +100,7 @@ public partial class StreakDialog : Window
         GoldCountTextBlock.Text = $"{summary.GoldDaysCount} Gold days";
 
         RefreshTimelineView();
+        RefreshSickDaysList();
 
         FooterStatusTextBlock.Text = summary.IsEnabled
             ? (summary.CurrentStreak > 0
@@ -220,7 +221,7 @@ public partial class StreakDialog : Window
         }
     }
 
-    private void RefreshHolidaysList()
+    internal void RefreshHolidaysList()
     {
         var holidays = _streakService.Profile.Holidays?.OrderBy(h => h.Date).ToList() ?? new List<HolidayItem>();
         HolidaysListBox.ItemsSource = null;
@@ -229,7 +230,7 @@ public partial class StreakDialog : Window
         ClearAllHolidaysButton.Visibility = holidays.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void RefreshSickDaysList()
+    internal void RefreshSickDaysList()
     {
         var summary = _streakService.CalculateStreak(DateTime.Today, _entries);
 
@@ -262,7 +263,7 @@ public partial class StreakDialog : Window
         // 3. Show recorded sick days (within the last 30 days or where work was logged)
         var thirtyDaysAgo = DateTime.Today.AddDays(-30);
         var usedDates = _streakService.Profile.UsedSickDates?
-            .Where(d => d.Date >= thirtyDaysAgo || _streakService.EvaluateDate(d, _entries).Status == StreakDayStatus.Active)
+            .Where(d => d.Date >= thirtyDaysAgo || _streakService.EvaluateDate(d, _entries, DateTime.Today, allowAutoApplySickDay: false).Status == StreakDayStatus.Active)
             .OrderByDescending(d => d)
             .ToList() ?? new List<DateTime>();
 
