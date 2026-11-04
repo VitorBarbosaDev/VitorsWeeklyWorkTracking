@@ -120,8 +120,8 @@
                             <!-- Rest Days / Sick Days Remaining -->
                             <Border Grid.Column="3" Background="{DynamicResource Theme.StatCard4Bg}" BorderBrush="{DynamicResource Theme.StatCard4Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="2 0 2 0">
                                 <StackPanel>
-                                    <TextBlock Text="REST DAYS (MAX 3)" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
-                                    <TextBlock x:Name="SickDaysRemainingTextBlock" Text="🛡️ 3 / 3 Left" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 4 0 0"/>
+                                    <TextBlock Text="SICK DAY BALANCE" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
+                                    <TextBlock x:Name="SickDaysRemainingTextBlock" Text="🛡️ 3 Available" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 4 0 0"/>
                                 </StackPanel>
                             </Border>
 
@@ -618,7 +618,7 @@
                         </Border>
 
                         <CheckBox x:Name="AutoApplySickDaysCheckBox"
-                                  Content="💊 Automatically use a sick day if a regular workday is missed (if monthly allowance remains)"
+                                  Content="💊 Automatically use a sick day if a regular workday is missed (if a sick day is available)"
                                   IsChecked="True"
                                   Margin="0 0 0 10"
                                   Checked="AutoApplySickDays_Changed"
@@ -678,7 +678,7 @@
                             </Grid.ColumnDefinitions>
 
                             <DatePicker x:Name="SickDatePicker" Height="28" Margin="0 0 6 0"/>
-                            <TextBlock Grid.Column="1" x:Name="SickDaysStatusDetailText" Text="Remaining this month: 3 / 3" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="6 0"/>
+                            <TextBlock Grid.Column="1" x:Name="SickDaysStatusDetailText" Text="Available now: 3 (monthly allowance plus returned sick days)" VerticalAlignment="Center" FontSize="11.5" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="6 0"/>
                             <Button x:Name="ApplySickDayButton" Grid.Column="2" Content="💊 Apply Sick Day" Style="{DynamicResource SuccessButton}" Height="28" Padding="12 0" Click="ApplySickDayButton_Click"/>
                         </Grid>
 
@@ -697,7 +697,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{Binding StringFormat='💊 {0:yyyy-MM-dd (dddd)} - Streak Restored'}" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}"/>
-                                        <Button Grid.Column="1" Content="Revoke" Style="{DynamicResource GhostButton}" Height="22" Padding="6 0" FontSize="10.5" ToolTip="Remove sick day and return to monthly allowance" Tag="{Binding}" Click="RevokeSickDayButton_Click"/>
+                                        <Button Grid.Column="1" Content="Revoke" Style="{DynamicResource GhostButton}" Height="22" Padding="6 0" FontSize="10.5" ToolTip="Revoke sick day and return an available sick day" Tag="{Binding}" Click="RevokeSickDayButton_Click"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>

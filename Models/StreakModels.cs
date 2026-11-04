@@ -103,6 +103,16 @@ public class StreakProfile
     public List<DateTime> UsedSickDates { get; set; } = new();
 
     /// <summary>
+    /// Dates whose sick-day protection was revoked; they still count against that month's allowance.
+    /// </summary>
+    public List<DateTime> RevokedSickDates { get; set; } = new();
+
+    /// <summary>
+    /// Sick-day credits returned by revoking protection, carried across monthly allowance refreshes.
+    /// </summary>
+    public int ReturnedSickDays { get; set; }
+
+    /// <summary>
     /// Total Gold Stars spent by the user (e.g., buying rest days).
     /// </summary>
     public int GoldStarsSpent { get; set; } = 0;
@@ -170,16 +180,27 @@ public class StreakProfile
 
     public int GetUsedSickDaysCountForMonth(int year, int month)
     {
-        if (UsedSickDates == null) return 0;
-        return UsedSickDates.Count(d => d.Year == year && d.Month == month);
+        return (UsedSickDates ?? new List<DateTime>())
+            .Concat(RevokedSickDates ?? new List<DateTime>())
+            .Where(d => d.Year == year && d.Month == month)
+            .Select(d => d.Date)
+            .Distinct()
+            .Count();
     }
 
     public int GetRemainingSickDaysForMonth(int year, int month)
     {
+        return GetMonthlySickDaysRemaining(year, month) + Math.Max(0, ReturnedSickDays);
+    }
+
+    public bool HasMonthlySickDay(int year, int month) =>
+        GetMonthlySickDaysRemaining(year, month) > 0;
+
+    private int GetMonthlySickDaysRemaining(int year, int month)
+    {
         int used = GetUsedSickDaysCountForMonth(year, month);
         int purchased = GetPurchasedRestDaysCountForMonth(year, month);
-        int net = MonthlySickDaysAllowance - used + purchased;
-        return Math.Clamp(net, 0, MaxRestDaysLimit);
+        return Math.Max(0, MonthlySickDaysAllowance - used + purchased);
     }
 
     public bool HasRemainingSickDay(int year, int month)
@@ -264,15 +285,34 @@ public class StreakProfile
         return UsedSickDates.Any(d => d.Date == date.Date);
     }
 
-    public bool UseSickDay(DateTime date)
+    public bool UseSickDay(DateTime date, bool allowReturnedCredit = true)
     {
         var dateOnly = date.Date;
         UsedSickDates ??= new List<DateTime>();
         if (IsSickDay(dateOnly)) return true;
 
-        if (!HasRemainingSickDay(dateOnly.Year, dateOnly.Month))
+        RevokedSickDates ??= new List<DateTime>();
+        bool wasRevoked = RevokedSickDates.RemoveAll(d => d.Date == dateOnly) > 0;
+        if (wasRevoked)
         {
-            return false;
+            if (!allowReturnedCredit || ReturnedSickDays <= 0)
+            {
+                RevokedSickDates.Add(dateOnly);
+                return false;
+            }
+
+            ReturnedSickDays--;
+        }
+        else
+        {
+            int monthlyRemaining = MonthlySickDaysAllowance
+                - GetUsedSickDaysCountForMonth(dateOnly.Year, dateOnly.Month)
+                + GetPurchasedRestDaysCountForMonth(dateOnly.Year, dateOnly.Month);
+            if (monthlyRemaining <= 0)
+            {
+                if (!allowReturnedCredit || ReturnedSickDays <= 0) return false;
+                ReturnedSickDays--;
+            }
         }
 
         UsedSickDates.Add(dateOnly);
@@ -283,7 +323,15 @@ public class StreakProfile
     {
         var dateOnly = date.Date;
         if (UsedSickDates == null) return false;
-        return UsedSickDates.RemoveAll(d => d.Date == dateOnly) > 0;
+        if (UsedSickDates.RemoveAll(d => d.Date == dateOnly) == 0) return false;
+
+        RevokedSickDates ??= new List<DateTime>();
+        if (!RevokedSickDates.Any(d => d.Date == dateOnly))
+        {
+            RevokedSickDates.Add(dateOnly);
+        }
+        ReturnedSickDays++;
+        return true;
     }
 }
 

@@ -178,6 +178,50 @@ public class StreakService
         return false;
     }
 
+    public bool TryUseSickDay(DateTime date, List<TimeEntry>? allEntries, out string reason)
+    {
+        var dateOnly = date.Date;
+        if (Profile.IsSickDay(dateOnly))
+        {
+            reason = string.Empty;
+            return true;
+        }
+
+        if (Profile.IsExcludedDay(dateOnly))
+        {
+            reason = $"{dateOnly:MMMM d, yyyy} is marked as a regular rest day, so a sick day can't be applied.";
+            return false;
+        }
+
+        if (Profile.IsHoliday(dateOnly, out var holidayName))
+        {
+            reason = $"{dateOnly:MMMM d, yyyy} is marked as a holiday{(string.IsNullOrWhiteSpace(holidayName) ? "" : $" ({holidayName})")}, so a sick day can't be applied.";
+            return false;
+        }
+
+        var daySummary = _planStorage.CalculateDailySummary(dateOnly, allEntries ?? new List<TimeEntry>());
+        if (daySummary.ActualHours > 0 || daySummary.EntryCount > 0)
+        {
+            reason = $"Work is already recorded on {dateOnly:MMMM d, yyyy}, so a sick day can't be applied.";
+            return false;
+        }
+
+        if (!Profile.HasRemainingSickDay(dateOnly.Year, dateOnly.Month))
+        {
+            reason = $"You have no sick days available to apply to {dateOnly:MMMM yyyy}.";
+            return false;
+        }
+
+        if (!UseSickDay(dateOnly))
+        {
+            reason = $"A sick day could not be applied to {dateOnly:MMMM d, yyyy}. Please check your available balance and try again.";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
     public bool RemoveSickDay(DateTime date)
     {
         var dateOnly = date.Date;
@@ -261,7 +305,7 @@ public class StreakService
     /// Silver: Completed at least one planned project goal.
     /// Gold: Completed all goals for the day, or worked and saved progress when no goals were planned.
     /// </summary>
-    public StreakDayEvaluation EvaluateDate(DateTime date, List<TimeEntry>? allEntries, DateTime? todayOverride = null)
+    public StreakDayEvaluation EvaluateDate(DateTime date, List<TimeEntry>? allEntries, DateTime? todayOverride = null, bool allowAutoApplySickDay = true)
     {
         var dateOnly = date.Date;
         var today = (todayOverride ?? DateTime.Today).Date;
@@ -387,9 +431,13 @@ public class StreakService
         }
 
         // Auto apply sick day if configured and within monthly limit
-        if (Profile.AutoApplySickDays && dateOnly < today && Profile.HasRemainingSickDay(dateOnly.Year, dateOnly.Month))
+        if (allowAutoApplySickDay &&
+            Profile.AutoApplySickDays &&
+            dateOnly < today &&
+            !(Profile.RevokedSickDates?.Any(d => d.Date == dateOnly) ?? false) &&
+            Profile.HasMonthlySickDay(dateOnly.Year, dateOnly.Month))
         {
-            Profile.UseSickDay(dateOnly);
+            Profile.UseSickDay(dateOnly, allowReturnedCredit: false);
             SaveProfile();
 
             return new StreakDayEvaluation
@@ -410,6 +458,41 @@ public class StreakService
             Reason = dateOnly == today ? "Pending today's work" : "Missed workday",
             HasWork = false
         };
+    }
+
+    public bool WouldRevokingSickDayBreakStreak(DateTime date, List<TimeEntry>? allEntries, DateTime currentDate)
+    {
+        var dateOnly = date.Date;
+        var today = currentDate.Date;
+        if (dateOnly >= today || !Profile.IsSickDay(dateOnly))
+        {
+            return false;
+        }
+
+        var entries = allEntries ?? new List<TimeEntry>();
+        var cursor = today.AddDays(-1);
+        var safetyLimit = today.AddYears(-5);
+
+        while (cursor >= dateOnly && cursor >= safetyLimit)
+        {
+            var evaluation = EvaluateDate(cursor, entries, today, allowAutoApplySickDay: false);
+            if (cursor == dateOnly)
+            {
+                return evaluation.Status == StreakDayStatus.SickDay;
+            }
+
+            if (evaluation.Status != StreakDayStatus.Active &&
+                evaluation.Status != StreakDayStatus.Excluded &&
+                evaluation.Status != StreakDayStatus.Holiday &&
+                evaluation.Status != StreakDayStatus.SickDay)
+            {
+                return false;
+            }
+
+            cursor = cursor.AddDays(-1);
+        }
+
+        return false;
     }
 
     /// <summary>

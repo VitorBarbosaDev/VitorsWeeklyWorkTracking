@@ -85,8 +85,8 @@ public partial class StreakDialog : Window
         };
 
         int remainingSick = _streakService.GetRemainingSickDays(DateTime.Today);
-        SickDaysRemainingTextBlock.Text = $"🛡️ {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} Left";
-        SickDaysStatusDetailText.Text = $"Remaining this month: {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} (Refreshes monthly or buy with ⭐)";
+        SickDaysRemainingTextBlock.Text = $"🛡️ {remainingSick} Available";
+        SickDaysStatusDetailText.Text = $"Available now: {remainingSick} (monthly allowance plus returned sick days)";
 
         GoldStarsBalanceTextBlock.Text = $"⭐ {summary.GoldStarsBalance} Stars";
         GoldStarsShopBalanceText.Text = $"⭐ {summary.GoldStarsBalance} Gold Stars";
@@ -451,32 +451,41 @@ public partial class StreakDialog : Window
 
     private void ApplySickDayForDate(DateTime date)
     {
-        if (!_streakService.Profile.HasRemainingSickDay(date.Year, date.Month))
-        {
-            ThemedMessageBox.Show(
-                this,
-                $"You have used all {_streakService.Profile.MonthlySickDaysAllowance} sick days for {date:MMMM yyyy}.\n\nYour sick day allowance will refresh automatically next month.",
-                "Sick Days Limit Reached",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        bool success = _streakService.UseSickDay(date);
-        if (success)
+        if (_streakService.TryUseSickDay(date, _entries, out var reason))
         {
             RefreshDashboard();
             RefreshSickDaysList();
+            return;
         }
+
+        ThemedMessageBox.Show(
+            this,
+            reason,
+            "Unable to Apply Sick Day",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void RevokeSickDayButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is DateTime date)
         {
-            _streakService.RemoveSickDay(date);
-            RefreshDashboard();
-            RefreshSickDaysList();
+            if (_streakService.WouldRevokingSickDayBreakStreak(date, _entries, DateTime.Today))
+            {
+                var result = ThemedMessageBox.Show(
+                    this,
+                    $"Revoking the sick day for {date:MMMM d, yyyy} will break your current streak. You can apply a sick day to this date again later to restore it. Continue?",
+                    "Revoke Sick Day and Break Streak?",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (result != MessageBoxResult.Yes) return;
+            }
+
+            if (_streakService.RemoveSickDay(date))
+            {
+                RefreshDashboard();
+                RefreshSickDaysList();
+            }
         }
     }
 

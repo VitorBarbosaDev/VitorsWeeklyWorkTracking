@@ -116,7 +116,7 @@ public static class StreakColorHelper
                    $"Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} ({tierDescription})\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
                    $"Today's Status: Active & Preserved 🔥\n" +
-                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"🛡️ Rest Days Available: {restDaysLeft}\n" +
                    $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
                    $"Click to open Streak Dashboard, buy rest days & manage holidays.";
         }
@@ -135,7 +135,7 @@ public static class StreakColorHelper
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Status: {protectionType} (Streak preserved)\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
-                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"🛡️ Rest Days Available: {restDaysLeft}\n" +
                    $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
                    $"Click to view streak tiers, buy rest days & manage holidays.";
         }
@@ -146,7 +146,7 @@ public static class StreakColorHelper
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
                    $"Log and save work today to set your streak on fire! 🔥\n" +
-                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"🛡️ Rest Days Available: {restDaysLeft}\n" +
                    $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
                    $"Click to view streak tiers, buy rest days & manage holidays.";
         }
@@ -154,7 +154,7 @@ public static class StreakColorHelper
         return $"Duo Streak: 0 Days\n" +
                $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                $"Log and save work today to start your streak and set it on fire! 🔥\n" +
-               $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+               $"🛡️ Rest Days Available: {restDaysLeft}\n" +
                $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
                $"Click to view streak dashboard, buy rest days & settings.";
     }

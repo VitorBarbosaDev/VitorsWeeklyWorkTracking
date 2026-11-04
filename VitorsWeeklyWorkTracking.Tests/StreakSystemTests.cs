@@ -514,6 +514,88 @@ public class StreakSystemTests : IDisposable
     }
 
     [Fact]
+    public void SickDaySystem_CannotApplyToDateWithRecordedWork()
+    {
+        var date = new DateTime(2026, 11, 5);
+        var entries = new List<TimeEntry>
+        {
+            new() { ProjectName = "P1", StartTime = date.AddHours(9), EndTime = date.AddHours(10) }
+        };
+
+        Assert.False(_streakService.TryUseSickDay(date, entries, out var reason));
+        Assert.Contains("Work is already recorded", reason);
+        Assert.False(_streakService.Profile.IsSickDay(date));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(date));
+    }
+
+    [Fact]
+    public void SickDaySystem_CannotApplyToExcludedRestDay()
+    {
+        var date = new DateTime(2026, 11, 7); // Saturday
+        _streakService.SetExcludedDays(new[] { DayOfWeek.Saturday, DayOfWeek.Sunday });
+
+        Assert.False(_streakService.TryUseSickDay(date, new List<TimeEntry>(), out var reason));
+        Assert.Contains("marked as a regular rest day", reason);
+        Assert.False(_streakService.Profile.IsSickDay(date));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(date));
+    }
+
+    [Fact]
+    public void SickDaySystem_CannotApplyToScheduledHoliday()
+    {
+        var date = new DateTime(2026, 11, 5);
+        _streakService.AddHoliday(date, "Personal holiday");
+
+        Assert.False(_streakService.TryUseSickDay(date, new List<TimeEntry>(), out var reason));
+        Assert.Contains("marked as a holiday (Personal holiday)", reason);
+        Assert.False(_streakService.Profile.IsSickDay(date));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(date));
+    }
+
+    [Fact]
+    public void SickDaySystem_RevokeAfterMonthRefresh_ReturnsCreditEvenWhenCurrentAllowanceIsFull()
+    {
+        var oldDate = new DateTime(2026, 10, 30);
+        var currentDate = new DateTime(2026, 11, 4);
+        Assert.True(_streakService.UseSickDay(oldDate));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(currentDate));
+
+        Assert.True(_streakService.RemoveSickDay(oldDate));
+
+        Assert.Equal(4, _streakService.GetRemainingSickDays(currentDate));
+        var reloadedProfile = _streakStorage.Load();
+        Assert.Equal(1, reloadedProfile.ReturnedSickDays);
+        Assert.Contains(oldDate, reloadedProfile.RevokedSickDates);
+        Assert.True(_streakService.UseSickDay(oldDate));
+        Assert.Equal(3, _streakService.GetRemainingSickDays(currentDate));
+    }
+
+    [Fact]
+    public void SickDaySystem_RevokingStreakDayBreaksStreakAndReapplyingRestoresIt()
+    {
+        var monday = new DateTime(2026, 11, 2);
+        var tuesday = new DateTime(2026, 11, 3);
+        var wednesday = new DateTime(2026, 11, 4);
+        var entries = new List<TimeEntry>
+        {
+            new() { ProjectName = "P1", StartTime = monday.AddHours(9), EndTime = monday.AddHours(12) },
+            new() { ProjectName = "P1", StartTime = wednesday.AddHours(9), EndTime = wednesday.AddHours(12) }
+        };
+        _streakService.Profile.AutoApplySickDays = false;
+        Assert.True(_streakService.UseSickDay(tuesday));
+        Assert.Equal(2, _streakService.CalculateStreak(wednesday, entries).CurrentStreak);
+        Assert.True(_streakService.WouldRevokingSickDayBreakStreak(tuesday, entries, wednesday));
+
+        _streakService.Profile.AutoApplySickDays = true;
+        Assert.True(_streakService.RemoveSickDay(tuesday));
+        Assert.Equal(1, _streakService.CalculateStreak(wednesday, entries).CurrentStreak);
+        Assert.False(_streakService.Profile.IsSickDay(tuesday));
+
+        Assert.True(_streakService.UseSickDay(tuesday));
+        Assert.Equal(2, _streakService.CalculateStreak(wednesday, entries).CurrentStreak);
+    }
+
+    [Fact]
     public void SettingsToggle_DisablingStreak_HidesStreakMetrics()
     {
         var today = new DateTime(2026, 11, 4);

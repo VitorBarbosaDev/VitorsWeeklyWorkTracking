@@ -46,6 +46,7 @@ public class StreakStorage
                         profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
                         profile.Holidays ??= new();
                         profile.UsedSickDates ??= new();
+                        profile.RevokedSickDates ??= new();
                         profile.RestDayPurchases ??= new();
                         profile.CelebratedMilestoneDays ??= new();
                         return profile;
@@ -77,6 +78,7 @@ public class StreakStorage
                                     profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
                                     profile.Holidays ??= new();
                                     profile.UsedSickDates ??= new();
+                                    profile.RevokedSickDates ??= new();
                                     profile.RestDayPurchases ??= new();
                                     profile.CelebratedMilestoneDays ??= new();
                                     Save(profile);
@@ -104,6 +106,7 @@ public class StreakStorage
             profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
             profile.Holidays ??= new();
             profile.UsedSickDates ??= new();
+            profile.RevokedSickDates ??= new();
             profile.RestDayPurchases ??= new();
             profile.CelebratedMilestoneDays ??= new();
 
