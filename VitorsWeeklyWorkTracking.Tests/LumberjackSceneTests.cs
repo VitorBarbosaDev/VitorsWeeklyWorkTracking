@@ -197,20 +197,47 @@ public class LumberjackSceneTests
         Assert.Contains("kid", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public void AsciiArtEngine_RendersIceCream_GoalReached_ShowsParty()
+    [Theory]
+    [InlineData("cycling")]
+    [InlineData("cafe")]
+    [InlineData("coffeejazz")]
+    [InlineData("icecream")]
+    [InlineData("metro")]
+    [InlineData("rocket")]
+    [InlineData("cat")]
+    [InlineData("runner")]
+    [InlineData("tamagotchi")]
+    [InlineData("lumberjack")]
+    public void AsciiArtEngine_AllScenes_HaveExpandedDimensions_AcrossAllStates(string sceneId)
     {
-        var rendered = AsciiArtEngine.Render(
-            sceneId: "icecream",
-            frameTick: 0,
-            progressFraction: 1.0,
-            isTracking: false,
-            isGoalReached: true,
-            isRestPhase: false,
-            contextDetails: "Complete");
+        // Test Idle, Active, Goal Reached, and Rest states
+        var states = new (bool isTracking, bool isGoalReached, bool isRestPhase, double progress)[]
+        {
+            (false, false, false, 0.0), // Idle
+            (true, false, false, 0.5),  // Active
+            (false, true, false, 1.0),  // Goal Reached
+            (false, false, true, 0.5)   // Rest Phase
+        };
 
-        Assert.NotNull(rendered);
-        Assert.Contains("ICE CREAM PARTY!", rendered.BadgeText);
-        Assert.Contains("treat", rendered.StoryText, StringComparison.OrdinalIgnoreCase);
+        foreach (var (isTracking, isGoalReached, isRestPhase, progress) in states)
+        {
+            var rendered = AsciiArtEngine.Render(
+                sceneId: sceneId,
+                frameTick: 0,
+                progressFraction: progress,
+                isTracking: isTracking,
+                isGoalReached: isGoalReached,
+                isRestPhase: isRestPhase,
+                contextDetails: "Testing Dimensions");
+
+            Assert.NotNull(rendered);
+            Assert.False(string.IsNullOrWhiteSpace(rendered.AsciiArt));
+
+            var lines = rendered.AsciiArt.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            Assert.True(lines.Length >= 7, $"Scene '{sceneId}' state (tracking={isTracking}, goal={isGoalReached}, rest={isRestPhase}) has only {lines.Length} lines, expected >= 7 lines.");
+
+            int maxWidth = lines.Max(l => l.Length);
+            Assert.True(maxWidth >= 70, $"Scene '{sceneId}' state (tracking={isTracking}, goal={isGoalReached}, rest={isRestPhase}) max width is only {maxWidth} chars, expected >= 70 chars.");
+        }
     }
 }

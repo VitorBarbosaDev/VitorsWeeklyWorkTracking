@@ -80,7 +80,7 @@
                 <!-- Streak Quick Button -->
                 <Button x:Name="StreakQuickButton"
                         Content="🔥 0"
-                        ToolTip="View Duo Streak System, Tier Badges, Holidays &amp; Sick Days"
+                        ToolTip="View Streak System, Tier Badges, Holidays &amp; Sick Days"
                         Height="28"
                         Padding="8 0"
                         FontSize="11"

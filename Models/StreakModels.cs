@@ -48,6 +48,16 @@ public class HolidayItem
 }
 
 /// <summary>
+/// Record of a purchased rest day using Gold Stars currency.
+/// </summary>
+public class RestDayPurchase
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public DateTime PurchasedAt { get; set; } = DateTime.Now;
+    public int CostInGoldStars { get; set; } = 30;
+}
+
+/// <summary>
 /// User configuration and persistent state for the Duolingo-style Streak system.
 /// </summary>
 public class StreakProfile
@@ -73,14 +83,39 @@ public class StreakProfile
     public List<HolidayItem> Holidays { get; set; } = new();
 
     /// <summary>
-    /// Number of sick days granted per calendar month (default 3, refreshes monthly).
+    /// Number of sick days / rest days granted per calendar month (default 3, refreshes monthly).
     /// </summary>
     public int MonthlySickDaysAllowance { get; set; } = 3;
 
     /// <summary>
-    /// Dates where a sick day was used to preserve / restore the streak.
+    /// Maximum number of available rest days a user can hold (max capacity is 3).
+    /// </summary>
+    public const int MaxRestDaysLimit = 3;
+
+    /// <summary>
+    /// Cost in Gold Stars to purchase 1 Rest Day (30 Gold Stars).
+    /// </summary>
+    public const int RestDayCostInGoldStars = 30;
+
+    /// <summary>
+    /// Dates where a sick day / rest day was used to preserve / restore the streak.
     /// </summary>
     public List<DateTime> UsedSickDates { get; set; } = new();
+
+    /// <summary>
+    /// Total Gold Stars spent by the user (e.g., buying rest days).
+    /// </summary>
+    public int GoldStarsSpent { get; set; } = 0;
+
+    /// <summary>
+    /// Optional bonus Gold Stars awarded.
+    /// </summary>
+    public int BonusGoldStars { get; set; } = 0;
+
+    /// <summary>
+    /// History of purchased rest days.
+    /// </summary>
+    public List<RestDayPurchase> RestDayPurchases { get; set; } = new();
 
     /// <summary>
     /// Whether to automatically apply an available sick day when a workday is missed.
@@ -91,6 +126,33 @@ public class StreakProfile
     /// Milestone streak day counts that have already triggered a celebration popup notification.
     /// </summary>
     public List<int> CelebratedMilestoneDays { get; set; } = new();
+
+    /// <summary>
+    /// Calculates total Gold Stars earned: 1 Gold Star for each hour worked.
+    /// </summary>
+    public int CalculateTotalGoldStarsEarned(double totalHoursWorked)
+    {
+        if (totalHoursWorked <= 0) return BonusGoldStars;
+        return (int)Math.Floor(totalHoursWorked) + BonusGoldStars;
+    }
+
+    /// <summary>
+    /// Gets current available Gold Stars balance (Total earned minus Total spent).
+    /// </summary>
+    public int GetAvailableGoldStars(double totalHoursWorked)
+    {
+        int totalEarned = CalculateTotalGoldStarsEarned(totalHoursWorked);
+        return Math.Max(0, totalEarned - GoldStarsSpent);
+    }
+
+    /// <summary>
+    /// Gets the count of rest days purchased in a specific calendar month.
+    /// </summary>
+    public int GetPurchasedRestDaysCountForMonth(int year, int month)
+    {
+        if (RestDayPurchases == null) return 0;
+        return RestDayPurchases.Count(p => p.PurchasedAt.Year == year && p.PurchasedAt.Month == month);
+    }
 
     public bool IsMilestoneCelebrated(int days)
     {
@@ -115,12 +177,61 @@ public class StreakProfile
     public int GetRemainingSickDaysForMonth(int year, int month)
     {
         int used = GetUsedSickDaysCountForMonth(year, month);
-        return Math.Max(0, MonthlySickDaysAllowance - used);
+        int purchased = GetPurchasedRestDaysCountForMonth(year, month);
+        int net = MonthlySickDaysAllowance - used + purchased;
+        return Math.Clamp(net, 0, MaxRestDaysLimit);
     }
 
     public bool HasRemainingSickDay(int year, int month)
     {
         return GetRemainingSickDaysForMonth(year, month) > 0;
+    }
+
+    /// <summary>
+    /// Checks whether the user can buy a rest day.
+    /// Returns false if rest days are already maxed out at 3, or if the user has insufficient Gold Stars (&lt; 30).
+    /// </summary>
+    public bool CanBuyRestDay(double totalHoursWorked, int year, int month, out string reason)
+    {
+        int remaining = GetRemainingSickDaysForMonth(year, month);
+        if (remaining >= MaxRestDaysLimit)
+        {
+            reason = $"Rest days are already maxed out ({remaining} / {MaxRestDaysLimit}).";
+            return false;
+        }
+
+        int availableStars = GetAvailableGoldStars(totalHoursWorked);
+        if (availableStars < RestDayCostInGoldStars)
+        {
+            int needed = RestDayCostInGoldStars - availableStars;
+            reason = $"Insufficient Gold Stars (⭐ {availableStars} / {RestDayCostInGoldStars}). Work {needed} more hour{(needed == 1 ? "" : "s")} to earn enough Gold Stars.";
+            return false;
+        }
+
+        reason = $"Purchase 1 Rest Day for ⭐ {RestDayCostInGoldStars} Gold Stars (You have ⭐ {availableStars}).";
+        return true;
+    }
+
+    /// <summary>
+    /// Buys 1 rest day using 30 Gold Stars if available and not maxed out at 3.
+    /// </summary>
+    public bool BuyRestDay(double totalHoursWorked, DateTime? purchaseDate = null)
+    {
+        var date = (purchaseDate ?? DateTime.Today).Date;
+        if (!CanBuyRestDay(totalHoursWorked, date.Year, date.Month, out _))
+        {
+            return false;
+        }
+
+        GoldStarsSpent += RestDayCostInGoldStars;
+        RestDayPurchases ??= new List<RestDayPurchase>();
+        RestDayPurchases.Add(new RestDayPurchase
+        {
+            PurchasedAt = date,
+            CostInGoldStars = RestDayCostInGoldStars
+        });
+
+        return true;
     }
 
     public bool IsExcludedDay(DateTime date)
@@ -326,6 +437,15 @@ public class StreakSummary
     public StreakTier TodayTier { get; set; } = StreakTier.None;
     public StreakDayStatus TodayStatus { get; set; } = StreakDayStatus.Missed;
     public int RemainingSickDaysThisMonth { get; set; } = 3;
+
+    public int GoldStarsBalance { get; set; }
+    public int TotalGoldStarsEarned { get; set; }
+    public int GoldStarsSpent { get; set; }
+    public double TotalHoursWorked { get; set; }
+    public int AvailableRestDays { get; set; } = 3;
+    public int MaxRestDays { get; set; } = 3;
+    public bool CanBuyRestDay { get; set; }
+    public string BuyRestDayStatus { get; set; } = string.Empty;
 
     public DateTime? MissedStreakDay { get; set; }
     public int PotentialRestoredStreak { get; set; }

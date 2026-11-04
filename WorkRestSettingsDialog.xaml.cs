@@ -865,7 +865,44 @@ public partial class WorkRestSettingsDialog : Window
         int remainingSick = StreakService.Instance.GetRemainingSickDays(DateTime.Today);
         if (SettingsSickDaysInfoText != null)
         {
-            SettingsSickDaysInfoText.Text = string.Format("💊 Monthly Sick Days: {0} / {1} remaining (refreshes monthly)", remainingSick, streakProfile.MonthlySickDaysAllowance);
+            SettingsSickDaysInfoText.Text = string.Format("🛡️ Rest Days: {0} / {1} remaining (Max 3, refreshes monthly)", remainingSick, StreakProfile.MaxRestDaysLimit);
+        }
+
+        var entries = new TimeEntryStorage().Load();
+        double totalHours = entries.Sum(e => e.Duration.TotalHours);
+        int availableStars = streakProfile.GetAvailableGoldStars(totalHours);
+        bool canBuy = streakProfile.CanBuyRestDay(totalHours, DateTime.Today.Year, DateTime.Today.Month, out var reason);
+
+        if (SettingsGoldStarsInfoText != null)
+        {
+            SettingsGoldStarsInfoText.Text = string.Format("⭐ Gold Stars: {0} ⭐ Available (1 star per worked hour | Rest days cost 30 stars)", availableStars);
+        }
+
+        if (SettingsBuyRestDayButton != null)
+        {
+            SettingsBuyRestDayButton.IsEnabled = canBuy;
+            SettingsBuyRestDayButton.ToolTip = reason;
+        }
+    }
+
+    private void SettingsBuyRestDayButton_Click(object sender, RoutedEventArgs e)
+    {
+        var entries = new TimeEntryStorage().Load();
+        if (StreakService.Instance.BuyRestDay(entries, DateTime.Today))
+        {
+            LoadStreakSettingsToUI();
+            ThemedMessageBox.Show(this,
+                "You successfully purchased 1 Rest Day for 30 Gold Stars! Your rest day protection is active.",
+                "⭐ Rest Day Purchased!",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        else
+        {
+            StreakService.Instance.CanBuyRestDay(entries.Sum(x => x.Duration.TotalHours), DateTime.Today, out var reason);
+            ThemedMessageBox.Show(this,
+                reason,
+                "Unable to Purchase Rest Day",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

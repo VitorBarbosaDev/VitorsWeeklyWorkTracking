@@ -85,8 +85,15 @@ public partial class StreakDialog : Window
         };
 
         int remainingSick = _streakService.GetRemainingSickDays(DateTime.Today);
-        SickDaysRemainingTextBlock.Text = $"💊 {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} Left";
-        SickDaysStatusDetailText.Text = $"Remaining this month: {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} (Refreshes monthly)";
+        SickDaysRemainingTextBlock.Text = $"🛡️ {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} Left";
+        SickDaysStatusDetailText.Text = $"Remaining this month: {remainingSick} / {_streakService.Profile.MonthlySickDaysAllowance} (Refreshes monthly or buy with ⭐)";
+
+        GoldStarsBalanceTextBlock.Text = $"⭐ {summary.GoldStarsBalance} Stars";
+        GoldStarsShopBalanceText.Text = $"⭐ {summary.GoldStarsBalance} Gold Stars";
+        GoldStarsEarnedSubtitleText.Text = $"Earn 1 Gold Star for each hour worked. Total worked: {summary.TotalHoursWorked:0.#} hrs ({summary.TotalGoldStarsEarned} ⭐ earned, {summary.GoldStarsSpent} ⭐ spent).";
+
+        BuyRestDayButton.IsEnabled = summary.CanBuyRestDay;
+        BuyRestDayHintTextBlock.Text = summary.BuyRestDayStatus;
 
         BronzeCountTextBlock.Text = $"{summary.BronzeDaysCount} Bronze days";
         SilverCountTextBlock.Text = $"{summary.SilverDaysCount} Silver days";
@@ -99,6 +106,27 @@ public partial class StreakDialog : Window
                 ? $"🔥 Streak active! {summary.CurrentStreak} day(s) running — keep it up!"
                 : "🔥 No active streak today. Save progress to start your streak!")
             : "🔥 Streak tracking is currently disabled.";
+    }
+
+    private void BuyRestDayButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_streakService.BuyRestDay(_entries, DateTime.Today))
+        {
+            RefreshDashboard();
+            RefreshSickDaysList();
+            ThemedMessageBox.Show(this,
+                "You successfully purchased 1 Rest Day for 30 Gold Stars! Your rest day protection is active.",
+                "⭐ Rest Day Purchased!",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        else
+        {
+            _streakService.CanBuyRestDay(_entries.Sum(x => x.Duration.TotalHours), DateTime.Today, out var reason);
+            ThemedMessageBox.Show(this,
+                reason,
+                "Unable to Purchase Rest Day",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     public void RefreshTimelineView()

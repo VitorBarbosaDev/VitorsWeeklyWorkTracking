@@ -46,7 +46,45 @@ public class StreakStorage
                         profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
                         profile.Holidays ??= new();
                         profile.UsedSickDates ??= new();
+                        profile.RestDayPurchases ??= new();
+                        profile.CelebratedMilestoneDays ??= new();
                         return profile;
+                    }
+                }
+            }
+
+            // Fallback scan candidate legacy directories
+            var candidateNames = StoragePathHelper.GetCandidateFileNames("streaks.json", "streak-settings.json");
+            var legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories();
+
+            foreach (var dir in legacyDirs)
+            {
+                if (!Directory.Exists(dir)) continue;
+
+                foreach (var name in candidateNames)
+                {
+                    var candidateFile = Path.Combine(dir, name);
+                    if (File.Exists(candidateFile) && new FileInfo(candidateFile).Length > 0)
+                    {
+                        try
+                        {
+                            var json = File.ReadAllText(candidateFile).Trim();
+                            if (!string.IsNullOrWhiteSpace(json))
+                            {
+                                var profile = JsonSerializer.Deserialize<StreakProfile>(json, JsonOptions);
+                                if (profile != null)
+                                {
+                                    profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
+                                    profile.Holidays ??= new();
+                                    profile.UsedSickDates ??= new();
+                                    profile.RestDayPurchases ??= new();
+                                    profile.CelebratedMilestoneDays ??= new();
+                                    Save(profile);
+                                    return profile;
+                                }
+                            }
+                        }
+                        catch { }
                     }
                 }
             }
@@ -66,6 +104,8 @@ public class StreakStorage
             profile.ExcludedDays ??= new() { DayOfWeek.Saturday, DayOfWeek.Sunday };
             profile.Holidays ??= new();
             profile.UsedSickDates ??= new();
+            profile.RestDayPurchases ??= new();
+            profile.CelebratedMilestoneDays ??= new();
 
             var json = JsonSerializer.Serialize(profile, JsonOptions);
             var dir = Path.GetDirectoryName(FilePath);

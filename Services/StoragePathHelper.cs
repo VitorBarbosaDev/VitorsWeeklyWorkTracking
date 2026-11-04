@@ -111,13 +111,20 @@ public static class StoragePathHelper
         var currentFolder = GetDataFolder();
         var candidates = new List<string>();
 
-        // 1. Base directory and base Data subfolder
+        // 1. Base directory and base Data subfolder (including parent directories if installed in subfolder)
         try
         {
             if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
             {
                 candidates.Add(Path.Combine(AppContext.BaseDirectory, "Data"));
                 candidates.Add(AppContext.BaseDirectory);
+
+                var parentDir = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (!string.IsNullOrWhiteSpace(parentDir))
+                {
+                    candidates.Add(Path.Combine(parentDir, "Data"));
+                    candidates.Add(parentDir);
+                }
             }
         }
         catch { }
@@ -134,7 +141,7 @@ public static class StoragePathHelper
         }
         catch { }
 
-        // 3. LocalAppData variants (Inno Setup name, WiX name, plain name, Programs subfolder)
+        // 3. LocalAppData variants (Inno Setup name, WiX name, plain name, Programs subfolder, VirtualStore)
         try
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -149,7 +156,15 @@ public static class StoragePathHelper
                     "Programs\\VitorsWeeklyWorkTracking",
                     "Programs\\Vitors Weekly Work Tracking",
                     "Programs\\Vitor's Weekly Work Tracking",
-                    "Programs\\VitorWeeklyWorkTracking"
+                    "Programs\\VitorWeeklyWorkTracking",
+                    "VirtualStore\\Program Files\\VitorsWeeklyWorkTracking",
+                    "VirtualStore\\Program Files\\Vitors Weekly Work Tracking",
+                    "VirtualStore\\Program Files\\Vitor's Weekly Work Tracking",
+                    "VirtualStore\\Program Files (x86)\\VitorsWeeklyWorkTracking",
+                    "VirtualStore\\Program Files (x86)\\Vitors Weekly Work Tracking",
+                    "VirtualStore\\Program Files (x86)\\Vitor's Weekly Work Tracking",
+                    "VirtualStore\\ProgramData\\VitorsWeeklyWorkTracking",
+                    "VirtualStore\\ProgramData\\Vitor's Weekly Work Tracking"
                 };
 
                 foreach (var name in folderNames)
@@ -186,7 +201,31 @@ public static class StoragePathHelper
         }
         catch { }
 
-        // 5. Program Files installation directories
+        // 5. CommonApplicationData (ProgramData) variants
+        try
+        {
+            var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            if (!string.IsNullOrWhiteSpace(programData))
+            {
+                var folderNames = new[]
+                {
+                    "VitorsWeeklyWorkTracking",
+                    "Vitor's Weekly Work Tracking",
+                    "Vitors Weekly Work Tracking",
+                    "VitorWeeklyWorkTracking"
+                };
+
+                foreach (var name in folderNames)
+                {
+                    var dir = Path.Combine(programData, name);
+                    candidates.Add(Path.Combine(dir, "Data"));
+                    candidates.Add(dir);
+                }
+            }
+        }
+        catch { }
+
+        // 6. Program Files installation directories
         try
         {
             var progFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -207,7 +246,7 @@ public static class StoragePathHelper
         }
         catch { }
 
-        // 5. User Profile folder variants
+        // 7. User Profile folder variants
         try
         {
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

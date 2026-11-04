@@ -485,4 +485,110 @@ public class DataPersistenceTests
                 Directory.Delete(activeDir, true);
         }
     }
+
+    [Fact]
+    public void FocusCompanionStorage_DeserializeSettings_SupportsFullSettingsPropertiesAndAliases()
+    {
+        var customJson = """
+        {
+          "user_name": "Vitor",
+          "focus_minutes": 50,
+          "short_break_minutes": 10,
+          "long_break_minutes": 20,
+          "cycles_before_long_break": 3,
+          "interval_mode_enabled": true,
+          "sound_alert_enabled": true,
+          "sound_volume": 85,
+          "goal_milestone_sound_volume": 90,
+          "selected_scene_id": "lumberjack",
+          "art_mode": "ascii",
+          "mini_widget_corner": "TopLeft",
+          "mini_widget_enabled": true,
+          "focus_xp": 1250,
+          "focus_streak": 7,
+          "total_sessions_completed": 42
+        }
+        """;
+
+        var settings = FocusCompanionStorage.DeserializeSettings(customJson);
+
+        Assert.Equal("Vitor", settings.UserName);
+        Assert.Equal(50, settings.FocusMinutes);
+        Assert.Equal(10, settings.ShortBreakMinutes);
+        Assert.Equal(20, settings.LongBreakMinutes);
+        Assert.Equal(3, settings.CyclesBeforeLongBreak);
+        Assert.True(settings.IntervalModeEnabled);
+        Assert.True(settings.SoundAlertEnabled);
+        Assert.Equal(85, settings.SoundVolume);
+        Assert.Equal(90, settings.GoalMilestoneSoundVolume);
+        Assert.Equal("lumberjack", settings.SelectedSceneId);
+        Assert.Equal("ascii", settings.ArtMode);
+        Assert.Equal("TopLeft", settings.MiniWidgetCorner);
+        Assert.True(settings.MiniWidgetEnabled);
+        Assert.Equal(1250, settings.FocusXp);
+        Assert.Equal(7, settings.FocusStreak);
+        Assert.Equal(42, settings.TotalSessionsCompleted);
+    }
+
+    [Fact]
+    public void FocusCompanionStorage_MergeFromCandidateLegacySettings_PreservesCustomDurationsAndAllSettingsAcrossUpdates()
+    {
+        var activeDir = Path.Combine(Path.GetTempPath(), $"active_settings_update_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(activeDir);
+
+        var legacyDir = Path.Combine(Path.GetTempPath(), $"legacy_settings_update_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(legacyDir);
+
+        // Active file is default (created on update)
+        var activeSettingsFile = Path.Combine(activeDir, "focus-settings.json");
+        var activeJson = JsonSerializer.Serialize(new WorkRestSettings());
+        File.WriteAllText(activeSettingsFile, activeJson);
+
+        // Legacy file has user customized settings
+        var legacyFile = Path.Combine(legacyDir, "focus_companion_settings.json");
+        var legacyCustom = new WorkRestSettings
+        {
+            UserName = "Vitor Pro",
+            FocusMinutes = 45,
+            ShortBreakMinutes = 15,
+            LongBreakMinutes = 30,
+            CyclesBeforeLongBreak = 2,
+            IntervalModeEnabled = true,
+            SoundVolume = 60,
+            SelectedSceneId = "coffee_jazz",
+            ArtMode = "ascii",
+            MiniWidgetCorner = "BottomLeft",
+            FocusXp = 500
+        };
+        File.WriteAllText(legacyFile, JsonSerializer.Serialize(legacyCustom));
+
+        try
+        {
+            StoragePathHelper.OverrideAppDataFolder = activeDir;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = new List<string> { legacyDir };
+
+            var loaded = FocusCompanionStorage.Load();
+
+            Assert.Equal("Vitor Pro", loaded.UserName);
+            Assert.Equal(45, loaded.FocusMinutes);
+            Assert.Equal(15, loaded.ShortBreakMinutes);
+            Assert.Equal(30, loaded.LongBreakMinutes);
+            Assert.Equal(2, loaded.CyclesBeforeLongBreak);
+            Assert.True(loaded.IntervalModeEnabled);
+            Assert.Equal(60, loaded.SoundVolume);
+            Assert.Equal("coffee_jazz", loaded.SelectedSceneId);
+            Assert.Equal("ascii", loaded.ArtMode);
+            Assert.Equal("BottomLeft", loaded.MiniWidgetCorner);
+            Assert.Equal(500, loaded.FocusXp);
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            StoragePathHelper.CustomLegacyDirectoriesForTesting = null;
+            if (Directory.Exists(legacyDir))
+                Directory.Delete(legacyDir, true);
+            if (Directory.Exists(activeDir))
+                Directory.Delete(activeDir, true);
+        }
+    }
 }

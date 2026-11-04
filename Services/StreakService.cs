@@ -194,6 +194,40 @@ public class StreakService
         return Profile.GetRemainingSickDaysForMonth(date.Year, date.Month);
     }
 
+    public int GetAvailableGoldStars(double totalHoursWorked)
+    {
+        return Profile.GetAvailableGoldStars(totalHoursWorked);
+    }
+
+    public int GetTotalGoldStarsEarned(double totalHoursWorked)
+    {
+        return Profile.CalculateTotalGoldStarsEarned(totalHoursWorked);
+    }
+
+    public bool CanBuyRestDay(double totalHoursWorked, DateTime? date, out string reason)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+        return Profile.CanBuyRestDay(totalHoursWorked, targetDate.Year, targetDate.Month, out reason);
+    }
+
+    public bool BuyRestDay(double totalHoursWorked, DateTime? date = null)
+    {
+        var targetDate = (date ?? DateTime.Today).Date;
+        if (Profile.BuyRestDay(totalHoursWorked, targetDate))
+        {
+            SaveProfile();
+            return true;
+        }
+        return false;
+    }
+
+    public bool BuyRestDay(List<TimeEntry>? entries, DateTime? date = null)
+    {
+        var entriesList = entries ?? new TimeEntryStorage().Load();
+        double totalHours = entriesList.Sum(e => e.Duration.TotalHours);
+        return BuyRestDay(totalHours, date);
+    }
+
     /// <summary>
     /// Checks if the current streak matches a big milestone that has not yet been celebrated via popup.
     /// </summary>
@@ -371,7 +405,7 @@ public class StreakService
         return new StreakDayEvaluation
         {
             Date = dateOnly,
-            Status = StreakDayStatus.Missed,
+            Status = dateOnly == today ? StreakDayStatus.Future : StreakDayStatus.Missed,
             Tier = StreakTier.None,
             Reason = dateOnly == today ? "Pending today's work" : "Missed workday",
             HasWork = false
@@ -385,10 +419,24 @@ public class StreakService
     {
         var today = currentDate.Date;
         var entriesList = allEntries ?? new List<TimeEntry>();
+        double totalHours = entriesList.Sum(e => e.Duration.TotalHours);
+        int totalGoldStarsEarned = Profile.CalculateTotalGoldStarsEarned(totalHours);
+        int goldStarsBalance = Profile.GetAvailableGoldStars(totalHours);
+        int availableRestDays = Profile.GetRemainingSickDaysForMonth(today.Year, today.Month);
+        bool canBuyRestDay = Profile.CanBuyRestDay(totalHours, today.Year, today.Month, out var buyStatusReason);
+
         var summary = new StreakSummary
         {
             IsEnabled = Profile.Enabled,
-            RemainingSickDaysThisMonth = Profile.GetRemainingSickDaysForMonth(today.Year, today.Month)
+            RemainingSickDaysThisMonth = availableRestDays,
+            AvailableRestDays = availableRestDays,
+            MaxRestDays = StreakProfile.MaxRestDaysLimit,
+            TotalHoursWorked = totalHours,
+            TotalGoldStarsEarned = totalGoldStarsEarned,
+            GoldStarsSpent = Profile.GoldStarsSpent,
+            GoldStarsBalance = goldStarsBalance,
+            CanBuyRestDay = canBuyRestDay,
+            BuyRestDayStatus = buyStatusReason
         };
 
         if (!Profile.Enabled)

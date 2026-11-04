@@ -98,7 +98,8 @@ public static class StreakColorHelper
         int longestStreak = summary.LongestStreak;
         var todayTier = summary.TodayTier;
         var todayStatus = summary.TodayStatus;
-        int sickDaysLeft = summary.RemainingSickDaysThisMonth;
+        int restDaysLeft = summary.AvailableRestDays;
+        int goldStars = summary.GoldStarsBalance;
 
         if (IsStreakOnFire(summary))
         {
@@ -115,8 +116,9 @@ public static class StreakColorHelper
                    $"Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} ({tierDescription})\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
                    $"Today's Status: Active & Preserved 🔥\n" +
-                   $"Sick Days Left This Month: {sickDaysLeft} / 3\n\n" +
-                   $"Click to open Streak Dashboard, view badges, holidays & sick days.";
+                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
+                   $"Click to open Streak Dashboard, buy rest days & manage holidays.";
         }
 
         if (todayStatus == StreakDayStatus.Holiday || todayStatus == StreakDayStatus.SickDay || todayStatus == StreakDayStatus.Excluded)
@@ -133,8 +135,9 @@ public static class StreakColorHelper
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Status: {protectionType} (Streak preserved)\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
-                   $"Sick Days Left This Month: {sickDaysLeft} / 3\n\n" +
-                   $"Click to view streak tiers, manage holidays & sick days.";
+                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
+                   $"Click to view streak tiers, buy rest days & manage holidays.";
         }
 
         if (currentStreak > 0)
@@ -143,14 +146,17 @@ public static class StreakColorHelper
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
                    $"Log and save work today to set your streak on fire! 🔥\n" +
-                   $"Sick Days Left This Month: {sickDaysLeft} / 3\n\n" +
-                   $"Click to view streak tiers, manage holidays & sick days.";
+                   $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+                   $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
+                   $"Click to view streak tiers, buy rest days & manage holidays.";
         }
 
-        return "Duo Streak: 0 Days\n" +
-               "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-               "Log and save work today to start your streak and set it on fire! 🔥\n" +
-               "Click to view streak dashboard, badges & settings.";
+        return $"Duo Streak: 0 Days\n" +
+               $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+               $"Log and save work today to start your streak and set it on fire! 🔥\n" +
+               $"🛡️ Rest Days Remaining: {restDaysLeft} / 3\n" +
+               $"⭐ Gold Stars Balance: {goldStars} ⭐ (30 ⭐ per rest day)\n\n" +
+               $"Click to view streak dashboard, buy rest days & settings.";
     }
 
     /// <summary>

@@ -63,6 +63,19 @@ public class StreakSystemTests : IDisposable
     }
 
     [Fact]
+    public void EvaluateDate_NoWorkToday_ShowsPendingInsteadOfMissed()
+    {
+        var today = new DateTime(2026, 11, 4); // Wednesday
+        _streakService.Profile.AutoApplySickDays = false;
+
+        var eval = _streakService.EvaluateDate(today, new List<TimeEntry>(), today);
+
+        Assert.Equal(StreakDayStatus.Future, eval.Status);
+        Assert.Equal("Pending today's work", eval.Reason);
+        Assert.Equal("PENDING", eval.TierBadgeText);
+    }
+
+    [Fact]
     public void EvaluateDate_BronzeTier_AwardedWhenGoalsAreScheduledButNotCompleted()
     {
         var date = new DateTime(2026, 11, 2); // Monday
@@ -1602,6 +1615,165 @@ public class StreakSystemTests : IDisposable
             dialog.ShowMonthView();
             Assert.NotNull(dialog.CycleMonthButton.Style);
             Assert.Contains("Viewing", dialog.CycleMonthButton.Content?.ToString() ?? "");
+        });
+    }
+
+    [Fact]
+    public void GoldStars_CalculatesOneStarPerHourWorked()
+    {
+        var profile = new StreakProfile();
+
+        // 0 hours -> 0 stars
+        Assert.Equal(0, profile.CalculateTotalGoldStarsEarned(0));
+        Assert.Equal(0, profile.GetAvailableGoldStars(0));
+
+        // 29.5 hours -> 29 stars
+        Assert.Equal(29, profile.CalculateTotalGoldStarsEarned(29.5));
+        Assert.Equal(29, profile.GetAvailableGoldStars(29.5));
+
+        // 30.0 hours -> 30 stars
+        Assert.Equal(30, profile.CalculateTotalGoldStarsEarned(30.0));
+        Assert.Equal(30, profile.GetAvailableGoldStars(30.0));
+
+        // 95.8 hours -> 95 stars
+        Assert.Equal(95, profile.CalculateTotalGoldStarsEarned(95.8));
+        Assert.Equal(95, profile.GetAvailableGoldStars(95.8));
+    }
+
+    [Fact]
+    public void BuyRestDay_CannotBuyWhenRestDaysAreMaxedAtThree()
+    {
+        var profile = new StreakProfile
+        {
+            MonthlySickDaysAllowance = 3,
+            UsedSickDates = new List<DateTime>() // 0 used -> 3 available (max)
+        };
+
+        double totalHours = 100; // 100 gold stars available
+        Assert.Equal(100, profile.GetAvailableGoldStars(totalHours));
+        Assert.Equal(3, profile.GetRemainingSickDaysForMonth(2026, 11));
+
+        bool canBuy = profile.CanBuyRestDay(totalHours, 2026, 11, out var reason);
+        Assert.False(canBuy);
+        Assert.Contains("maxed out", reason, StringComparison.OrdinalIgnoreCase);
+
+        bool bought = profile.BuyRestDay(totalHours, new DateTime(2026, 11, 2));
+        Assert.False(bought);
+        Assert.Equal(0, profile.GoldStarsSpent);
+        Assert.Equal(100, profile.GetAvailableGoldStars(totalHours));
+    }
+
+    [Fact]
+    public void BuyRestDay_CannotBuyWhenInsufficientGoldStars()
+    {
+        var profile = new StreakProfile
+        {
+            MonthlySickDaysAllowance = 3,
+            UsedSickDates = new List<DateTime> { new DateTime(2026, 11, 1) } // 1 used -> 2 remaining
+        };
+
+        double totalHours = 29.5; // only 29 gold stars (< 30 cost)
+        Assert.Equal(29, profile.GetAvailableGoldStars(totalHours));
+        Assert.Equal(2, profile.GetRemainingSickDaysForMonth(2026, 11));
+
+        bool canBuy = profile.CanBuyRestDay(totalHours, 2026, 11, out var reason);
+        Assert.False(canBuy);
+        Assert.Contains("Insufficient Gold Stars", reason, StringComparison.OrdinalIgnoreCase);
+
+        bool bought = profile.BuyRestDay(totalHours, new DateTime(2026, 11, 2));
+        Assert.False(bought);
+        Assert.Equal(0, profile.GoldStarsSpent);
+    }
+
+    [Fact]
+    public void BuyRestDay_SuccessfullyDeductsThirtyStarsAndIncreasesRestDaysUpToThree()
+    {
+        var profile = new StreakProfile
+        {
+            MonthlySickDaysAllowance = 3,
+            UsedSickDates = new List<DateTime>
+            {
+                new DateTime(2026, 11, 1),
+                new DateTime(2026, 11, 2)
+            } // 2 used -> 1 remaining
+        };
+
+        double totalHours = 65.0; // 65 stars earned
+        Assert.Equal(65, profile.GetAvailableGoldStars(totalHours));
+        Assert.Equal(1, profile.GetRemainingSickDaysForMonth(2026, 11));
+
+        // 1st purchase (1 -> 2)
+        bool canBuy1 = profile.CanBuyRestDay(totalHours, 2026, 11, out _);
+        Assert.True(canBuy1);
+
+        bool bought1 = profile.BuyRestDay(totalHours, new DateTime(2026, 11, 3));
+        Assert.True(bought1);
+        Assert.Equal(30, profile.GoldStarsSpent);
+        Assert.Equal(35, profile.GetAvailableGoldStars(totalHours)); // 65 - 30 = 35
+        Assert.Equal(2, profile.GetRemainingSickDaysForMonth(2026, 11)); // 1 + 1 = 2
+
+        // 2nd purchase (2 -> 3)
+        bool canBuy2 = profile.CanBuyRestDay(totalHours, 2026, 11, out _);
+        Assert.True(canBuy2);
+
+        bool bought2 = profile.BuyRestDay(totalHours, new DateTime(2026, 11, 3));
+        Assert.True(bought2);
+        Assert.Equal(60, profile.GoldStarsSpent);
+        Assert.Equal(5, profile.GetAvailableGoldStars(totalHours)); // 65 - 60 = 5
+        Assert.Equal(3, profile.GetRemainingSickDaysForMonth(2026, 11)); // 2 + 1 = 3 (Max!)
+
+        // 3rd purchase attempt (already at 3 max and balance is 5 < 30) -> blocked
+        bool canBuy3 = profile.CanBuyRestDay(totalHours, 2026, 11, out var reason3);
+        Assert.False(canBuy3);
+        Assert.Contains("maxed out", reason3, StringComparison.OrdinalIgnoreCase);
+
+        bool bought3 = profile.BuyRestDay(totalHours, new DateTime(2026, 11, 3));
+        Assert.False(bought3);
+    }
+
+    [Fact]
+    public void StreakService_CalculateStreak_PopulatesGoldStarsAndRestDayShopSummary()
+    {
+        var today = new DateTime(2026, 11, 2);
+        var entries = new List<TimeEntry>
+        {
+            new() { ProjectName = "Proj", StartTime = today.AddHours(9), EndTime = today.AddHours(17) }, // 8h
+            new() { ProjectName = "Proj", StartTime = today.AddDays(-1).AddHours(9), EndTime = today.AddDays(-1).AddHours(17) }, // 8h
+            new() { ProjectName = "Proj", StartTime = today.AddDays(-2).AddHours(9), EndTime = today.AddDays(-2).AddHours(23) }  // 14h -> Total 30h
+        };
+
+        var summary = _streakService.CalculateStreak(today, entries);
+
+        Assert.Equal(30.0, summary.TotalHoursWorked);
+        Assert.Equal(30, summary.TotalGoldStarsEarned);
+        Assert.Equal(0, summary.GoldStarsSpent);
+        Assert.Equal(30, summary.GoldStarsBalance);
+        Assert.Equal(3, summary.AvailableRestDays);
+        Assert.Equal(3, summary.MaxRestDays);
+        Assert.False(summary.CanBuyRestDay); // already maxed at 3
+        Assert.Contains("maxed out", summary.BuyRestDayStatus, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void StreakDialog_DisplaysGoldStarsAndRestDayShop()
+    {
+        RunInSta(() =>
+        {
+            var today = new DateTime(2026, 11, 2);
+            var entries = new List<TimeEntry>
+            {
+                new() { ProjectName = "P", StartTime = today.AddHours(9), EndTime = today.AddHours(19) } // 10h
+            };
+
+            var dialog = new StreakDialog(entries, _streakService);
+
+            Assert.NotNull(dialog.GoldStarsBalanceTextBlock);
+            Assert.NotNull(dialog.GoldStarsShopBalanceText);
+            Assert.NotNull(dialog.BuyRestDayButton);
+            Assert.NotNull(dialog.BuyRestDayHintTextBlock);
+
+            Assert.Contains("10", dialog.GoldStarsBalanceTextBlock.Text);
+            Assert.Contains("10", dialog.GoldStarsShopBalanceText.Text);
         });
     }
 

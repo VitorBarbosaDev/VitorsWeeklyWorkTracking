@@ -83,9 +83,10 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Top Stat Row -->
+                        <!-- Top Stat Row (5 Stat Cards) -->
                         <Grid Grid.Row="0" Margin="0 0 0 14">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
@@ -93,34 +94,42 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Current Streak -->
-                            <Border Grid.Column="0" Background="{DynamicResource Theme.StatCard2Bg}" BorderBrush="{DynamicResource Theme.StatCard2Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="0 0 6 0">
+                            <Border Grid.Column="0" Background="{DynamicResource Theme.StatCard2Bg}" BorderBrush="{DynamicResource Theme.StatCard2Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="0 0 4 0">
                                 <StackPanel>
-                                    <TextBlock Text="CURRENT STREAK" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
-                                    <TextBlock x:Name="CurrentStreakTextBlock" Text="🔥 0 Days" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0 4 0 0"/>
+                                    <TextBlock Text="CURRENT STREAK" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Title}"/>
+                                    <TextBlock x:Name="CurrentStreakTextBlock" Text="🔥 0 Days" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard2Text}" Margin="0 4 0 0"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Longest Streak -->
-                            <Border Grid.Column="1" Background="{DynamicResource Theme.StatCard1Bg}" BorderBrush="{DynamicResource Theme.StatCard1Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="3 0 3 0">
+                            <Border Grid.Column="1" Background="{DynamicResource Theme.StatCard1Bg}" BorderBrush="{DynamicResource Theme.StatCard1Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="2 0 2 0">
                                 <StackPanel>
-                                    <TextBlock Text="LONGEST STREAK" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
-                                    <TextBlock x:Name="LongestStreakTextBlock" Text="🏆 0 Days" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 4 0 0"/>
+                                    <TextBlock Text="LONGEST STREAK" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Title}"/>
+                                    <TextBlock x:Name="LongestStreakTextBlock" Text="🏆 0 Days" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard1Text}" Margin="0 4 0 0"/>
                                 </StackPanel>
                             </Border>
 
                             <!-- Today's Tier -->
-                            <Border Grid.Column="2" Background="{DynamicResource Theme.StatCard3Bg}" BorderBrush="{DynamicResource Theme.StatCard3Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="3 0 3 0">
+                            <Border Grid.Column="2" Background="{DynamicResource Theme.StatCard3Bg}" BorderBrush="{DynamicResource Theme.StatCard3Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="2 0 2 0">
                                 <StackPanel>
-                                    <TextBlock Text="TODAY'S TIER" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Title}"/>
-                                    <TextBlock x:Name="TodayTierTextBlock" Text="⚪ None Yet" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Text}" Margin="0 4 0 0"/>
+                                    <TextBlock Text="TODAY'S TIER" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Title}"/>
+                                    <TextBlock x:Name="TodayTierTextBlock" Text="⚪ None Yet" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard3Text}" Margin="0 4 0 0"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Sick Days Remaining -->
-                            <Border Grid.Column="3" Background="{DynamicResource Theme.StatCard4Bg}" BorderBrush="{DynamicResource Theme.StatCard4Border}" BorderThickness="1" CornerRadius="8" Padding="12 10" Margin="6 0 0 0">
+                            <!-- Rest Days / Sick Days Remaining -->
+                            <Border Grid.Column="3" Background="{DynamicResource Theme.StatCard4Bg}" BorderBrush="{DynamicResource Theme.StatCard4Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="2 0 2 0">
                                 <StackPanel>
-                                    <TextBlock Text="SICK DAYS (MONTH)" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
-                                    <TextBlock x:Name="SickDaysRemainingTextBlock" Text="💊 3 / 3 Left" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 4 0 0"/>
+                                    <TextBlock Text="REST DAYS (MAX 3)" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Title}"/>
+                                    <TextBlock x:Name="SickDaysRemainingTextBlock" Text="🛡️ 3 / 3 Left" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard4Text}" Margin="0 4 0 0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Gold Stars Currency -->
+                            <Border Grid.Column="4" Background="{DynamicResource Theme.StatCard5Bg}" BorderBrush="{DynamicResource Theme.StatCard5Border}" BorderThickness="1" CornerRadius="8" Padding="10 8" Margin="4 0 0 0">
+                                <StackPanel>
+                                    <TextBlock Text="⭐ GOLD STARS" FontSize="9.5" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Title}"/>
+                                    <TextBlock x:Name="GoldStarsBalanceTextBlock" Text="⭐ 0 Stars" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource Theme.StatCard5Text}" Margin="0 4 0 0"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -489,19 +498,84 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Monthly Sick Days Pool (3 per month, refreshes monthly) -->
+                <!-- Monthly Sick Days / Rest Days Pool (Max 3, refreshes monthly & purchasable with Gold Stars) -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="16">
                     <StackPanel>
-                        <TextBlock Text="💊 Monthly Sick Day Protection (3 Days / Month)" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Foreground}"/>
-                        <TextBlock Text="If you are sick or miss a day unexpectedly, using a sick day restores your streak for that day. You have 3 sick days available per calendar month, which refreshes automatically each month."
+                        <TextBlock Text="🛡️ Rest Day &amp; Sick Day Protection (Max 3 Days)" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <TextBlock Text="If you are sick or need to take time off unexpectedly, using a rest day restores and preserves your streak for that day. You have up to 3 rest days available (which refresh monthly or can be purchased with Gold Stars)."
                                    FontSize="11.5"
                                    Foreground="{DynamicResource Theme.ForegroundMuted}"
                                    Margin="0 2 0 10"
                                    TextWrapping="Wrap"/>
+
+                        <!-- ⭐ Gold Stars Shop & Buy Rest Days Card -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1.5"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <StackPanel>
+                                <Grid Margin="0 0 0 6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="⭐ Gold Stars Shop — Buy Rest Days" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}"/>
+                                        <TextBlock Text="Cost: 30 Gold Stars per Rest Day. Rest days are maxed out at 3 total." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0 1 0 0"/>
+                                    </StackPanel>
+
+                                    <!-- Currency Chip -->
+                                    <Border Grid.Column="1"
+                                            Background="{DynamicResource Theme.StatCard5Bg}"
+                                            BorderBrush="{DynamicResource Theme.StatCard5Border}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="10 4"
+                                            VerticalAlignment="Center">
+                                        <TextBlock x:Name="GoldStarsShopBalanceText" Text="⭐ 0 Gold Stars" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.StatCard5Text}"/>
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock x:Name="GoldStarsEarnedSubtitleText"
+                                           Text="Earn 1 Gold Star for every 1 hour you work. Total worked: 0.0 hrs (0 ⭐ earned, 0 ⭐ spent)."
+                                           FontSize="11"
+                                           Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                           Margin="0 0 0 10"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button x:Name="BuyRestDayButton"
+                                            Content="⭐ Buy Rest Day (30 Gold Stars)"
+                                            Style="{DynamicResource PrimaryButton}"
+                                            Height="30"
+                                            Padding="14 0"
+                                            FontSize="11.5"
+                                            FontWeight="Bold"
+                                            ToolTip="Buy 1 Rest Day for 30 Gold Stars (Max 3 Rest Days)"
+                                            Click="BuyRestDayButton_Click"/>
+
+                                    <TextBlock Grid.Column="1"
+                                               x:Name="BuyRestDayHintTextBlock"
+                                               Text="Purchase 1 Rest Day for 30 Gold Stars."
+                                               FontSize="11"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               VerticalAlignment="Center"
+                                               Margin="10 0 0 0"
+                                               TextWrapping="Wrap"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Streak Interrupted Missed Day Restoration Card -->
                         <Border x:Name="MissedDayRestorationCard"

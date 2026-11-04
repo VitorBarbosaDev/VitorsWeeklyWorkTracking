@@ -805,66 +805,35 @@ public static class ThemeManager
             if (File.Exists(SettingsFilePath))
             {
                 var json = File.ReadAllText(SettingsFilePath).Trim();
-                if (string.IsNullOrWhiteSpace(json))
+                if (TryParseThemeFromJson(json, out var parsed))
                 {
-                    return AppTheme.ModernLight;
+                    return parsed;
                 }
+            }
 
-                // Try parsing directly as enum string or int if raw
-                if (Enum.TryParse<AppTheme>(json, ignoreCase: true, out var directTheme))
-                {
-                    return directTheme;
-                }
+            // Fallback scan candidate legacy directories
+            var candidateNames = StoragePathHelper.GetCandidateFileNames("theme.json", "theme-settings.json");
+            var legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories();
 
-                // If quoted raw string e.g. "DarkSlate"
-                if (json.StartsWith("\"") && json.EndsWith("\"") && json.Length > 2)
+            foreach (var dir in legacyDirs)
+            {
+                if (!Directory.Exists(dir)) continue;
+
+                foreach (var name in candidateNames)
                 {
-                    var unquoted = json.Substring(1, json.Length - 2);
-                    if (Enum.TryParse<AppTheme>(unquoted, ignoreCase: true, out var unquotedTheme))
+                    var candidateFile = Path.Combine(dir, name);
+                    if (File.Exists(candidateFile) && new FileInfo(candidateFile).Length > 0)
                     {
-                        return unquotedTheme;
-                    }
-                }
-
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                if (root.ValueKind == JsonValueKind.Object)
-                {
-                    var candidateProps = new[] { "Theme", "theme", "CurrentTheme", "currentTheme", "SelectedTheme", "selectedTheme", "AppTheme", "appTheme" };
-                    foreach (var prop in candidateProps)
-                    {
-                        if (root.TryGetProperty(prop, out var themeProp))
+                        try
                         {
-                            if (themeProp.ValueKind == JsonValueKind.String)
+                            var json = File.ReadAllText(candidateFile).Trim();
+                            if (TryParseThemeFromJson(json, out var legacyTheme))
                             {
-                                if (Enum.TryParse<AppTheme>(themeProp.GetString(), ignoreCase: true, out var parsedTheme))
-                                {
-                                    return parsedTheme;
-                                }
-                            }
-                            else if (themeProp.ValueKind == JsonValueKind.Number && themeProp.TryGetInt32(out var intVal))
-                            {
-                                if (Enum.IsDefined(typeof(AppTheme), intVal))
-                                {
-                                    return (AppTheme)intVal;
-                                }
+                                SaveTheme(legacyTheme);
+                                return legacyTheme;
                             }
                         }
-                    }
-                }
-                else if (root.ValueKind == JsonValueKind.String)
-                {
-                    if (Enum.TryParse<AppTheme>(root.GetString(), ignoreCase: true, out var parsedTheme))
-                    {
-                        return parsedTheme;
-                    }
-                }
-                else if (root.ValueKind == JsonValueKind.Number && root.TryGetInt32(out var intVal))
-                {
-                    if (Enum.IsDefined(typeof(AppTheme), intVal))
-                    {
-                        return (AppTheme)intVal;
+                        catch { }
                     }
                 }
             }
@@ -875,6 +844,85 @@ public static class ThemeManager
         }
 
         return AppTheme.ModernLight;
+    }
+
+    private static bool TryParseThemeFromJson(string json, out AppTheme theme)
+    {
+        theme = AppTheme.ModernLight;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return false;
+        }
+
+        // Try parsing directly as enum string or int if raw
+        if (Enum.TryParse<AppTheme>(json, ignoreCase: true, out var directTheme))
+        {
+            theme = directTheme;
+            return true;
+        }
+
+        // If quoted raw string e.g. "DarkSlate"
+        if (json.StartsWith("\"") && json.EndsWith("\"") && json.Length > 2)
+        {
+            var unquoted = json.Substring(1, json.Length - 2);
+            if (Enum.TryParse<AppTheme>(unquoted, ignoreCase: true, out var unquotedTheme))
+            {
+                theme = unquotedTheme;
+                return true;
+            }
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                var candidateProps = new[] { "Theme", "theme", "CurrentTheme", "currentTheme", "SelectedTheme", "selectedTheme", "AppTheme", "appTheme" };
+                foreach (var prop in candidateProps)
+                {
+                    if (root.TryGetProperty(prop, out var themeProp))
+                    {
+                        if (themeProp.ValueKind == JsonValueKind.String)
+                        {
+                            if (Enum.TryParse<AppTheme>(themeProp.GetString(), ignoreCase: true, out var parsedTheme))
+                            {
+                                theme = parsedTheme;
+                                return true;
+                            }
+                        }
+                        else if (themeProp.ValueKind == JsonValueKind.Number && themeProp.TryGetInt32(out var intVal))
+                        {
+                            if (Enum.IsDefined(typeof(AppTheme), intVal))
+                            {
+                                theme = (AppTheme)intVal;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (root.ValueKind == JsonValueKind.String)
+            {
+                if (Enum.TryParse<AppTheme>(root.GetString(), ignoreCase: true, out var parsedTheme))
+                {
+                    theme = parsedTheme;
+                    return true;
+                }
+            }
+            else if (root.ValueKind == JsonValueKind.Number && root.TryGetInt32(out var intVal))
+            {
+                if (Enum.IsDefined(typeof(AppTheme), intVal))
+                {
+                    theme = (AppTheme)intVal;
+                    return true;
+                }
+            }
+        }
+        catch { }
+
+        return false;
     }
 
     private static void SaveTheme(AppTheme theme)

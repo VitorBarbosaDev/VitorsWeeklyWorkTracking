@@ -217,15 +217,16 @@
                     PreviewMouseLeftButtonDown="MiniCompanion_PreviewMouseLeftButtonDown"
                     PreviewMouseLeftButtonUp="MiniCompanion_PreviewMouseLeftButtonUp"
                     MouseLeftButtonUp="MiniAsciiBorder_MouseLeftButtonUp">
-                <TextBlock x:Name="MiniAsciiText"
-                           FontFamily="Consolas, Cascadia Code, Courier New, monospace"
-                           FontSize="8"
-                           LineHeight="10.5"
-                           Foreground="{DynamicResource Theme.Foreground}"
-                           TextWrapping="NoWrap"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Center"
-                           Margin="4,0,0,0"/>
+                <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock x:Name="MiniAsciiText"
+                               FontFamily="Consolas, Cascadia Code, Courier New, monospace"
+                               FontSize="9"
+                               LineHeight="12"
+                               Foreground="{DynamicResource Theme.Foreground}"
+                               TextWrapping="NoWrap"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Viewbox>
             </Border>
 
             <!-- Row 4: Mini Narrative Text Line -->

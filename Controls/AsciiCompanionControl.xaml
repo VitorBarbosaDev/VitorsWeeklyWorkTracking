@@ -159,19 +159,22 @@
                         BorderThickness="1"
                         CornerRadius="8"
                         Height="155"
-                        Padding="12,8"
+                        Padding="10,6"
                         Cursor="Hand"
+                        ClipToBounds="True"
                         ToolTip="Click to interact with art companion!"
                         Visibility="Collapsed"
                         MouseLeftButtonUp="ArtBox_MouseLeftButtonUp">
-                    <TextBlock x:Name="AsciiArtTextBlock"
-                               FontFamily="Consolas, Lucida Console, Courier New, monospace"
-                               FontSize="12"
-                               LineHeight="16"
-                               Foreground="{DynamicResource Theme.Foreground}"
-                               TextWrapping="NoWrap"
-                               HorizontalAlignment="Left"
-                               VerticalAlignment="Center"/>
+                    <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock x:Name="AsciiArtTextBlock"
+                                   FontFamily="Consolas, Cascadia Code, Lucida Console, Courier New, monospace"
+                                   FontSize="13"
+                                   LineHeight="17"
+                                   Foreground="{DynamicResource Theme.Foreground}"
+                                   TextWrapping="NoWrap"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Viewbox>
                 </Border>
 
                 <!-- Story Narration Line -->
