@@ -64,14 +64,65 @@ public partial class MiniTimerWidget : Window
     private string? _cachedCompanionMiniLine = null;
     private DateTime? _lastCheerTime = null;
     private string? _customCheerMessage = null;
+    private bool _isCompanionVisible = true;
+    private string _widgetSize = "Medium";
+
+    public event Action<string>? WidgetSizeChanged;
+
+    public string WidgetSize
+    {
+        get => _widgetSize;
+        set
+        {
+            _widgetSize = string.IsNullOrWhiteSpace(value) ? "Medium" : value;
+            ApplyWidgetSize();
+        }
+    }
+
+    public void SetWidgetSize(string size)
+    {
+        WidgetSize = size;
+    }
+
+    public double WidgetScale => _widgetSize?.Trim().ToLowerInvariant() switch
+    {
+        "small" or "compact" => 0.85,
+        "large" => 1.15,
+        "extralarge" or "xl" or "huge" => 1.30,
+        _ => 1.0
+    };
+
+    public bool IsCompanionVisible
+    {
+        get => _isCompanionVisible;
+        set
+        {
+            _isCompanionVisible = value;
+            ApplyCompanionVisibility();
+        }
+    }
+
+    public void SetCompanionVisible(bool visible)
+    {
+        IsCompanionVisible = visible;
+    }
 
     public MiniTimerWidget()
     {
         InitializeComponent();
 
-        Loaded += (s, e) => EnforceTopmost();
+        Loaded += (s, e) =>
+        {
+            ApplyWidgetSize();
+            EnforceTopmost();
+        };
         Deactivated += (s, e) => EnforceTopmost();
         Activated += (s, e) => EnforceTopmost();
+
+        SizeChanged += (s, e) =>
+        {
+            ApplyCornerPosition();
+        };
 
         _animTimer.Interval = TimeSpan.FromMilliseconds(120);
         _animTimer.Tick += AnimTimer_Tick;
@@ -86,6 +137,13 @@ public partial class MiniTimerWidget : Window
     private void AnimTimer_Tick(object? sender, EventArgs e)
     {
         _asciiFrameTick++;
+
+        if (!_isCompanionVisible)
+        {
+            _customCheerMessage = null;
+            MiniCompanionLine.Visibility = Visibility.Collapsed;
+            return;
+        }
 
         // 1. Cheer message countdown and cleanup
         if (_lastCheerTime.HasValue && _customCheerMessage != null)
@@ -147,6 +205,8 @@ public partial class MiniTimerWidget : Window
             ? "Always on Top: Active (Draws above all apps) • Click to unpin"
             : "Always on Top: Inactive • Click to pin on top";
 
+        UpdateContextMenuChecks();
+
         try
         {
             var helper = new WindowInteropHelper(this);
@@ -193,7 +253,51 @@ public partial class MiniTimerWidget : Window
             _ => "📍 ↘ BR"
         };
         CornerSwitchButton.ToolTip = "Screen Corner: " + corner + "\nClick to cycle to next corner (BR → BL → TL → TR)";
+        UpdateContextMenuChecks();
         CornerChanged?.Invoke(corner);
+    }
+
+    public void ApplyWidgetSize()
+    {
+        double scale = WidgetScale;
+        if (WidgetScaleTransform != null)
+        {
+            WidgetScaleTransform.ScaleX = scale;
+            WidgetScaleTransform.ScaleY = scale;
+        }
+
+        if (MiniSizeButton != null)
+        {
+            MiniSizeButton.ToolTip = $"Widget Size: {GetSizeDisplayName(_widgetSize)} • Click to resize";
+        }
+
+        UpdateContextMenuChecks();
+        ApplyCornerPosition();
+    }
+
+    public static string GetSizeDisplayName(string? size)
+    {
+        return size?.Trim().ToLowerInvariant() switch
+        {
+            "small" or "compact" => "Compact (85%)",
+            "large" => "Large (115%)",
+            "extralarge" or "xl" or "huge" => "Extra Large (130%)",
+            _ => "Standard (100%)"
+        };
+    }
+
+    public void UpdateContextMenuChecks()
+    {
+        if (MenuSizeCompact != null) MenuSizeCompact.IsChecked = string.Equals(_widgetSize, "Small", StringComparison.OrdinalIgnoreCase) || string.Equals(_widgetSize, "Compact", StringComparison.OrdinalIgnoreCase);
+        if (MenuSizeStandard != null) MenuSizeStandard.IsChecked = string.Equals(_widgetSize, "Medium", StringComparison.OrdinalIgnoreCase) || string.Equals(_widgetSize, "Standard", StringComparison.OrdinalIgnoreCase);
+        if (MenuSizeLarge != null) MenuSizeLarge.IsChecked = string.Equals(_widgetSize, "Large", StringComparison.OrdinalIgnoreCase);
+        if (MenuSizeExtraLarge != null) MenuSizeExtraLarge.IsChecked = string.Equals(_widgetSize, "ExtraLarge", StringComparison.OrdinalIgnoreCase) || string.Equals(_widgetSize, "XL", StringComparison.OrdinalIgnoreCase);
+
+        if (MenuPinTop != null) MenuPinTop.IsChecked = IsPinnedOnTop;
+        if (MenuCornerBottomRight != null) MenuCornerBottomRight.IsChecked = CurrentCorner == ScreenCorner.BottomRight;
+        if (MenuCornerBottomLeft != null) MenuCornerBottomLeft.IsChecked = CurrentCorner == ScreenCorner.BottomLeft;
+        if (MenuCornerTopRight != null) MenuCornerTopRight.IsChecked = CurrentCorner == ScreenCorner.TopRight;
+        if (MenuCornerTopLeft != null) MenuCornerTopLeft.IsChecked = CurrentCorner == ScreenCorner.TopLeft;
     }
 
     public void SetMonitor(string? monitorId, int monitorIndex = -1)
@@ -227,18 +331,27 @@ public partial class MiniTimerWidget : Window
     public void ApplyCornerPosition()
     {
         var workArea = VitorsWeeklyWorkTracking.Services.ScreenHelper.GetMonitorWorkArea(TargetMonitorId, TargetMonitorIndex);
+        double scale = WidgetScale;
+        double defaultHeight = 285 * scale;
+        double defaultWidth = 330 * scale;
+
+        double actualHeight = (ActualHeight > 0) ? ActualHeight : (double.IsNaN(Height) ? defaultHeight : Height);
+        if (double.IsNaN(actualHeight) || actualHeight <= 0) actualHeight = defaultHeight;
+        double actualWidth = (ActualWidth > 0) ? ActualWidth : (double.IsNaN(Width) ? defaultWidth : Width);
+        if (double.IsNaN(actualWidth) || actualWidth <= 0) actualWidth = defaultWidth;
+
         switch (CurrentCorner)
         {
             case ScreenCorner.BottomRight:
-                Left = workArea.Right - Width - 16;
-                Top = workArea.Bottom - Height - 16;
+                Left = workArea.Right - actualWidth - 16;
+                Top = workArea.Bottom - actualHeight - 16;
                 break;
             case ScreenCorner.BottomLeft:
                 Left = workArea.Left + 16;
-                Top = workArea.Bottom - Height - 16;
+                Top = workArea.Bottom - actualHeight - 16;
                 break;
             case ScreenCorner.TopRight:
-                Left = workArea.Right - Width - 16;
+                Left = workArea.Right - actualWidth - 16;
                 Top = workArea.Top + 16;
                 break;
             case ScreenCorner.TopLeft:
@@ -248,6 +361,54 @@ public partial class MiniTimerWidget : Window
         }
 
         EnforceTopmost();
+    }
+
+    public void ApplyCompanionVisibility()
+    {
+        if (!_isCompanionVisible)
+        {
+            MiniVisualBorder.Visibility = Visibility.Collapsed;
+            MiniAsciiBorder.Visibility = Visibility.Collapsed;
+            MiniCompanionLine.Visibility = Visibility.Collapsed;
+            MiniArtModeButton.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            bool isAscii = string.Equals(_artMode, "ascii", StringComparison.OrdinalIgnoreCase);
+            if (isAscii)
+            {
+                MiniVisualBorder.Visibility = Visibility.Collapsed;
+                MiniAsciiBorder.Visibility = Visibility.Visible;
+                MiniArtModeButton.Content = "📟";
+                MiniArtModeButton.ToolTip = "Art Mode: Retro ASCII • Click to switch to Graphics";
+            }
+            else
+            {
+                MiniVisualBorder.Visibility = Visibility.Visible;
+                MiniAsciiBorder.Visibility = Visibility.Collapsed;
+                MiniArtModeButton.Content = "🎨";
+                MiniArtModeButton.ToolTip = "Art Mode: Rich Graphics • Click to switch to ASCII";
+            }
+            MiniArtModeButton.Visibility = Visibility.Visible;
+
+            if (_customCheerMessage == null)
+            {
+                if (!string.IsNullOrEmpty(_cachedCompanionMiniLine))
+                {
+                    MiniCompanionLine.Text = _cachedCompanionMiniLine;
+                    MiniCompanionLine.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    MiniCompanionLine.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                MiniCompanionLine.Text = _customCheerMessage;
+                MiniCompanionLine.Visibility = Visibility.Visible;
+            }
+        }
     }
 
     public void UpdateDisplay(
@@ -273,7 +434,8 @@ public partial class MiniTimerWidget : Window
         string artMode = "graphics",
         string? asciiArtText = null,
         bool isPaused = false,
-        bool isIntervalMode = false)
+        bool isIntervalMode = false,
+        bool isCompanionVisible = true)
     {
         _currentSceneId = sceneId ?? "cycling";
         _currentProgressFraction = progressFraction;
@@ -286,6 +448,7 @@ public partial class MiniTimerWidget : Window
         _petHappiness = petHappiness;
         _artMode = artMode;
         _cachedCompanionMiniLine = companionMiniLine;
+        _isCompanionVisible = isCompanionVisible;
 
         MiniTimerText.Text = timerText;
         MiniStatusText.Text = statusText;
@@ -299,48 +462,64 @@ public partial class MiniTimerWidget : Window
 
         MiniTimerModeButton.Content = isCountDownMode ? "⏳ DOWN" : "⏱ UP";
 
-        bool isAscii = string.Equals(artMode, "ascii", StringComparison.OrdinalIgnoreCase);
-        if (isAscii)
+        if (_isCompanionVisible)
         {
-            MiniVisualBorder.Visibility = Visibility.Collapsed;
-            MiniAsciiBorder.Visibility = Visibility.Visible;
-            MiniArtModeButton.Content = "📟";
-            MiniArtModeButton.ToolTip = "Art Mode: Retro ASCII • Click to switch to Graphics";
-
-            if (!string.IsNullOrEmpty(asciiArtText))
+            bool isAscii = string.Equals(artMode, "ascii", StringComparison.OrdinalIgnoreCase);
+            if (isAscii)
             {
-                MiniAsciiText.Text = asciiArtText;
+                MiniVisualBorder.Visibility = Visibility.Collapsed;
+                MiniAsciiBorder.Visibility = Visibility.Visible;
+                MiniArtModeButton.Content = "📟";
+                MiniArtModeButton.ToolTip = "Art Mode: Retro ASCII • Click to switch to Graphics";
+
+                if (!string.IsNullOrEmpty(asciiArtText))
+                {
+                    MiniAsciiText.Text = asciiArtText;
+                }
+            }
+            else
+            {
+                MiniVisualBorder.Visibility = Visibility.Visible;
+                MiniAsciiBorder.Visibility = Visibility.Collapsed;
+                MiniArtModeButton.Content = "🎨";
+                MiniArtModeButton.ToolTip = "Art Mode: Rich Graphics • Click to switch to ASCII";
+
+                MiniVisualCompanion.UpdateState(
+                    sceneId ?? "cycling",
+                    progressFraction,
+                    isTracking,
+                    isGoalReached,
+                    isRestPhase,
+                    string.IsNullOrWhiteSpace(projectName) ? "Work" : projectName,
+                    focusXp,
+                    petHappiness);
+            }
+            MiniArtModeButton.Visibility = Visibility.Visible;
+
+            if (_customCheerMessage == null)
+            {
+                if (!string.IsNullOrEmpty(companionMiniLine))
+                {
+                    MiniCompanionLine.Text = companionMiniLine;
+                    MiniCompanionLine.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    MiniCompanionLine.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                MiniCompanionLine.Text = _customCheerMessage;
+                MiniCompanionLine.Visibility = Visibility.Visible;
             }
         }
         else
         {
-            MiniVisualBorder.Visibility = Visibility.Visible;
+            MiniVisualBorder.Visibility = Visibility.Collapsed;
             MiniAsciiBorder.Visibility = Visibility.Collapsed;
-            MiniArtModeButton.Content = "🎨";
-            MiniArtModeButton.ToolTip = "Art Mode: Rich Graphics • Click to switch to ASCII";
-
-            MiniVisualCompanion.UpdateState(
-                sceneId ?? "cycling",
-                progressFraction,
-                isTracking,
-                isGoalReached,
-                isRestPhase,
-                string.IsNullOrWhiteSpace(projectName) ? "Work" : projectName,
-                focusXp,
-                petHappiness);
-        }
-
-        if (_customCheerMessage == null)
-        {
-            if (!string.IsNullOrEmpty(companionMiniLine))
-            {
-                MiniCompanionLine.Text = companionMiniLine;
-                MiniCompanionLine.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                MiniCompanionLine.Visibility = Visibility.Collapsed;
-            }
+            MiniCompanionLine.Visibility = Visibility.Collapsed;
+            MiniArtModeButton.Visibility = Visibility.Collapsed;
         }
 
         if (!string.IsNullOrEmpty(alertMessage))
@@ -491,6 +670,8 @@ public partial class MiniTimerWidget : Window
 
     public void TriggerMiniCheer()
     {
+        if (!_isCompanionVisible) return;
+
         _lastCheerTime = DateTime.Now;
         _customCheerMessage = GetCheerMessageForScene(_currentSceneId);
         _petHappiness = Math.Min(100, _petHappiness + 10);
@@ -538,6 +719,49 @@ public partial class MiniTimerWidget : Window
             _ => "✨ Cheering you on! Fantastic focus progress!"
         };
     }
+
+    private void MiniSizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var nextSize = _widgetSize?.Trim().ToLowerInvariant() switch
+        {
+            "small" or "compact" => "Medium",
+            "medium" or "standard" or "normal" => "Large",
+            "large" => "ExtraLarge",
+            "extralarge" or "xl" => "Small",
+            _ => "Large"
+        };
+        SetWidgetSize(nextSize);
+        WidgetSizeChanged?.Invoke(nextSize);
+    }
+
+    private void MenuSizeCompact_Click(object sender, RoutedEventArgs e)
+    {
+        SetWidgetSize("Small");
+        WidgetSizeChanged?.Invoke("Small");
+    }
+
+    private void MenuSizeStandard_Click(object sender, RoutedEventArgs e)
+    {
+        SetWidgetSize("Medium");
+        WidgetSizeChanged?.Invoke("Medium");
+    }
+
+    private void MenuSizeLarge_Click(object sender, RoutedEventArgs e)
+    {
+        SetWidgetSize("Large");
+        WidgetSizeChanged?.Invoke("Large");
+    }
+
+    private void MenuSizeExtraLarge_Click(object sender, RoutedEventArgs e)
+    {
+        SetWidgetSize("ExtraLarge");
+        WidgetSizeChanged?.Invoke("ExtraLarge");
+    }
+
+    private void MenuCornerBottomRight_Click(object sender, RoutedEventArgs e) => SetCorner(ScreenCorner.BottomRight);
+    private void MenuCornerBottomLeft_Click(object sender, RoutedEventArgs e) => SetCorner(ScreenCorner.BottomLeft);
+    private void MenuCornerTopRight_Click(object sender, RoutedEventArgs e) => SetCorner(ScreenCorner.TopRight);
+    private void MenuCornerTopLeft_Click(object sender, RoutedEventArgs e) => SetCorner(ScreenCorner.TopLeft);
 
     private void CornerSwitchButton_Click(object sender, RoutedEventArgs e)
     {

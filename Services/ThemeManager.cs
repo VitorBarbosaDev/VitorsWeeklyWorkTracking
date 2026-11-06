@@ -802,22 +802,13 @@ public static class ThemeManager
     {
         try
         {
-            AppTheme? currentFoundTheme = null;
-
-            if (File.Exists(SettingsFilePath))
+            var json = StoragePathHelper.ReadTextSafe(SettingsFilePath);
+            if (!string.IsNullOrWhiteSpace(json) && TryParseThemeFromJson(json, out var parsed))
             {
-                var json = File.ReadAllText(SettingsFilePath).Trim();
-                if (TryParseThemeFromJson(json, out var parsed))
-                {
-                    if (parsed != AppTheme.ModernLight)
-                    {
-                        return parsed;
-                    }
-                    currentFoundTheme = parsed;
-                }
+                return parsed;
             }
 
-            // Fallback scan candidate legacy directories to restore customized themes across updates
+            // Fallback scan candidate legacy directories to restore customized themes across updates when primary is absent
             var candidateNames = StoragePathHelper.GetCandidateFileNames("theme.json", "theme-settings.json");
             var legacyDirs = StoragePathHelper.GetCandidateLegacyDirectories();
 
@@ -832,24 +823,16 @@ public static class ThemeManager
                     {
                         try
                         {
-                            var json = File.ReadAllText(candidateFile).Trim();
-                            if (TryParseThemeFromJson(json, out var legacyTheme))
+                            var legacyJson = File.ReadAllText(candidateFile).Trim();
+                            if (TryParseThemeFromJson(legacyJson, out var legacyTheme))
                             {
-                                if (legacyTheme != AppTheme.ModernLight)
-                                {
-                                    SaveTheme(legacyTheme);
-                                    return legacyTheme;
-                                }
+                                SaveTheme(legacyTheme);
+                                return legacyTheme;
                             }
                         }
                         catch { }
                     }
                 }
-            }
-
-            if (currentFoundTheme.HasValue)
-            {
-                return currentFoundTheme.Value;
             }
         }
         catch (Exception ex)
@@ -943,15 +926,14 @@ public static class ThemeManager
     {
         try
         {
-            var dir = Path.GetDirectoryName(SettingsFilePath);
-            if (!string.IsNullOrEmpty(dir))
+            if (File.Exists(SettingsFilePath))
             {
-                StoragePathHelper.EnsureDirectoryExists(dir);
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Theme)");
             }
 
             var data = new { Theme = theme.ToString() };
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsFilePath, json);
+            StoragePathHelper.SaveTextAtomic(SettingsFilePath, json);
         }
         catch (Exception ex)
         {

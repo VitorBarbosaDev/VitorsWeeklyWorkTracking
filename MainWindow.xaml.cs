@@ -243,6 +243,10 @@ public partial class MainWindow : Window
         {
             _workRestSettings = s;
             UpdatePomodoroButtonStates();
+            if (_miniWidget != null)
+            {
+                _miniWidget.IsCompanionVisible = _workRestSettings.CompanionVisible;
+            }
             UpdateStatus();
         };
         CompanionControl.IntervalModeToggled += () =>
@@ -452,15 +456,16 @@ public partial class MainWindow : Window
         if (StreakQuickButton != null)
         {
             StreakColorHelper.ApplyStreakButtonStyle(StreakQuickButton, streakSummary, this);
+            StreakQuickButton.Visibility = (streakSummary != null && streakSummary.IsEnabled) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         CheckStreakTierAchieved(streakSummary);
         CheckStreakMilestoneAchieved(streakSummary);
     }
 
-    private void CheckStreakTierAchieved(StreakSummary streakSummary)
+    private void CheckStreakTierAchieved(StreakSummary? streakSummary)
     {
-        if (_isInitializing || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
+        if (_isInitializing || streakSummary == null || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
             return;
 
         if (streakSummary.TodayTier > _highestStreakTierShownToday && streakSummary.TodayTier != StreakTier.None)
@@ -492,9 +497,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CheckStreakMilestoneAchieved(StreakSummary streakSummary)
+    private void CheckStreakMilestoneAchieved(StreakSummary? streakSummary)
     {
-        if (_isInitializing || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
+        if (_isInitializing || streakSummary == null || !streakSummary.IsEnabled || _isShowingStreakNotification || _isShowingGoalNotification)
             return;
 
         var uncelebratedMilestone = StreakService.Instance.CheckForUncelebratedMilestone(streakSummary);
@@ -537,6 +542,11 @@ public partial class MainWindow : Window
         FocusCompanionStorage.Save(_workRestSettings);
         CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
         CompanionQuickToggleButton.Content = _workRestSettings.CompanionVisible ? "🎨 Companion: ON" : "🎨 Companion: OFF";
+        if (_miniWidget != null)
+        {
+            _miniWidget.IsCompanionVisible = _workRestSettings.CompanionVisible;
+        }
+        UpdateStatus();
     }
 
     private void OpenIntervalSettings()
@@ -572,10 +582,13 @@ public partial class MainWindow : Window
             {
                 _miniWidget.SetCorner(_miniCorner);
                 _miniWidget.SetMonitor(_workRestSettings.MiniWidgetTargetMonitor, _workRestSettings.MiniWidgetMonitorIndex);
+                _miniWidget.SetWidgetSize(_workRestSettings.MiniWidgetSize);
+                _miniWidget.IsCompanionVisible = _workRestSettings.CompanionVisible;
             }
 
             UpdatePomodoroButtonStates();
             UpdateGoalProgressCard();
+            UpdateStreakUI();
             UpdateStatus();
         }
     }
@@ -835,6 +848,8 @@ public partial class MainWindow : Window
             _miniWidget = new MiniTimerWidget();
             _miniWidget.SetCorner(_miniCorner);
             _miniWidget.SetMonitor(_workRestSettings.MiniWidgetTargetMonitor, _workRestSettings.MiniWidgetMonitorIndex);
+            _miniWidget.SetWidgetSize(_workRestSettings.MiniWidgetSize);
+            _miniWidget.IsCompanionVisible = _workRestSettings.CompanionVisible;
             _miniWidget.StartClicked += () =>
             {
                 if (_pendingStartTime != null && _pendingEndTime != null)
@@ -924,6 +939,11 @@ public partial class MainWindow : Window
                 _workRestSettings.MiniWidgetMonitorIndex = monitorIndex;
                 FocusCompanionStorage.Save(_workRestSettings);
                 RefreshMiniMonitorSelector();
+            };
+            _miniWidget.WidgetSizeChanged += (size) =>
+            {
+                _workRestSettings.MiniWidgetSize = size;
+                FocusCompanionStorage.Save(_workRestSettings);
             };
             UpdateGoalProgressCard();
         }
@@ -1674,7 +1694,8 @@ public partial class MainWindow : Window
                     petHappiness: 100,
                     artMode: _intervalManager.Settings.ArtMode,
                     asciiArtText: miniScene.AsciiArt,
-                    isIntervalMode: isIntervalMode);
+                    isIntervalMode: isIntervalMode,
+                    isCompanionVisible: _workRestSettings.CompanionVisible);
             }
         }
         else if (_pendingStartTime != null && _pendingEndTime != null)
@@ -1738,7 +1759,8 @@ public partial class MainWindow : Window
                     artMode: _intervalManager.Settings.ArtMode,
                     asciiArtText: reviewScene.AsciiArt,
                     isPaused: true,
-                    isIntervalMode: isIntervalMode);
+                    isIntervalMode: isIntervalMode,
+                    isCompanionVisible: _workRestSettings.CompanionVisible);
             }
         }
         else
@@ -1804,7 +1826,8 @@ public partial class MainWindow : Window
                     petHappiness: 100,
                     artMode: _intervalManager.Settings.ArtMode,
                     asciiArtText: idleScene.AsciiArt,
-                    isIntervalMode: isIntervalMode);
+                    isIntervalMode: isIntervalMode,
+                    isCompanionVisible: _workRestSettings.CompanionVisible);
             }
         }
 
@@ -2930,6 +2953,14 @@ public partial class MainWindow : Window
 
         _goalMilestoneTracker.Settings = _workRestSettings;
         _goalMilestoneTracker.Initialize(DateTime.Today, _entries);
+        _intervalManager.UpdateSettings(_workRestSettings);
+        CompanionControl.Visibility = _workRestSettings.CompanionVisible ? Visibility.Visible : Visibility.Collapsed;
+        CompanionQuickToggleButton.Content = _workRestSettings.CompanionVisible ? "🎨 Companion: ON" : "🎨 Companion: OFF";
+        if (_miniWidget != null)
+        {
+            _miniWidget.SetWidgetSize(_workRestSettings.MiniWidgetSize);
+            _miniWidget.IsCompanionVisible = _workRestSettings.CompanionVisible;
+        }
         StreakService.Instance.Reload();
 
         RefreshProjectsDropdown(currentSelectedProject);

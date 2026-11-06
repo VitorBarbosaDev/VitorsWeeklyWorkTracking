@@ -31,9 +31,9 @@ public class ProjectStorage
             List<Project> list;
             bool needsSave = false;
 
-            if (File.Exists(FilePath))
+            string? json = StoragePathHelper.ReadTextSafe(FilePath);
+            if (!string.IsNullOrWhiteSpace(json))
             {
-                string json = File.ReadAllText(FilePath);
                 list = JsonSerializer.Deserialize<List<Project>>(json, JsonOptions) ?? new List<Project>();
             }
             else
@@ -235,13 +235,7 @@ public class ProjectStorage
                 WriteIndented = true
             });
 
-            var dir = Path.GetDirectoryName(FilePath);
-            if (!string.IsNullOrEmpty(dir))
-            {
-                StoragePathHelper.EnsureDirectoryExists(dir);
-            }
-
-            File.WriteAllText(FilePath, json);
+            StoragePathHelper.SaveTextAtomic(FilePath, json);
         }
         catch (Exception ex)
         {

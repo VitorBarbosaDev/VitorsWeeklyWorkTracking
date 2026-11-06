@@ -453,17 +453,71 @@ public partial class ActivityManagementWindow : Window
         SetSelectedActivityColor(null);
     }
 
+    private void ActivitySearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var hasSearch = !string.IsNullOrWhiteSpace(ActivitySearchTextBox.Text);
+        ClearSearchButton.Visibility = hasSearch ? Visibility.Visible : Visibility.Collapsed;
+        RefreshLists();
+        UpdateColorSection(GetSelectedActivity());
+    }
+
+    private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        ActivitySearchTextBox.Clear();
+        ActivitySearchTextBox.Focus();
+    }
+
     private void RefreshLists()
     {
-        var active = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
+        var query = ActivitySearchTextBox?.Text?.Trim() ?? string.Empty;
+        var hasQuery = !string.IsNullOrEmpty(query);
+
+        var activeAll = _activities.Where(a => a.IsActive).OrderBy(a => a.Name).ToList();
+        var active = hasQuery
+            ? activeAll.Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList()
+            : activeAll;
+
         ActiveActivitiesListBox.ItemsSource = null;
         ActiveActivitiesListBox.ItemsSource = active;
         ActiveActivitiesEmptyState.Visibility = active.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (active.Count == 0)
+        {
+            if (hasQuery)
+            {
+                ActiveActivitiesEmptyStateTitle.Text = $"No active activities match \"{query}\"";
+                ActiveActivitiesEmptyStateSubtitle.Text = "Check your spelling or clear search filter";
+                ActiveActivitiesEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ActiveActivitiesEmptyStateTitle.Text = "There are no active activities currently";
+                ActiveActivitiesEmptyStateSubtitle.Text = "Add a new activity above to get started";
+                ActiveActivitiesEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+        }
 
-        var inactive = _activities.Where(a => !a.IsActive).OrderBy(a => a.Name).ToList();
+        var inactiveAll = _activities.Where(a => !a.IsActive).OrderBy(a => a.Name).ToList();
+        var inactive = hasQuery
+            ? inactiveAll.Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList()
+            : inactiveAll;
+
         InactiveActivitiesListBox.ItemsSource = null;
         InactiveActivitiesListBox.ItemsSource = inactive;
         InactiveActivitiesEmptyState.Visibility = inactive.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (inactive.Count == 0)
+        {
+            if (hasQuery)
+            {
+                InactiveActivitiesEmptyStateTitle.Text = $"No archived activities match \"{query}\"";
+                InactiveActivitiesEmptyStateSubtitle.Text = "Check your spelling or clear search filter";
+                InactiveActivitiesEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                InactiveActivitiesEmptyStateTitle.Text = "There are no archived activities currently";
+                InactiveActivitiesEmptyStateSubtitle.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private void AddActivityButton_Click(object sender, RoutedEventArgs e)
@@ -504,6 +558,7 @@ public partial class ActivityManagementWindow : Window
         _storage.Save(_activities);
 
         NewActivityTextBox.Clear();
+        ActivitySearchTextBox.Clear();
         RefreshLists();
         ActiveActivitiesListBox.SelectedItem = newActivity;
         ActivitiesTabControl.SelectedIndex = 0;
@@ -516,15 +571,13 @@ public partial class ActivityManagementWindow : Window
             selected.IsActive = false;
             _storage.Save(_activities);
             RefreshLists();
-            UpdateColorSection(GetSelectedProjectActivity());
+            UpdateColorSection(GetSelectedActivity());
         }
         else
         {
             ThemedMessageBox.ShowInfo(this, "Please select an active activity to archive.", "No Selection");
         }
     }
-
-    private ActivityItem? GetSelectedProjectActivity() => GetSelectedActivity();
 
     private void ActivateActivityButton_Click(object sender, RoutedEventArgs e)
     {
@@ -533,7 +586,7 @@ public partial class ActivityManagementWindow : Window
             selected.IsActive = true;
             _storage.Save(_activities);
             RefreshLists();
-            UpdateColorSection(GetSelectedProjectActivity());
+            UpdateColorSection(GetSelectedActivity());
         }
         else
         {

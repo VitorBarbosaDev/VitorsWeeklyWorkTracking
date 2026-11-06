@@ -1223,6 +1223,21 @@
                             </ComboBox>
                         </Grid>
 
+                        <!-- Widget Size Selection -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="📐 Widget Size:" VerticalAlignment="Center" FontSize="11.5" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="MiniSizeComboBox" Grid.Column="1">
+                                <ComboBoxItem Content="🔍 Compact (85%)"/>
+                                <ComboBoxItem Content="📱 Standard (100%)"/>
+                                <ComboBoxItem Content="🖥️ Large (115%)"/>
+                                <ComboBoxItem Content="📺 Extra Large (130%)"/>
+                            </ComboBox>
+                        </Grid>
+
                         <CheckBox x:Name="MiniTimerEnabledCheckBox"
                                   Content="🗗 Show floating mini timer overlay when main window is minimized"
                                   IsChecked="True"

@@ -27,10 +27,9 @@ public class TimeEntryStorage
     {
         try
         {
-            if (!File.Exists(_filePath))
+            var json = StoragePathHelper.ReadTextSafe(_filePath);
+            if (string.IsNullOrWhiteSpace(json))
                 return new List<TimeEntry>();
-
-            string json = File.ReadAllText(_filePath);
 
             return JsonSerializer.Deserialize<List<TimeEntry>>(json, JsonOptions)
                 ?? new List<TimeEntry>();
@@ -56,13 +55,7 @@ public class TimeEntryStorage
                 WriteIndented = true
             });
 
-            var dir = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(dir))
-            {
-                StoragePathHelper.EnsureDirectoryExists(dir);
-            }
-
-            File.WriteAllText(_filePath, json);
+            StoragePathHelper.SaveTextAtomic(_filePath, json);
         }
         catch (Exception ex)
         {

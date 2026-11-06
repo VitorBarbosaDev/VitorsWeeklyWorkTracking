@@ -59,6 +59,7 @@ public class WorkRestSettings
     public string MiniWidgetTargetMonitor { get; set; } = "Primary"; // "Primary" or device name / monitor id
     public int MiniWidgetMonitorIndex { get; set; } = -1; // -1 for auto/primary, 0, 1, 2... for explicit monitor index
     public bool MiniWidgetEnabled { get; set; } = true;
+    public string MiniWidgetSize { get; set; } = "Medium"; // "Small" (85%), "Medium" (100%), "Large" (115%), "ExtraLarge" (130%)
     public string UserName { get; set; } = string.Empty;
     public bool WelcomePopupEnabled { get; set; } = true;
     public DateTime? LastWelcomePopupDate { get; set; } = null;
@@ -66,6 +67,57 @@ public class WorkRestSettings
     public int FocusXp { get; set; } = 0;
     public int FocusStreak { get; set; } = 0;
     public int TotalSessionsCompleted { get; set; } = 0;
+
+    public WorkRestSettings Clone()
+    {
+        return new WorkRestSettings
+        {
+            IntervalModeEnabled = this.IntervalModeEnabled,
+            FocusMinutes = this.FocusMinutes,
+            ShortBreakMinutes = this.ShortBreakMinutes,
+            LongBreakMinutes = this.LongBreakMinutes,
+            CyclesBeforeLongBreak = this.CyclesBeforeLongBreak,
+            SoundAlertEnabled = this.SoundAlertEnabled,
+            SoundVolume = this.SoundVolume,
+            GoalMilestoneSoundVolume = this.GoalMilestoneSoundVolume,
+            SoundOnStartEnabled = this.SoundOnStartEnabled,
+            SoundOnEndEnabled = this.SoundOnEndEnabled,
+            SoundOnGoalAchievedEnabled = this.SoundOnGoalAchievedEnabled,
+            SoundOnDailyGoalAchievedEnabled = this.SoundOnDailyGoalAchievedEnabled,
+            SoundOnWeeklyGoalAchievedEnabled = this.SoundOnWeeklyGoalAchievedEnabled,
+            SoundOnBreakStartEnabled = this.SoundOnBreakStartEnabled,
+            SoundOnBreakEndEnabled = this.SoundOnBreakEndEnabled,
+            SoundOnCheerEnabled = this.SoundOnCheerEnabled,
+            EnabledSoundVariations = this.EnabledSoundVariations != null
+                ? new List<string>(this.EnabledSoundVariations)
+                : new List<string>(),
+            AutoAdvancePhases = this.AutoAdvancePhases,
+            SelectedSceneId = this.SelectedSceneId,
+            ArtMode = this.ArtMode,
+            CompanionVisible = this.CompanionVisible,
+            CompanionExpanded = this.CompanionExpanded,
+            MiniWidgetCorner = this.MiniWidgetCorner,
+            MiniWidgetTargetMonitor = this.MiniWidgetTargetMonitor,
+            MiniWidgetMonitorIndex = this.MiniWidgetMonitorIndex,
+            MiniWidgetEnabled = this.MiniWidgetEnabled,
+            MiniWidgetSize = this.MiniWidgetSize,
+            UserName = this.UserName,
+            WelcomePopupEnabled = this.WelcomePopupEnabled,
+            LastWelcomePopupDate = this.LastWelcomePopupDate,
+            ForceWelcomePopupOnNextLaunch = this.ForceWelcomePopupOnNextLaunch,
+            FocusXp = this.FocusXp,
+            FocusStreak = this.FocusStreak,
+            TotalSessionsCompleted = this.TotalSessionsCompleted,
+            CompletionRewardIcon = this.CompletionRewardIcon,
+            CompletionRewardColor = this.CompletionRewardColor,
+            GoalNotificationsEnabled = this.GoalNotificationsEnabled,
+            DailyGoalNotificationEnabled = this.DailyGoalNotificationEnabled,
+            WeeklyGoalNotificationEnabled = this.WeeklyGoalNotificationEnabled,
+            ProjectGoalNotificationEnabled = this.ProjectGoalNotificationEnabled,
+            MilestoneRemindersEnabled = this.MilestoneRemindersEnabled,
+            MilestoneDisplayMode = this.MilestoneDisplayMode
+        };
+    }
 
     public bool ShouldShowWelcomePopup(DateTime currentDate)
     {

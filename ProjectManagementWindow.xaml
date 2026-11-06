@@ -3,20 +3,24 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Manage Projects &amp; Colors"
         Icon="VitorWeeklyWorkTracking.ico"
-        Height="570"
-        Width="520"
+        Height="640"
+        Width="580"
+        MinHeight="540"
+        MinWidth="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource Theme.WindowBackground}">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <!-- 0: Add Project Section -->
             <RowDefinition Height="Auto"/>
-            <!-- 1: Projects List -->
-            <RowDefinition Height="*"/>
-            <!-- 2: Color Picker Section -->
+            <!-- 1: Search Section -->
             <RowDefinition Height="Auto"/>
-            <!-- 3: Close Section -->
+            <!-- 2: Projects List -->
+            <RowDefinition Height="*"/>
+            <!-- 3: Color Picker Section -->
+            <RowDefinition Height="Auto"/>
+            <!-- 4: Close Section -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -54,8 +58,45 @@
             </Grid>
         </Border>
 
+        <!-- Search & Filter Card -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12 8"
+                Margin="0 0 0 10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="🔍" FontSize="13" VerticalAlignment="Center" Margin="0 0 8 0"/>
+                <TextBox x:Name="ProjectSearchTextBox"
+                         Grid.Column="1"
+                         Height="28"
+                         Padding="6 2"
+                         FontSize="11.5"
+                         VerticalContentAlignment="Center"
+                         ToolTip="Search projects by name..."
+                         TextChanged="ProjectSearchTextBox_TextChanged"/>
+                <Button x:Name="ClearSearchButton"
+                        Grid.Column="2"
+                        Content="✕"
+                        Style="{StaticResource GhostButton}"
+                        Height="28"
+                        Width="28"
+                        Padding="0"
+                        Margin="6 0 0 0"
+                        ToolTip="Clear search filter"
+                        Visibility="Collapsed"
+                        Click="ClearSearchButton_Click"/>
+            </Grid>
+        </Border>
+
         <!-- Projects Lists -->
-        <TabControl x:Name="ProjectsTabControl" Grid.Row="1" SelectionChanged="ProjectsTabControl_SelectionChanged" Margin="0 0 0 10">
+        <TabControl x:Name="ProjectsTabControl" Grid.Row="2" SelectionChanged="ProjectsTabControl_SelectionChanged" Margin="0 0 0 10">
             <TabItem Header="🟢 Active Projects">
                 <Grid Margin="6">
                     <Grid.RowDefinitions>
@@ -97,42 +138,48 @@
                                 Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="📁" FontSize="22" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
-                                <TextBlock Text="There are no active projects currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Add a new project above to get started" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 2 0 0" Opacity="0.8"/>
+                                <TextBlock x:Name="ActiveProjectsEmptyStateTitle" Text="There are no active projects currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="ActiveProjectsEmptyStateSubtitle" Text="Add a new project above to get started" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 2 0 0" Opacity="0.8"/>
                             </StackPanel>
                         </Border>
                     </Grid>
-                    <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
-                        <Button Content="🚩 Milestones"
-                                Style="{StaticResource GhostButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Add and manage milestones for the selected project"
-                                Click="ProjectMilestonesButton_Click"/>
-                        <Button Content="✏️ Rename"
-                                Style="{StaticResource GhostButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Rename the selected project"
-                                Click="RenameProjectButton_Click"/>
-                        <Button Content="📦 Archive"
-                                Style="{StaticResource GhostDangerButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Mark project as inactive"
-                                Click="ArchiveProjectButton_Click"/>
-                        <Button Content="🗑️ Delete"
-                                Style="{StaticResource DangerButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Delete project from project list"
-                                Click="DeleteProjectButton_Click"/>
-                        <Button Content="🔄 Sync from Data"
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Content="🔄 Sync from Data"
                                 Style="{StaticResource GhostButton}"
                                 Padding="8 4"
                                 ToolTip="Import any project names from your recorded time entries and calendar plans"
                                 Click="SyncProjectsButton_Click"/>
-                    </WrapPanel>
+                        <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                            <Button Content="🚩 Milestones"
+                                    Style="{StaticResource GhostButton}"
+                                    Padding="8 4"
+                                    Margin="0 0 6 0"
+                                    ToolTip="Add and manage milestones for the selected project"
+                                    Click="ProjectMilestonesButton_Click"/>
+                            <Button Content="✏️ Rename"
+                                    Style="{StaticResource GhostButton}"
+                                    Padding="8 4"
+                                    Margin="0 0 6 0"
+                                    ToolTip="Rename the selected project"
+                                    Click="RenameProjectButton_Click"/>
+                            <Button Content="📦 Archive"
+                                    Style="{StaticResource GhostDangerButton}"
+                                    Padding="8 4"
+                                    Margin="0 0 6 0"
+                                    ToolTip="Mark project as inactive"
+                                    Click="ArchiveProjectButton_Click"/>
+                            <Button Content="🗑️ Delete"
+                                    Style="{StaticResource DangerButton}"
+                                    Padding="8 4"
+                                    ToolTip="Delete project from project list"
+                                    Click="DeleteProjectButton_Click"/>
+                        </WrapPanel>
+                    </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="📁 Inactive / Archived">
@@ -176,41 +223,48 @@
                                 Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="📦" FontSize="22" HorizontalAlignment="Center" Margin="0 0 0 4" Opacity="0.6"/>
-                                <TextBlock Text="There are no archived projects currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="InactiveProjectsEmptyStateTitle" Text="There are no archived projects currently" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="InactiveProjectsEmptyStateSubtitle" Text="Check your search filter" FontSize="10.5" Foreground="{DynamicResource Theme.ForegroundMuted}" HorizontalAlignment="Center" Margin="0 2 0 0" Opacity="0.8" Visibility="Collapsed"/>
                             </StackPanel>
                         </Border>
                     </Grid>
-                    <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
-                        <Button Content="✏️ Rename"
-                                Style="{StaticResource GhostButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Rename the selected project"
-                                Click="RenameProjectButton_Click"/>
-                        <Button Content="🟢 Activate"
-                                Style="{StaticResource SuccessButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Reactivate project"
-                                Click="ActivateProjectButton_Click"/>
-                        <Button Content="🗑️ Delete"
-                                Style="{StaticResource DangerButton}"
-                                Padding="8 4"
-                                Margin="0 0 6 0"
-                                ToolTip="Delete project from project list"
-                                Click="DeleteProjectButton_Click"/>
-                        <Button Content="🔄 Sync from Data"
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Content="🔄 Sync from Data"
                                 Style="{StaticResource GhostButton}"
                                 Padding="8 4"
                                 ToolTip="Import any project names from your recorded time entries and calendar plans"
                                 Click="SyncProjectsButton_Click"/>
-                    </WrapPanel>
+                        <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                            <Button Content="✏️ Rename"
+                                    Style="{StaticResource GhostButton}"
+                                    Padding="8 4"
+                                    Margin="0 0 6 0"
+                                    ToolTip="Rename the selected project"
+                                    Click="RenameProjectButton_Click"/>
+                            <Button Content="🟢 Activate"
+                                    Style="{StaticResource SuccessButton}"
+                                    Padding="8 4"
+                                    Margin="0 0 6 0"
+                                    ToolTip="Reactivate project"
+                                    Click="ActivateProjectButton_Click"/>
+                            <Button Content="🗑️ Delete"
+                                    Style="{StaticResource DangerButton}"
+                                    Padding="8 4"
+                                    ToolTip="Delete project from project list"
+                                    Click="DeleteProjectButton_Click"/>
+                        </WrapPanel>
+                    </Grid>
                 </Grid>
             </TabItem>
         </TabControl>
 
         <!-- Color Customization Card -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Background="{DynamicResource Theme.CardBackground}"
                 BorderBrush="{DynamicResource Theme.CardBorder}"
                 BorderThickness="1"
@@ -311,7 +365,7 @@
         </Border>
 
         <!-- Close Section -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 10 0 0">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 10 0 0">
             <Button Content="Close" Width="85" Height="30" Click="CloseButton_Click" IsCancel="True"/>
         </StackPanel>
     </Grid>

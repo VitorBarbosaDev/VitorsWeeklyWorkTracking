@@ -52,16 +52,13 @@ public class StreakStorage
 
         try
         {
-            if (File.Exists(FilePath))
+            var json = StoragePathHelper.ReadTextSafe(FilePath);
+            if (!string.IsNullOrWhiteSpace(json))
             {
-                var json = File.ReadAllText(FilePath).Trim();
-                if (!string.IsNullOrWhiteSpace(json))
+                profile = DeserializeProfile(json);
+                if (profile != null)
                 {
-                    profile = DeserializeProfile(json);
-                    if (profile != null)
-                    {
-                        loadedFromPrimary = true;
-                    }
+                    loadedFromPrimary = true;
                 }
             }
         }
@@ -72,13 +69,13 @@ public class StreakStorage
 
         profile ??= new StreakProfile();
 
-        // Scan candidate legacy files to restore scheduled holidays, sick days, gold stars spent, etc. across updates
-        if (_customFilePath == null)
+        // Scan candidate legacy files ONLY if no primary profile was loaded
+        if (_customFilePath == null && !loadedFromPrimary)
         {
             try
             {
                 bool hasMerged = MergeFromCandidateLegacyStreaks(profile);
-                if (!loadedFromPrimary || hasMerged)
+                if (hasMerged)
                 {
                     Save(profile);
                 }
@@ -99,14 +96,13 @@ public class StreakStorage
         {
             EnsureProfileDefaults(profile);
 
-            var json = JsonSerializer.Serialize(profile, JsonOptions);
-            var dir = Path.GetDirectoryName(FilePath);
-            if (!string.IsNullOrEmpty(dir))
+            if (File.Exists(FilePath))
             {
-                StoragePathHelper.EnsureDirectoryExists(dir);
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Streaks)");
             }
 
-            File.WriteAllText(FilePath, json);
+            var json = JsonSerializer.Serialize(profile, JsonOptions);
+            StoragePathHelper.SaveTextAtomic(FilePath, json);
             StreakDataChanged?.Invoke();
         }
         catch (Exception ex)
@@ -123,6 +119,14 @@ public class StreakStorage
         profile.RevokedSickDates ??= new();
         profile.RestDayPurchases ??= new();
         profile.CelebratedMilestoneDays ??= new();
+
+        // Any day that is a holiday must NEVER be counted as a sick day or revoked sick day
+        if (profile.Holidays.Count > 0)
+        {
+            var holidayDates = profile.Holidays.Select(h => h.Date.Date).ToHashSet();
+            profile.UsedSickDates.RemoveAll(d => holidayDates.Contains(d.Date));
+            profile.RevokedSickDates.RemoveAll(d => holidayDates.Contains(d.Date));
+        }
     }
 
     public static StreakProfile DeserializeProfile(string json)

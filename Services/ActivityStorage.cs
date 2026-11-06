@@ -45,9 +45,9 @@ public class ActivityStorage
             List<ActivityItem> list;
             bool needsSave = false;
 
-            if (File.Exists(_filePath))
+            string? json = StoragePathHelper.ReadTextSafe(_filePath);
+            if (!string.IsNullOrWhiteSpace(json))
             {
-                string json = File.ReadAllText(_filePath);
                 list = JsonSerializer.Deserialize<List<ActivityItem>>(json, JsonOptions) ?? new List<ActivityItem>();
             }
             else
@@ -260,13 +260,7 @@ public class ActivityStorage
                 WriteIndented = true
             });
 
-            var dir = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(dir))
-            {
-                StoragePathHelper.EnsureDirectoryExists(dir);
-            }
-
-            File.WriteAllText(_filePath, json);
+            StoragePathHelper.SaveTextAtomic(_filePath, json);
         }
         catch (Exception ex)
         {

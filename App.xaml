@@ -1202,8 +1202,9 @@
 
         <!-- Calendar Navigation Button Style -->
         <Style x:Key="CalendarNavigationButton" TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{DynamicResource Theme.CardBackgroundAlt}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
@@ -1215,16 +1216,23 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="NavBorder"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="4"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource Theme.SecondaryHover}"/>
+                                <Setter TargetName="NavBorder" Property="BorderBrush" Value="{DynamicResource Theme.Primary}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="NavBorder" Property="Opacity" Value="0.7"/>
+                                <Setter TargetName="NavBorder" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="NavBorder" Property="Opacity" Value="0.35"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1238,7 +1246,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="12.5"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -1248,7 +1256,7 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="HeaderBorder"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="4"
+                                CornerRadius="5"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -1256,6 +1264,10 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="HeaderBorder" Property="Background" Value="{DynamicResource Theme.SecondaryHover}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Theme.Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="HeaderBorder" Property="Opacity" Value="0.75"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1267,7 +1279,7 @@
         <Style TargetType="{x:Type CalendarDayButton}">
             <Setter Property="MinWidth" Value="28"/>
             <Setter Property="MinHeight" Value="26"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -1289,10 +1301,10 @@
                                               VerticalAlignment="Center"
                                               TextElement.Foreground="{TemplateBinding Foreground}"/>
                             <Path x:Name="Blackout"
-                                  Data="M 0,0 L 22,22 M 22,0 L 0,22"
+                                  Data="M 0,0 L 20,20 M 20,0 L 0,20"
                                   Stroke="{DynamicResource Theme.ForegroundSubtle}"
                                   StrokeThickness="1.5"
-                                  Opacity="0.5"
+                                  Opacity="0.4"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   Visibility="Collapsed"/>
@@ -1314,16 +1326,16 @@
                             </Trigger>
                             <Trigger Property="IsInactive" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource Theme.ForegroundSubtle}"/>
-                                <Setter Property="Opacity" Value="0.45"/>
+                                <Setter Property="Opacity" Value="0.4"/>
                             </Trigger>
                             <Trigger Property="IsBlackedOut" Value="True">
                                 <Setter TargetName="Blackout" Property="Visibility" Value="Visible"/>
                                 <Setter Property="Foreground" Value="{DynamicResource Theme.ForegroundSubtle}"/>
-                                <Setter Property="Opacity" Value="0.4"/>
+                                <Setter Property="Opacity" Value="0.35"/>
                                 <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Opacity" Value="0.3"/>
                                 <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -1336,7 +1348,7 @@
         <Style TargetType="{x:Type CalendarButton}">
             <Setter Property="MinWidth" Value="40"/>
             <Setter Property="MinHeight" Value="34"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -1370,10 +1382,10 @@
                             </Trigger>
                             <Trigger Property="IsInactive" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource Theme.ForegroundSubtle}"/>
-                                <Setter Property="Opacity" Value="0.45"/>
+                                <Setter Property="Opacity" Value="0.4"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Opacity" Value="0.3"/>
                                 <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -1423,12 +1435,14 @@
 
                                     <Button x:Name="PART_PreviousButton"
                                             Grid.Column="0"
+                                            ToolTip="Previous Month"
                                             Style="{StaticResource CalendarNavigationButton}">
-                                        <Path Data="M 5 0 L 1 5 L 5 10" 
+                                        <Path Data="M 6.5 1.5 L 2 6 L 6.5 10.5" 
                                               Stroke="{DynamicResource Theme.Foreground}" 
-                                              StrokeThickness="1.8" 
+                                              StrokeThickness="2" 
                                               StrokeStartLineCap="Round"
                                               StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
                                               HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"/>
                                     </Button>
@@ -1439,12 +1453,14 @@
 
                                     <Button x:Name="PART_NextButton"
                                             Grid.Column="2"
+                                            ToolTip="Next Month"
                                             Style="{StaticResource CalendarNavigationButton}">
-                                        <Path Data="M 1 0 L 5 5 L 1 10" 
+                                        <Path Data="M 1.5 1.5 L 6 6 L 1.5 10.5" 
                                               Stroke="{DynamicResource Theme.Foreground}" 
-                                              StrokeThickness="1.8" 
+                                              StrokeThickness="2" 
                                               StrokeStartLineCap="Round"
                                               StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
                                               HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"/>
                                     </Button>
@@ -1503,6 +1519,9 @@
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/>
+            <Setter Property="CalendarItemStyle" Value="{DynamicResource {x:Type CalendarItem}}"/>
+            <Setter Property="CalendarDayButtonStyle" Value="{DynamicResource {x:Type CalendarDayButton}}"/>
+            <Setter Property="CalendarButtonStyle" Value="{DynamicResource {x:Type CalendarButton}}"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -1640,6 +1659,10 @@
                                        PopupAnimation="Slide">
                                     <Border Background="Transparent" Padding="0,4,0,0">
                                         <Calendar x:Name="PART_Calendar"
+                                                  Style="{TemplateBinding CalendarStyle}"
+                                                  CalendarItemStyle="{DynamicResource {x:Type CalendarItem}}"
+                                                  CalendarDayButtonStyle="{DynamicResource {x:Type CalendarDayButton}}"
+                                                  CalendarButtonStyle="{DynamicResource {x:Type CalendarButton}}"
                                                   FirstDayOfWeek="{TemplateBinding FirstDayOfWeek}"
                                                   IsTodayHighlighted="{TemplateBinding IsTodayHighlighted}"
                                                   SelectedDate="{TemplateBinding SelectedDate}"

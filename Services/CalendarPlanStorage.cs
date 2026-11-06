@@ -70,13 +70,13 @@ public class CalendarPlanStorage
 
             try
             {
-                if (!File.Exists(_filePath))
+                string? json = StoragePathHelper.ReadTextSafe(_filePath);
+                if (string.IsNullOrWhiteSpace(json))
                 {
                     _cachedPlans = new List<PlannedWorkItem>();
                     return new List<PlannedWorkItem>(_cachedPlans);
                 }
 
-                string json = File.ReadAllText(_filePath);
                 var items = JsonSerializer.Deserialize<List<PlannedWorkItem>>(json, JsonOptions) ?? new List<PlannedWorkItem>();
                 foreach (var item in items)
                 {
@@ -115,13 +115,7 @@ public class CalendarPlanStorage
                     WriteIndented = true
                 });
 
-                var dir = Path.GetDirectoryName(_filePath);
-                if (!string.IsNullOrEmpty(dir))
-                {
-                    StoragePathHelper.EnsureDirectoryExists(dir);
-                }
-
-                File.WriteAllText(_filePath, json);
+                StoragePathHelper.SaveTextAtomic(_filePath, json);
                 PlansChanged?.Invoke();
             }
             catch (Exception ex)

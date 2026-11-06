@@ -160,13 +160,21 @@ public static class StreakColorHelper
     }
 
     /// <summary>
-    /// Applies the complete visual styling (background, border, text, tooltip, opacity) to the streak button.
+    /// Applies the complete visual styling (background, border, text, tooltip, opacity, visibility) to the streak button.
+    /// When the streak system is disabled, the button is hidden (collapsed).
     /// </summary>
     public static void ApplyStreakButtonStyle(Button button, StreakSummary? summary, FrameworkElement? resourceContext = null)
     {
         if (button == null) return;
 
         summary ??= new StreakSummary { IsEnabled = false };
+        if (!summary.IsEnabled)
+        {
+            button.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        button.Visibility = Visibility.Visible;
         var (bg, border, fg, thickness) = GetStreakButtonBrushes(summary, null, resourceContext ?? button);
 
         button.Content = summary.DisplayBadge;

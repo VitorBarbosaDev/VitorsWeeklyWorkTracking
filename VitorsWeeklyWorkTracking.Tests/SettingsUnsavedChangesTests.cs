@@ -18,6 +18,10 @@ public class SettingsUnsavedChangesTests
         var tempDir = Path.Combine(Path.GetTempPath(), "SettingsTests_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         StoragePathHelper.OverrideAppDataFolder = tempDir;
+        StreakStorage.ResetInstance();
+        StreakService.ResetInstance();
+        CalendarPlanStorage.ResetInstance();
+        BackupService.ResetInstance();
         var dataDir = StoragePathHelper.GetDataFolder();
         return (tempDir, dataDir);
     }
@@ -25,6 +29,10 @@ public class SettingsUnsavedChangesTests
     private static void CleanupSandbox(string tempDir)
     {
         StoragePathHelper.OverrideAppDataFolder = null;
+        StreakStorage.ResetInstance();
+        StreakService.ResetInstance();
+        CalendarPlanStorage.ResetInstance();
+        BackupService.ResetInstance();
         if (Directory.Exists(tempDir))
         {
             try

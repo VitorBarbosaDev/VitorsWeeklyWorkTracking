@@ -49,6 +49,7 @@ public partial class WorkRestSettingsDialog : Window
     private string _initialTargetMonitor = string.Empty;
     private int _initialMonitorIndex;
     private string _initialCorner = "BottomRight";
+    private string _initialMiniWidgetSize = "Medium";
     private bool _initialMiniWidgetEnabled;
     private bool _initialStreakEnabled;
     private HashSet<DayOfWeek> _initialStreakExcludedDays = new();
@@ -119,52 +120,7 @@ public partial class WorkRestSettingsDialog : Window
 
     private static WorkRestSettings CloneSettings(WorkRestSettings currentSettings)
     {
-        return new WorkRestSettings
-        {
-            IntervalModeEnabled = currentSettings.IntervalModeEnabled,
-            FocusMinutes = currentSettings.FocusMinutes,
-            ShortBreakMinutes = currentSettings.ShortBreakMinutes,
-            LongBreakMinutes = currentSettings.LongBreakMinutes,
-            CyclesBeforeLongBreak = currentSettings.CyclesBeforeLongBreak,
-            SoundAlertEnabled = currentSettings.SoundAlertEnabled,
-            SoundVolume = currentSettings.SoundVolume,
-            SoundOnStartEnabled = currentSettings.SoundOnStartEnabled,
-            SoundOnEndEnabled = currentSettings.SoundOnEndEnabled,
-            SoundOnGoalAchievedEnabled = currentSettings.SoundOnGoalAchievedEnabled,
-            SoundOnDailyGoalAchievedEnabled = currentSettings.SoundOnDailyGoalAchievedEnabled,
-            SoundOnWeeklyGoalAchievedEnabled = currentSettings.SoundOnWeeklyGoalAchievedEnabled,
-            SoundOnBreakStartEnabled = currentSettings.SoundOnBreakStartEnabled,
-            SoundOnBreakEndEnabled = currentSettings.SoundOnBreakEndEnabled,
-            SoundOnCheerEnabled = currentSettings.SoundOnCheerEnabled,
-            EnabledSoundVariations = currentSettings.EnabledSoundVariations != null
-                ? new List<string>(currentSettings.EnabledSoundVariations)
-                : new List<string>(),
-            AutoAdvancePhases = currentSettings.AutoAdvancePhases,
-            SelectedSceneId = currentSettings.SelectedSceneId,
-            ArtMode = currentSettings.ArtMode,
-            CompanionVisible = currentSettings.CompanionVisible,
-            CompanionExpanded = currentSettings.CompanionExpanded,
-            MiniWidgetCorner = currentSettings.MiniWidgetCorner,
-            MiniWidgetTargetMonitor = currentSettings.MiniWidgetTargetMonitor,
-            MiniWidgetMonitorIndex = currentSettings.MiniWidgetMonitorIndex,
-            MiniWidgetEnabled = currentSettings.MiniWidgetEnabled,
-            UserName = currentSettings.UserName,
-            WelcomePopupEnabled = currentSettings.WelcomePopupEnabled,
-            LastWelcomePopupDate = currentSettings.LastWelcomePopupDate,
-            ForceWelcomePopupOnNextLaunch = currentSettings.ForceWelcomePopupOnNextLaunch,
-            FocusXp = currentSettings.FocusXp,
-            FocusStreak = currentSettings.FocusStreak,
-            TotalSessionsCompleted = currentSettings.TotalSessionsCompleted,
-            CompletionRewardIcon = currentSettings.CompletionRewardIcon,
-            CompletionRewardColor = currentSettings.CompletionRewardColor,
-            GoalMilestoneSoundVolume = currentSettings.GoalMilestoneSoundVolume,
-            GoalNotificationsEnabled = currentSettings.GoalNotificationsEnabled,
-            DailyGoalNotificationEnabled = currentSettings.DailyGoalNotificationEnabled,
-            WeeklyGoalNotificationEnabled = currentSettings.WeeklyGoalNotificationEnabled,
-            ProjectGoalNotificationEnabled = currentSettings.ProjectGoalNotificationEnabled,
-            MilestoneRemindersEnabled = currentSettings.MilestoneRemindersEnabled,
-            MilestoneDisplayMode = currentSettings.MilestoneDisplayMode
-        };
+        return currentSettings?.Clone() ?? new WorkRestSettings();
     }
 
     private void InitializeForm()
@@ -344,6 +300,13 @@ public partial class WorkRestSettingsDialog : Window
                 "TopRight" => 2,
                 "TopLeft" => 3,
                 _ => 0
+            };
+            MiniSizeComboBox.SelectedIndex = Settings.MiniWidgetSize switch
+            {
+                "Small" or "Compact" => 0,
+                "Large" => 2,
+                "ExtraLarge" or "XL" => 3,
+                _ => 1
             };
             MiniTimerEnabledCheckBox.IsChecked = Settings.MiniWidgetEnabled;
 
@@ -602,7 +565,14 @@ public partial class WorkRestSettingsDialog : Window
         SaveSettingsToModel();
         _isExplicitlySaved = true;
         _suppressClosingPrompt = true;
-        DialogResult = true;
+        try
+        {
+            DialogResult = true;
+        }
+        catch (InvalidOperationException)
+        {
+            // Ignored when not shown via ShowDialog
+        }
         Close();
     }
 
@@ -611,32 +581,35 @@ public partial class WorkRestSettingsDialog : Window
     /// </summary>
     public void SaveSettingsToModel()
     {
-        Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox?.IsChecked ?? true;
-        Settings.UserName = UserNameTextBox?.Text.Trim() ?? string.Empty;
-        Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox?.IsChecked ?? true;
-        Settings.MilestoneRemindersEnabled = MilestoneRemindersEnabledCheckBox?.IsChecked ?? true;
-        Settings.MilestoneDisplayMode = (MilestoneQueueModeComboBox?.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
+        Settings.IntervalModeEnabled = IntervalModeEnabledCheckBox?.IsChecked ?? Settings.IntervalModeEnabled;
+        Settings.UserName = UserNameTextBox?.Text?.Trim() ?? Settings.UserName;
+        Settings.WelcomePopupEnabled = WelcomePopupEnabledCheckBox?.IsChecked ?? Settings.WelcomePopupEnabled;
+        Settings.MilestoneRemindersEnabled = MilestoneRemindersEnabledCheckBox?.IsChecked ?? Settings.MilestoneRemindersEnabled;
+        if (MilestoneQueueModeComboBox != null && MilestoneQueueModeComboBox.SelectedIndex >= 0)
+        {
+            Settings.MilestoneDisplayMode = (MilestoneQueueModeComboBox.SelectedIndex == 1) ? "AllUpcoming" : "NextOnly";
+        }
         Settings.FocusMinutes = (int)(FocusSlider?.Value ?? Settings.FocusMinutes);
         Settings.ShortBreakMinutes = (int)(ShortBreakSlider?.Value ?? Settings.ShortBreakMinutes);
         Settings.LongBreakMinutes = (int)(LongBreakSlider?.Value ?? Settings.LongBreakMinutes);
         Settings.CyclesBeforeLongBreak = (int)(CyclesSlider?.Value ?? Settings.CyclesBeforeLongBreak);
 
-        Settings.SoundAlertEnabled = SoundAlertCheckBox?.IsChecked ?? true;
+        Settings.SoundAlertEnabled = SoundAlertCheckBox?.IsChecked ?? Settings.SoundAlertEnabled;
         Settings.SoundVolume = (int)(VolumeSlider?.Value ?? Settings.SoundVolume);
         Settings.GoalMilestoneSoundVolume = (int)(GoalMilestoneVolumeSlider?.Value ?? (AudioTabGoalVolumeSlider?.Value ?? Settings.GoalMilestoneSoundVolume));
-        Settings.SoundOnStartEnabled = SoundOnStartCheckBox?.IsChecked ?? true;
-        Settings.SoundOnEndEnabled = SoundOnEndCheckBox?.IsChecked ?? true;
-        Settings.SoundOnGoalAchievedEnabled = SoundOnGoalCheckBox?.IsChecked ?? true;
-        Settings.SoundOnDailyGoalAchievedEnabled = SoundOnDailyGoalCheckBox?.IsChecked ?? true;
-        Settings.SoundOnWeeklyGoalAchievedEnabled = SoundOnWeeklyGoalCheckBox?.IsChecked ?? true;
-        Settings.SoundOnBreakStartEnabled = SoundOnBreakStartCheckBox?.IsChecked ?? true;
-        Settings.SoundOnBreakEndEnabled = SoundOnBreakEndCheckBox?.IsChecked ?? true;
-        Settings.SoundOnCheerEnabled = SoundOnCheerCheckBox?.IsChecked ?? true;
+        Settings.SoundOnStartEnabled = SoundOnStartCheckBox?.IsChecked ?? Settings.SoundOnStartEnabled;
+        Settings.SoundOnEndEnabled = SoundOnEndCheckBox?.IsChecked ?? Settings.SoundOnEndEnabled;
+        Settings.SoundOnGoalAchievedEnabled = SoundOnGoalCheckBox?.IsChecked ?? Settings.SoundOnGoalAchievedEnabled;
+        Settings.SoundOnDailyGoalAchievedEnabled = SoundOnDailyGoalCheckBox?.IsChecked ?? Settings.SoundOnDailyGoalAchievedEnabled;
+        Settings.SoundOnWeeklyGoalAchievedEnabled = SoundOnWeeklyGoalCheckBox?.IsChecked ?? Settings.SoundOnWeeklyGoalAchievedEnabled;
+        Settings.SoundOnBreakStartEnabled = SoundOnBreakStartCheckBox?.IsChecked ?? Settings.SoundOnBreakStartEnabled;
+        Settings.SoundOnBreakEndEnabled = SoundOnBreakEndCheckBox?.IsChecked ?? Settings.SoundOnBreakEndEnabled;
+        Settings.SoundOnCheerEnabled = SoundOnCheerCheckBox?.IsChecked ?? Settings.SoundOnCheerEnabled;
 
         Settings.EnabledSoundVariations = GetSelectedSoundVariations();
 
-        Settings.AutoAdvancePhases = AutoAdvanceCheckBox?.IsChecked ?? false;
-        Settings.CompanionVisible = CompanionVisibleCheckBox?.IsChecked ?? true;
+        Settings.AutoAdvancePhases = AutoAdvanceCheckBox?.IsChecked ?? Settings.AutoAdvancePhases;
+        Settings.CompanionVisible = CompanionVisibleCheckBox?.IsChecked ?? Settings.CompanionVisible;
 
         // Save Reward Icon and Goal Notifications
         if (RewardIconComboBox?.SelectedItem is RewardIconOption selectedReward)
@@ -649,10 +622,10 @@ public partial class WorkRestSettingsDialog : Window
             Settings.CompletionRewardColor = selectedColor.Key;
         }
 
-        Settings.GoalNotificationsEnabled = GoalNotificationsEnabledCheckBox?.IsChecked ?? true;
-        Settings.DailyGoalNotificationEnabled = DailyGoalNotificationCheckBox?.IsChecked ?? true;
-        Settings.WeeklyGoalNotificationEnabled = WeeklyGoalNotificationCheckBox?.IsChecked ?? true;
-        Settings.ProjectGoalNotificationEnabled = ProjectGoalNotificationCheckBox?.IsChecked ?? true;
+        Settings.GoalNotificationsEnabled = GoalNotificationsEnabledCheckBox?.IsChecked ?? Settings.GoalNotificationsEnabled;
+        Settings.DailyGoalNotificationEnabled = DailyGoalNotificationCheckBox?.IsChecked ?? Settings.DailyGoalNotificationEnabled;
+        Settings.WeeklyGoalNotificationEnabled = WeeklyGoalNotificationCheckBox?.IsChecked ?? Settings.WeeklyGoalNotificationEnabled;
+        Settings.ProjectGoalNotificationEnabled = ProjectGoalNotificationCheckBox?.IsChecked ?? Settings.ProjectGoalNotificationEnabled;
 
         if (MiniMonitorComboBox?.SelectedItem is MonitorDisplayInfo mon)
         {
@@ -660,20 +633,30 @@ public partial class WorkRestSettingsDialog : Window
             Settings.MiniWidgetMonitorIndex = mon.Index;
         }
 
-        Settings.MiniWidgetCorner = MiniCornerComboBox?.SelectedIndex switch
+        if (MiniCornerComboBox != null && MiniCornerComboBox.SelectedIndex >= 0)
         {
-            1 => "BottomLeft",
-            2 => "TopRight",
-            3 => "TopLeft",
-            _ => "BottomRight"
-        };
-        Settings.MiniWidgetEnabled = MiniTimerEnabledCheckBox?.IsChecked ?? true;
+            Settings.MiniWidgetCorner = MiniCornerComboBox.SelectedIndex switch
+            {
+                1 => "BottomLeft",
+                2 => "TopRight",
+                3 => "TopLeft",
+                _ => "BottomRight"
+            };
+        }
+        if (MiniSizeComboBox != null && MiniSizeComboBox.SelectedIndex >= 0)
+        {
+            Settings.MiniWidgetSize = GetCurrentMiniWidgetSize();
+        }
+        Settings.MiniWidgetEnabled = MiniTimerEnabledCheckBox?.IsChecked ?? Settings.MiniWidgetEnabled;
 
         // Save Streak settings
-        var streakProfile = StreakService.Instance.Profile;
-        streakProfile.Enabled = StreakSystemEnabledCheckBox?.IsChecked ?? true;
-        streakProfile.ExcludedDays = GetCurrentExcludedDays().ToList();
-        StreakService.Instance.SaveProfile();
+        if (StreakSystemEnabledCheckBox != null)
+        {
+            var streakProfile = StreakService.Instance.Profile;
+            streakProfile.Enabled = StreakSystemEnabledCheckBox.IsChecked ?? streakProfile.Enabled;
+            streakProfile.ExcludedDays = GetCurrentExcludedDays().ToList();
+            StreakService.Instance.SaveProfile();
+        }
     }
 
     private void SnapshotInitialState()
@@ -710,6 +693,7 @@ public partial class WorkRestSettingsDialog : Window
         _initialTargetMonitor = (MiniMonitorComboBox.SelectedItem as MonitorDisplayInfo)?.DeviceName ?? Settings.MiniWidgetTargetMonitor;
         _initialMonitorIndex = (MiniMonitorComboBox.SelectedItem as MonitorDisplayInfo)?.Index ?? Settings.MiniWidgetMonitorIndex;
         _initialCorner = GetCurrentCorner();
+        _initialMiniWidgetSize = GetCurrentMiniWidgetSize();
         _initialMiniWidgetEnabled = MiniTimerEnabledCheckBox.IsChecked ?? true;
 
         var streakProfile = StreakService.Instance.Profile;
@@ -725,6 +709,17 @@ public partial class WorkRestSettingsDialog : Window
             2 => "TopRight",
             3 => "TopLeft",
             _ => "BottomRight"
+        };
+    }
+
+    private string GetCurrentMiniWidgetSize()
+    {
+        return MiniSizeComboBox?.SelectedIndex switch
+        {
+            0 => "Small",
+            2 => "Large",
+            3 => "ExtraLarge",
+            _ => "Medium"
         };
     }
 
@@ -837,6 +832,10 @@ public partial class WorkRestSettingsDialog : Window
 
         string currentCorner = GetCurrentCorner();
         if (!string.Equals(currentCorner, _initialCorner, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        string currentSize = GetCurrentMiniWidgetSize();
+        if (!string.Equals(currentSize, _initialMiniWidgetSize, StringComparison.OrdinalIgnoreCase))
             return true;
 
         if ((MiniTimerEnabledCheckBox?.IsChecked ?? true) != _initialMiniWidgetEnabled)

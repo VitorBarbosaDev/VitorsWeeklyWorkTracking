@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace VitorsWeeklyWorkTracking.Services;
 
@@ -14,6 +16,10 @@ public static class StoragePathHelper
 {
     private const string AppFolderName = "VitorsWeeklyWorkTracking";
     private static readonly string AppDataFolder;
+    private static readonly AsyncLocal<string?> _asyncOverrideFolder = new();
+    private static volatile string? _globalOverrideFolder;
+    private static string? _defaultTestSandboxFolder;
+    private static readonly object _fileWriteLock = new();
 
     /// <summary>
     /// Standard application data and settings files monitored for updates and backups.
@@ -32,7 +38,15 @@ public static class StoragePathHelper
     /// <summary>
     /// For testing purposes only. Allows overriding the data folder.
     /// </summary>
-    public static string? OverrideAppDataFolder { get; set; }
+    public static string? OverrideAppDataFolder
+    {
+        get => _asyncOverrideFolder.Value ?? _globalOverrideFolder;
+        set
+        {
+            _asyncOverrideFolder.Value = value;
+            _globalOverrideFolder = value;
+        }
+    }
 
     /// <summary>
     /// For testing purposes only. Allows enabling legacy migration when OverrideAppDataFolder is set.
@@ -73,13 +87,200 @@ public static class StoragePathHelper
     }
 
     /// <summary>
+    /// Returns true if execution is taking place inside a test runner environment (e.g., xUnit, VSTest, testhost).
+    /// </summary>
+    public static bool IsTestEnvironment()
+    {
+        try
+        {
+            var friendlyName = AppDomain.CurrentDomain.FriendlyName;
+            if (friendlyName.Contains("testhost", StringComparison.OrdinalIgnoreCase) ||
+                friendlyName.Contains("xunit", StringComparison.OrdinalIgnoreCase) ||
+                friendlyName.Contains("vstest", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VSTEST_EXECUTION_ENGINE")))
+            {
+                return true;
+            }
+
+            if (AppDomain.CurrentDomain.GetAssemblies().Any(a =>
+            {
+                var name = a.GetName().Name;
+                return name != null && (
+                    name.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith("Microsoft.VisualStudio.TestPlatform", StringComparison.OrdinalIgnoreCase));
+            }))
+            {
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    /// <summary>
     /// Gets the root data folder for application data.
+    /// In test runner environments without explicit override, safely isolates data to a dedicated sandbox.
     /// </summary>
     public static string GetDataFolder()
     {
-        var folder = OverrideAppDataFolder ?? AppDataFolder;
-        EnsureDirectoryExists(folder);
-        return folder;
+        var overrideFolder = OverrideAppDataFolder;
+        if (!string.IsNullOrWhiteSpace(overrideFolder))
+        {
+            EnsureDirectoryExists(overrideFolder);
+            return overrideFolder;
+        }
+
+        if (IsTestEnvironment())
+        {
+            if (string.IsNullOrWhiteSpace(_defaultTestSandboxFolder))
+            {
+                _defaultTestSandboxFolder = Path.Combine(Path.GetTempPath(), "VitorsWorkTracking_TestSandbox_" + Process.GetCurrentProcess().Id);
+            }
+            EnsureDirectoryExists(_defaultTestSandboxFolder);
+            return _defaultTestSandboxFolder;
+        }
+
+        EnsureDirectoryExists(AppDataFolder);
+        return AppDataFolder;
+    }
+
+    /// <summary>
+    /// Atomically and safely writes text to the specified destination path.
+    /// Writes to a temporary file first, maintains a .bak backup file, and replaces the target file atomically.
+    /// </summary>
+    public static void SaveTextAtomic(string filePath, string content)
+    {
+        lock (_fileWriteLock)
+        {
+            try
+            {
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    EnsureDirectoryExists(dir);
+                }
+
+                var tempPath = filePath + $".tmp_{Guid.NewGuid():N}";
+                var bakPath = filePath + ".bak";
+
+                File.WriteAllText(tempPath, content);
+
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        File.Copy(filePath, bakPath, overwrite: true);
+                    }
+                    catch { }
+
+                    try
+                    {
+                        File.Replace(tempPath, filePath, null, ignoreMetadataErrors: true);
+                    }
+                    catch
+                    {
+                        File.Copy(tempPath, filePath, overwrite: true);
+                        try { File.Delete(tempPath); } catch { }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        File.Move(tempPath, filePath);
+                    }
+                    catch
+                    {
+                        File.Copy(tempPath, filePath, overwrite: true);
+                        try { File.Delete(tempPath); } catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, $"StoragePathHelper.SaveTextAtomic({filePath})");
+                try
+                {
+                    File.WriteAllText(filePath, content);
+                }
+                catch (Exception fallbackEx)
+                {
+                    LogError(fallbackEx, $"StoragePathHelper.SaveTextAtomic.Fallback({filePath})");
+                    throw;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Safely reads text from the target file. If missing, 0 bytes, or corrupted,
+    /// falls back to reading from .bak copy or from the latest valid BackupService snapshot,
+    /// and automatically restores the recovered content.
+    /// </summary>
+    public static string? ReadTextSafe(string filePath, bool fallbackToBackups = true)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                var content = File.ReadAllText(filePath).Trim();
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    return content;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, $"StoragePathHelper.ReadTextSafe.Primary({filePath})");
+        }
+
+        if (!fallbackToBackups) return null;
+
+        // 1. Try .bak file
+        var bakPath = filePath + ".bak";
+        try
+        {
+            if (File.Exists(bakPath))
+            {
+                var bakContent = File.ReadAllText(bakPath).Trim();
+                if (!string.IsNullOrWhiteSpace(bakContent))
+                {
+                    try
+                    {
+                        SaveTextAtomic(filePath, bakContent);
+                    }
+                    catch { }
+                    return bakContent;
+                }
+            }
+        }
+        catch { }
+
+        // 2. Try latest snapshot from BackupService
+        try
+        {
+            var fileName = Path.GetFileName(filePath);
+            var recoveredContent = BackupService.Instance.TryGetFileContentFromLatestBackup(fileName);
+            if (!string.IsNullOrWhiteSpace(recoveredContent))
+            {
+                try
+                {
+                    SaveTextAtomic(filePath, recoveredContent);
+                }
+                catch { }
+                return recoveredContent;
+            }
+        }
+        catch { }
+
+        return null;
     }
 
     /// <summary>

@@ -456,17 +456,71 @@ public partial class ProjectManagementWindow : Window
         SetSelectedProjectColor(null);
     }
 
+    private void ProjectSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var hasSearch = !string.IsNullOrWhiteSpace(ProjectSearchTextBox.Text);
+        ClearSearchButton.Visibility = hasSearch ? Visibility.Visible : Visibility.Collapsed;
+        RefreshLists();
+        UpdateColorSection(GetSelectedProject());
+    }
+
+    private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        ProjectSearchTextBox.Clear();
+        ProjectSearchTextBox.Focus();
+    }
+
     private void RefreshLists()
     {
-        var active = _projects.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
+        var query = ProjectSearchTextBox?.Text?.Trim() ?? string.Empty;
+        var hasQuery = !string.IsNullOrEmpty(query);
+
+        var activeAll = _projects.Where(p => p.IsActive).OrderBy(p => p.Name).ToList();
+        var active = hasQuery
+            ? activeAll.Where(p => p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList()
+            : activeAll;
+
         ActiveProjectsListBox.ItemsSource = null;
         ActiveProjectsListBox.ItemsSource = active;
         ActiveProjectsEmptyState.Visibility = active.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (active.Count == 0)
+        {
+            if (hasQuery)
+            {
+                ActiveProjectsEmptyStateTitle.Text = $"No active projects match \"{query}\"";
+                ActiveProjectsEmptyStateSubtitle.Text = "Check your spelling or clear search filter";
+                ActiveProjectsEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ActiveProjectsEmptyStateTitle.Text = "There are no active projects currently";
+                ActiveProjectsEmptyStateSubtitle.Text = "Add a new project above to get started";
+                ActiveProjectsEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+        }
 
-        var inactive = _projects.Where(p => !p.IsActive).OrderBy(p => p.Name).ToList();
+        var inactiveAll = _projects.Where(p => !p.IsActive).OrderBy(p => p.Name).ToList();
+        var inactive = hasQuery
+            ? inactiveAll.Where(p => p.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList()
+            : inactiveAll;
+
         InactiveProjectsListBox.ItemsSource = null;
         InactiveProjectsListBox.ItemsSource = inactive;
         InactiveProjectsEmptyState.Visibility = inactive.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (inactive.Count == 0)
+        {
+            if (hasQuery)
+            {
+                InactiveProjectsEmptyStateTitle.Text = $"No archived projects match \"{query}\"";
+                InactiveProjectsEmptyStateSubtitle.Text = "Check your spelling or clear search filter";
+                InactiveProjectsEmptyStateSubtitle.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                InactiveProjectsEmptyStateTitle.Text = "There are no archived projects currently";
+                InactiveProjectsEmptyStateSubtitle.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private void AddProjectButton_Click(object sender, RoutedEventArgs e)
@@ -507,6 +561,7 @@ public partial class ProjectManagementWindow : Window
         _storage.Save(_projects);
 
         NewProjectTextBox.Clear();
+        ProjectSearchTextBox.Clear();
         RefreshLists();
         ActiveProjectsListBox.SelectedItem = newProject;
         ProjectsTabControl.SelectedIndex = 0;

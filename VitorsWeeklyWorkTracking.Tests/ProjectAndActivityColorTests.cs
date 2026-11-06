@@ -336,6 +336,250 @@ public class ProjectAndActivityColorTests
     }
 
     [Fact]
+    public void ProjectManagementWindow_STA_SearchFilterAndClearWork()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var tempFile = Path.Combine(Path.GetTempPath(), $"projects_search_test_{Guid.NewGuid():N}.json");
+                var projects = new List<Project>
+                {
+                    new Project { Name = "Alpha Website", IsActive = true },
+                    new Project { Name = "Beta Mobile App", IsActive = true },
+                    new Project { Name = "Gamma Backend", IsActive = false }
+                };
+
+                var storage = new ProjectStorage(tempFile);
+                var window = new ProjectManagementWindow(storage, projects);
+
+                Assert.NotNull(window.ProjectSearchTextBox);
+                Assert.NotNull(window.ClearSearchButton);
+                Assert.Equal(2, window.ActiveProjectsListBox.Items.Count);
+                Assert.Equal(1, window.InactiveProjectsListBox.Items.Count);
+
+                // Filter by "Beta"
+                window.ProjectSearchTextBox.Text = "Beta";
+                Assert.Single(window.ActiveProjectsListBox.Items);
+                var activeItem = window.ActiveProjectsListBox.Items[0] as Project;
+                Assert.Equal("Beta Mobile App", activeItem?.Name);
+                Assert.Empty(window.InactiveProjectsListBox.Items);
+                Assert.Equal(System.Windows.Visibility.Visible, window.ClearSearchButton.Visibility);
+
+                // Filter by "Gamma" (archived)
+                window.ProjectSearchTextBox.Text = "Gamma";
+                Assert.Empty(window.ActiveProjectsListBox.Items);
+                Assert.Single(window.InactiveProjectsListBox.Items);
+                var inactiveItem = window.InactiveProjectsListBox.Items[0] as Project;
+                Assert.Equal("Gamma Backend", inactiveItem?.Name);
+
+                // Filter by non-existent
+                window.ProjectSearchTextBox.Text = "NonExistentProjectXYZ";
+                Assert.Empty(window.ActiveProjectsListBox.Items);
+                Assert.Equal(System.Windows.Visibility.Visible, window.ActiveProjectsEmptyState.Visibility);
+                Assert.Contains("NonExistentProjectXYZ", window.ActiveProjectsEmptyStateTitle.Text);
+
+                // Clear search via clear button
+                window.ClearSearchButton.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.Equal(string.Empty, window.ProjectSearchTextBox.Text);
+                Assert.Equal(2, window.ActiveProjectsListBox.Items.Count);
+                Assert.Equal(1, window.InactiveProjectsListBox.Items.Count);
+                Assert.Equal(System.Windows.Visibility.Collapsed, window.ClearSearchButton.Visibility);
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void ActivityManagementWindow_STA_GridLayout_RowsAreDistinctAndCorrect()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var tempFile = Path.Combine(Path.GetTempPath(), $"activities_grid_test_{Guid.NewGuid():N}.json");
+                var activities = new List<ActivityItem>();
+                var storage = new ActivityStorage(tempFile);
+                var window = new ActivityManagementWindow(storage, activities);
+
+                var mainGrid = window.Content as System.Windows.Controls.Grid;
+                Assert.NotNull(mainGrid);
+                Assert.Equal(5, mainGrid.RowDefinitions.Count);
+                Assert.Equal(5, mainGrid.Children.Count);
+
+                var rowAssignments = mainGrid.Children.Cast<System.Windows.UIElement>()
+                    .Select(System.Windows.Controls.Grid.GetRow)
+                    .OrderBy(r => r)
+                    .ToList();
+
+                Assert.Equal(new[] { 0, 1, 2, 3, 4 }, rowAssignments);
+                Assert.Equal(2, System.Windows.Controls.Grid.GetRow(window.ActivitiesTabControl));
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void ActivityManagementWindow_STA_SearchFilterAndClearWork()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var tempFile = Path.Combine(Path.GetTempPath(), $"activities_search_test_{Guid.NewGuid():N}.json");
+                var activities = new List<ActivityItem>
+                {
+                    new ActivityItem { Name = "Alpha Coding", IsActive = true },
+                    new ActivityItem { Name = "Beta Testing", IsActive = true },
+                    new ActivityItem { Name = "Gamma Documentation", IsActive = false }
+                };
+
+                var storage = new ActivityStorage(tempFile);
+                var window = new ActivityManagementWindow(storage, activities);
+
+                Assert.NotNull(window.ActivitySearchTextBox);
+                Assert.NotNull(window.ClearSearchButton);
+                Assert.Equal(2, window.ActiveActivitiesListBox.Items.Count);
+                Assert.Equal(1, window.InactiveActivitiesListBox.Items.Count);
+
+                // Filter by "Beta"
+                window.ActivitySearchTextBox.Text = "Beta";
+                Assert.Single(window.ActiveActivitiesListBox.Items);
+                var activeItem = window.ActiveActivitiesListBox.Items[0] as ActivityItem;
+                Assert.Equal("Beta Testing", activeItem?.Name);
+                Assert.Empty(window.InactiveActivitiesListBox.Items);
+                Assert.Equal(System.Windows.Visibility.Visible, window.ClearSearchButton.Visibility);
+
+                // Filter by "Gamma" (archived)
+                window.ActivitySearchTextBox.Text = "Gamma";
+                Assert.Empty(window.ActiveActivitiesListBox.Items);
+                Assert.Single(window.InactiveActivitiesListBox.Items);
+                var inactiveItem = window.InactiveActivitiesListBox.Items[0] as ActivityItem;
+                Assert.Equal("Gamma Documentation", inactiveItem?.Name);
+
+                // Filter by non-existent
+                window.ActivitySearchTextBox.Text = "NonExistentActivityXYZ";
+                Assert.Empty(window.ActiveActivitiesListBox.Items);
+                Assert.Equal(System.Windows.Visibility.Visible, window.ActiveActivitiesEmptyState.Visibility);
+                Assert.Contains("NonExistentActivityXYZ", window.ActiveActivitiesEmptyStateTitle.Text);
+
+                // Clear search via clear button
+                window.ClearSearchButton.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.Equal(string.Empty, window.ActivitySearchTextBox.Text);
+                Assert.Equal(2, window.ActiveActivitiesListBox.Items.Count);
+                Assert.Equal(1, window.InactiveActivitiesListBox.Items.Count);
+                Assert.Equal(System.Windows.Visibility.Collapsed, window.ClearSearchButton.Visibility);
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
+    public void CalendarAndDatePicker_StylesAndTemplates_AreLoadedInApplicationResources()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (System.Windows.Application.Current == null)
+                {
+                    var app = new App();
+                    app.InitializeComponent();
+                }
+
+                var navBtnStyle = System.Windows.Application.Current.TryFindResource("CalendarNavigationButton") as System.Windows.Style;
+                Assert.NotNull(navBtnStyle);
+
+                var headerBtnStyle = System.Windows.Application.Current.TryFindResource("CalendarHeaderButton") as System.Windows.Style;
+                Assert.NotNull(headerBtnStyle);
+
+                var calStyle = System.Windows.Application.Current.TryFindResource(typeof(System.Windows.Controls.Calendar)) as System.Windows.Style;
+                Assert.NotNull(calStyle);
+
+                var datePickerStyle = System.Windows.Application.Current.TryFindResource(typeof(System.Windows.Controls.DatePicker)) as System.Windows.Style;
+                Assert.NotNull(datePickerStyle);
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (threadException != null)
+        {
+            throw new Exception("STA test thread threw an exception", threadException);
+        }
+    }
+
+    [Fact]
     public void ActivityManagementWindow_STA_CanSelectActivityAndChangeColor()
     {
         Exception? threadException = null;

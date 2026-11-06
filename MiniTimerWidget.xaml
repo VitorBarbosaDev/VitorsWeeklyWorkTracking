@@ -3,8 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:VitorsWeeklyWorkTracking.Controls"
         Title="Mini Work Timer"
-        Width="330"
-        Height="285"
+        SizeToContent="WidthAndHeight"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -12,16 +11,43 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
-    <Border Background="{DynamicResource Theme.CardBackground}"
+    <Border x:Name="RootBorder"
+            Width="318"
+            Background="{DynamicResource Theme.CardBackground}"
             BorderBrush="{DynamicResource Theme.CardBorder}"
             BorderThickness="1.5"
             CornerRadius="12"
             Margin="6"
             SnapsToDevicePixels="True">
+        <Border.LayoutTransform>
+            <ScaleTransform x:Name="WidgetScaleTransform" ScaleX="1.0" ScaleY="1.0"/>
+        </Border.LayoutTransform>
+        <Border.ContextMenu>
+            <ContextMenu x:Name="MiniContextMenu">
+                <MenuItem Header="📐 Widget Size">
+                    <MenuItem x:Name="MenuSizeCompact" Header="🔍 Compact (85%)" Click="MenuSizeCompact_Click"/>
+                    <MenuItem x:Name="MenuSizeStandard" Header="📱 Standard (100%)" Click="MenuSizeStandard_Click"/>
+                    <MenuItem x:Name="MenuSizeLarge" Header="🖥️ Large (115%)" Click="MenuSizeLarge_Click"/>
+                    <MenuItem x:Name="MenuSizeExtraLarge" Header="📺 Extra Large (130%)" Click="MenuSizeExtraLarge_Click"/>
+                </MenuItem>
+                <MenuItem Header="📍 Default Corner">
+                    <MenuItem x:Name="MenuCornerBottomRight" Header="↘ Bottom-Right" Click="MenuCornerBottomRight_Click"/>
+                    <MenuItem x:Name="MenuCornerBottomLeft" Header="↙ Bottom-Left" Click="MenuCornerBottomLeft_Click"/>
+                    <MenuItem x:Name="MenuCornerTopRight" Header="↗ Top-Right" Click="MenuCornerTopRight_Click"/>
+                    <MenuItem x:Name="MenuCornerTopLeft" Header="↖ Top-Left" Click="MenuCornerTopLeft_Click"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem x:Name="MenuArtMode" Header="🎨 Toggle Art Mode (Graphics ↔ ASCII)" Click="MiniArtModeButton_Click"/>
+                <MenuItem x:Name="MenuPinTop" Header="📌 Always on Top" IsCheckable="True" Click="PinOnTopButton_Click"/>
+                <Separator/>
+                <MenuItem Header="↗ Restore Main Window" Click="RestoreButton_Click"/>
+                <MenuItem Header="✕ Close Mini Widget" Click="CloseMiniButton_Click"/>
+            </ContextMenu>
+        </Border.ContextMenu>
         <Border.Effect>
             <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="4" Opacity="0.4"/>
         </Border.Effect>
-        <Grid Margin="12,10">
+        <Grid Margin="12,10,12,14">
             <Grid.RowDefinitions>
                 <!-- Row 0: Header with status dot, title, pin on top, corner switcher, restore, close -->
                 <RowDefinition Height="Auto"/>
@@ -63,6 +89,17 @@
                             FontSize="10"
                             Margin="0,0,4,0"
                             Click="PinOnTopButton_Click"/>
+
+                    <!-- Size Switcher button -->
+                    <Button x:Name="MiniSizeButton"
+                            Content="📐"
+                            ToolTip="Switch Widget Size (Compact ↔ Standard ↔ Large ↔ Extra Large)"
+                            Style="{StaticResource GhostButton}"
+                            Padding="5,1"
+                            Height="20"
+                            FontSize="10"
+                            Margin="0,0,4,0"
+                            Click="MiniSizeButton_Click"/>
 
                     <!-- Switch Corner button -->
                     <Button x:Name="CornerSwitchButton"

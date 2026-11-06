@@ -567,6 +567,44 @@ public class BackupService
         }
     }
 
+    /// <summary>
+    /// Searches available backup snapshots for the latest valid, non-empty copy of a specific file.
+    /// </summary>
+    public string? TryGetFileContentFromLatestBackup(string fileName)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                var backupsFolder = StoragePathHelper.GetBackupFolderPath();
+                if (!Directory.Exists(backupsFolder)) return null;
+
+                var dirs = Directory.GetDirectories(backupsFolder)
+                    .OrderByDescending(d => Directory.GetCreationTime(d))
+                    .ToList();
+
+                foreach (var dir in dirs)
+                {
+                    var filePath = Path.Combine(dir, fileName);
+                    if (File.Exists(filePath) && new FileInfo(filePath).Length > 0)
+                    {
+                        var content = File.ReadAllText(filePath).Trim();
+                        if (!string.IsNullOrWhiteSpace(content))
+                        {
+                            return content;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StoragePathHelper.LogError(ex, $"BackupService.TryGetFileContentFromLatestBackup({fileName})");
+            }
+
+            return null;
+        }
+    }
+
     private static int CountItemsInJson<T>(string filePath)
     {
         if (!File.Exists(filePath)) return 0;

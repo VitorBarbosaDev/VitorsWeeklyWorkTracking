@@ -591,4 +591,209 @@ public class DataPersistenceTests
                 Directory.Delete(activeDir, true);
         }
     }
+
+    [Fact]
+    public void StoragePathHelper_InTestEnvironment_SafelyIsolatesDataFromRealAppData()
+    {
+        Assert.True(StoragePathHelper.IsTestEnvironment());
+
+        // Without override, GetDataFolder in tests must be isolated to Temp sandbox and not touch real AppData
+        StoragePathHelper.OverrideAppDataFolder = null;
+        var folder = StoragePathHelper.GetDataFolder();
+
+        Assert.NotNull(folder);
+        Assert.Contains("TestSandbox", folder);
+        Assert.StartsWith(Path.GetTempPath(), folder, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void StoragePathHelper_SaveTextAtomic_CreatesBakFileAndPreservesContent()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"atomic_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var targetFile = Path.Combine(tempDir, "data.json");
+            StoragePathHelper.SaveTextAtomic(targetFile, "{\"Version\": 1}");
+            Assert.True(File.Exists(targetFile));
+            Assert.Equal("{\"Version\": 1}", File.ReadAllText(targetFile));
+
+            // Save version 2
+            StoragePathHelper.SaveTextAtomic(targetFile, "{\"Version\": 2}");
+            Assert.Equal("{\"Version\": 2}", File.ReadAllText(targetFile));
+
+            var bakFile = targetFile + ".bak";
+            Assert.True(File.Exists(bakFile));
+            Assert.Equal("{\"Version\": 1}", File.ReadAllText(bakFile));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void StoragePathHelper_ReadTextSafe_RecoversFromBakWhenPrimaryCorrupted()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"bak_recover_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var targetFile = Path.Combine(tempDir, "streaks.json");
+            var validJson = "{\"Enabled\":true,\"MonthlySickDaysAllowance\":3,\"Holidays\":[{\"Date\":\"2026-11-10T00:00:00\",\"Description\":\"Holiday Retreat\"}]}";
+
+            // Save valid version (creates .bak on subsequent save)
+            StoragePathHelper.SaveTextAtomic(targetFile, validJson);
+            StoragePathHelper.SaveTextAtomic(targetFile, validJson);
+
+            // Corrupt primary file with 0 bytes
+            File.WriteAllText(targetFile, "");
+
+            var recovered = StoragePathHelper.ReadTextSafe(targetFile);
+            Assert.NotNull(recovered);
+            Assert.Contains("Holiday Retreat", recovered);
+
+            // Verify primary file was automatically repaired
+            Assert.Equal(recovered, File.ReadAllText(targetFile));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void StoragePathHelper_ReadTextSafe_RecoversFromBackupServiceSnapshotWhenPrimaryAndBakMissing()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"snapshot_recover_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            StoragePathHelper.OverrideAppDataFolder = tempDir;
+            var targetFile = Path.Combine(tempDir, "streaks.json");
+            var validJson = "{\"Enabled\":true,\"MonthlySickDaysAllowance\":3,\"Holidays\":[{\"Date\":\"2026-12-25T00:00:00\",\"Description\":\"Christmas Holiday\"}]}";
+
+            StoragePathHelper.SaveTextAtomic(targetFile, validJson);
+
+            // Create backup snapshot
+            var backup = BackupService.Instance.CreateBackup("Test Snapshot", "Unit test", isManual: true);
+            Assert.NotNull(backup);
+
+            // Delete primary and .bak
+            if (File.Exists(targetFile)) File.Delete(targetFile);
+            var bakFile = targetFile + ".bak";
+            if (File.Exists(bakFile)) File.Delete(bakFile);
+
+            var recovered = StoragePathHelper.ReadTextSafe(targetFile);
+            Assert.NotNull(recovered);
+            Assert.Contains("Christmas Holiday", recovered);
+
+            // Verify primary file was recreated
+            Assert.True(File.Exists(targetFile));
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void StreakService_AddHoliday_AutoRefundsSickDayOnSameDate()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"holiday_refund_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            StoragePathHelper.OverrideAppDataFolder = tempDir;
+            var streakFile = Path.Combine(tempDir, "streaks.json");
+            var planFile = Path.Combine(tempDir, "calendar-plans.json");
+
+            var streakStorage = new StreakStorage(streakFile);
+            var planStorage = new CalendarPlanStorage(planFile);
+
+            var initialProfile = new StreakProfile
+            {
+                Enabled = true,
+                MonthlySickDaysAllowance = 3,
+                UsedSickDates = new List<DateTime> { new DateTime(2026, 11, 10) }
+            };
+            streakStorage.Save(initialProfile);
+
+            var streakService = new StreakService(streakStorage, planStorage);
+
+            // Prior to adding holiday: sick day is used for Nov 10, remaining allowance is 2
+            Assert.Equal(2, streakService.Profile.GetRemainingSickDaysForMonth(2026, 11));
+            Assert.True(streakService.Profile.IsSickDay(new DateTime(2026, 11, 10)));
+
+            // Add holiday for Nov 10
+            streakService.AddHoliday(new DateTime(2026, 11, 10), "Company Holiday");
+
+            // Nov 10 must no longer be a sick day, holiday must be saved, and sick day is refunded (3 remaining)
+            Assert.False(streakService.Profile.IsSickDay(new DateTime(2026, 11, 10)));
+            Assert.True(streakService.Profile.IsHoliday(new DateTime(2026, 11, 10), out var name));
+            Assert.Equal("Company Holiday", name);
+            Assert.Equal(3, streakService.Profile.GetRemainingSickDaysForMonth(2026, 11));
+
+            // Reload from storage to verify persistent state
+            var reloaded = streakStorage.Load();
+            Assert.Single(reloaded.Holidays);
+            Assert.Empty(reloaded.UsedSickDates);
+            Assert.Equal(3, reloaded.GetRemainingSickDaysForMonth(2026, 11));
+        }
+        finally
+        {
+            StoragePathHelper.OverrideAppDataFolder = null;
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void StreakStorage_EnsureProfileDefaults_RemovesHolidaysFromUsedSickDates()
+    {
+        var profile = new StreakProfile
+        {
+            Holidays = new List<HolidayItem>
+            {
+                new() { Date = new DateTime(2026, 11, 15), Description = "Vacation" }
+            },
+            UsedSickDates = new List<DateTime>
+            {
+                new DateTime(2026, 11, 15), // Erroneously marked
+                new DateTime(2026, 11, 20)
+            },
+            RevokedSickDates = new List<DateTime>
+            {
+                new DateTime(2026, 11, 15)
+            }
+        };
+
+        var tempDir = Path.Combine(Path.GetTempPath(), $"ensure_defaults_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var filePath = Path.Combine(tempDir, "streaks.json");
+            var storage = new StreakStorage(filePath);
+            storage.Save(profile);
+
+            var loaded = storage.Load();
+            Assert.Single(loaded.Holidays);
+            Assert.Single(loaded.UsedSickDates);
+            Assert.Equal(new DateTime(2026, 11, 20), loaded.UsedSickDates[0]);
+            Assert.Empty(loaded.RevokedSickDates);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
 }

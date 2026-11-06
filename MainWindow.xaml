@@ -584,18 +584,18 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="⏱️ Session Recorded — Ready to Save or Resume" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Theme.Foreground}"/>
-                                <TextBlock Text="Review details to save, resume session, or discard." FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}"/>
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0 0 10 0">
+                                <TextBlock Text="⏱️ Session Recorded" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Theme.Foreground}" TextWrapping="Wrap"/>
+                                <TextBlock Text="Review details to save, resume session, or discard." FontSize="10" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                                 <Button x:Name="ResumeSessionButton"
                                         Content="▶ Resume"
                                         ToolTip="Resume this session and continue tracking time"
                                         Style="{StaticResource PrimaryButton}"
                                         Height="28"
-                                        Padding="12 0"
+                                        Padding="10 0"
                                         FontWeight="Bold"
                                         FontSize="11"
                                         Margin="0 0 6 0"
@@ -605,7 +605,7 @@
                                         Content="✔ Save Entry"
                                         Style="{StaticResource SuccessButton}"
                                         Height="28"
-                                        Padding="14 0"
+                                        Padding="12 0"
                                         FontWeight="Bold"
                                         FontSize="11"
                                         Margin="0 0 6 0"
@@ -615,7 +615,7 @@
                                         Content="✖ Discard"
                                         Style="{StaticResource GhostDangerButton}"
                                         Height="28"
-                                        Padding="10 0"
+                                        Padding="8 0"
                                         FontSize="11"
                                         Click="DiscardButton_Click"/>
                             </StackPanel>

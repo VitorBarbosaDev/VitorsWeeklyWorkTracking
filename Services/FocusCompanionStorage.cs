@@ -26,14 +26,11 @@ public class FocusCompanionStorage
         try
         {
             var primaryPath = SettingsFilePath;
-            if (File.Exists(primaryPath))
+            var json = StoragePathHelper.ReadTextSafe(primaryPath);
+            if (!string.IsNullOrWhiteSpace(json))
             {
-                var json = File.ReadAllText(primaryPath);
-                if (!string.IsNullOrWhiteSpace(json))
-                {
-                    settings = DeserializeSettings(json);
-                    loadedFromPrimary = true;
-                }
+                settings = DeserializeSettings(json);
+                loadedFromPrimary = true;
             }
         }
         catch (Exception ex)
@@ -43,14 +40,17 @@ public class FocusCompanionStorage
 
         settings ??= new WorkRestSettings();
 
-        // Scan candidate legacy files to restore user settings across updates or migrations
+        // Scan candidate legacy files if primary file was not loaded or is default/unconfigured
         try
         {
-            bool hasMerged = MergeFromCandidateLegacySettings(settings);
-            if (!loadedFromPrimary || hasMerged)
+            if (!loadedFromPrimary || IsDefaultOrUnconfigured(settings))
             {
-                // Ensure recovered settings are saved to primary location
-                Save(settings);
+                bool hasMerged = MergeFromCandidateLegacySettings(settings);
+                if (hasMerged)
+                {
+                    // Ensure recovered settings are saved to primary location
+                    Save(settings);
+                }
             }
         }
         catch (Exception ex)
@@ -60,6 +60,25 @@ public class FocusCompanionStorage
 
         EnsureSoundVariations(settings);
         return settings;
+    }
+
+    public static bool IsDefaultOrUnconfigured(WorkRestSettings settings)
+    {
+        return string.IsNullOrWhiteSpace(settings.UserName) &&
+               settings.FocusXp == 0 &&
+               settings.TotalSessionsCompleted == 0 &&
+               settings.FocusMinutes == 25 &&
+               settings.ShortBreakMinutes == 5 &&
+               settings.LongBreakMinutes == 15 &&
+               settings.CyclesBeforeLongBreak == 4 &&
+               settings.CompletionRewardIcon == "Star" &&
+               settings.CompletionRewardColor == "ThemeDefault" &&
+               settings.SelectedSceneId == "cycling" &&
+               settings.ArtMode == "graphics" &&
+               settings.MiniWidgetCorner == "BottomRight" &&
+               settings.MiniWidgetSize == "Medium" &&
+               settings.MiniWidgetTargetMonitor == "Primary" &&
+               settings.MiniWidgetMonitorIndex == -1;
     }
 
     public static WorkRestSettings DeserializeSettings(string json)
@@ -278,6 +297,16 @@ public class FocusCompanionStorage
                     if (TryGetStringProperty(root, alias, out var val) && !string.IsNullOrWhiteSpace(val))
                     {
                         settings.MiniWidgetCorner = val.Trim();
+                        break;
+                    }
+                }
+
+                string[] widgetSizeAliases = { "miniWidgetSize", "mini_widget_size", "widgetSize", "widget_size", "miniWidgetScale", "mini_widget_scale" };
+                foreach (var alias in widgetSizeAliases)
+                {
+                    if (TryGetStringProperty(root, alias, out var val) && !string.IsNullOrWhiteSpace(val))
+                    {
+                        settings.MiniWidgetSize = val.Trim();
                         break;
                     }
                 }
@@ -547,6 +576,22 @@ public class FocusCompanionStorage
         return false;
     }
 
+    private static bool HasProperty(JsonElement element, params string[] propNames)
+    {
+        if (element.ValueKind != JsonValueKind.Object) return false;
+        foreach (var prop in element.EnumerateObject())
+        {
+            foreach (var name in propNames)
+            {
+                if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static bool MergeFromCandidateLegacySettings(WorkRestSettings targetSettings, IEnumerable<string>? customLegacyDirectories = null)
     {
         bool anyMerged = false;
@@ -595,6 +640,8 @@ public class FocusCompanionStorage
             {
                 var json = File.ReadAllText(filePath);
                 var legacySettings = DeserializeSettings(json);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
                 if (string.IsNullOrWhiteSpace(targetSettings.UserName) && !string.IsNullOrWhiteSpace(legacySettings.UserName))
                 {
@@ -686,6 +733,12 @@ public class FocusCompanionStorage
                     anyMerged = true;
                 }
 
+                if (targetSettings.MiniWidgetSize == "Medium" && legacySettings.MiniWidgetSize != "Medium" && !string.IsNullOrWhiteSpace(legacySettings.MiniWidgetSize))
+                {
+                    targetSettings.MiniWidgetSize = legacySettings.MiniWidgetSize;
+                    anyMerged = true;
+                }
+
                 if (targetSettings.MiniWidgetTargetMonitor == "Primary" && legacySettings.MiniWidgetTargetMonitor != "Primary" && !string.IsNullOrWhiteSpace(legacySettings.MiniWidgetTargetMonitor))
                 {
                     targetSettings.MiniWidgetTargetMonitor = legacySettings.MiniWidgetTargetMonitor;
@@ -716,81 +769,81 @@ public class FocusCompanionStorage
                     anyMerged = true;
                 }
 
-                // Sound toggles (defaults are true, merge false if user disabled them)
-                if (targetSettings.SoundAlertEnabled && !legacySettings.SoundAlertEnabled)
+                // Sound toggles (defaults are true, merge false ONLY IF explicitly present in legacy JSON)
+                if (targetSettings.SoundAlertEnabled && !legacySettings.SoundAlertEnabled && HasProperty(root, "soundAlertEnabled", "sound_alert_enabled", "soundAlert", "sound_alert", "enableSound", "soundEnabled"))
                 {
                     targetSettings.SoundAlertEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnStartEnabled && !legacySettings.SoundOnStartEnabled)
+                if (targetSettings.SoundOnStartEnabled && !legacySettings.SoundOnStartEnabled && HasProperty(root, "soundOnStartEnabled", "sound_on_start_enabled", "soundOnStart", "sound_on_start"))
                 {
                     targetSettings.SoundOnStartEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnEndEnabled && !legacySettings.SoundOnEndEnabled)
+                if (targetSettings.SoundOnEndEnabled && !legacySettings.SoundOnEndEnabled && HasProperty(root, "soundOnEndEnabled", "sound_on_end_enabled", "soundOnEnd", "sound_on_end"))
                 {
                     targetSettings.SoundOnEndEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnGoalAchievedEnabled && !legacySettings.SoundOnGoalAchievedEnabled)
+                if (targetSettings.SoundOnGoalAchievedEnabled && !legacySettings.SoundOnGoalAchievedEnabled && HasProperty(root, "soundOnGoalAchievedEnabled", "sound_on_goal_achieved_enabled", "soundOnGoal", "sound_on_goal"))
                 {
                     targetSettings.SoundOnGoalAchievedEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnDailyGoalAchievedEnabled && !legacySettings.SoundOnDailyGoalAchievedEnabled)
+                if (targetSettings.SoundOnDailyGoalAchievedEnabled && !legacySettings.SoundOnDailyGoalAchievedEnabled && HasProperty(root, "soundOnDailyGoalAchievedEnabled", "sound_on_daily_goal_achieved_enabled"))
                 {
                     targetSettings.SoundOnDailyGoalAchievedEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnWeeklyGoalAchievedEnabled && !legacySettings.SoundOnWeeklyGoalAchievedEnabled)
+                if (targetSettings.SoundOnWeeklyGoalAchievedEnabled && !legacySettings.SoundOnWeeklyGoalAchievedEnabled && HasProperty(root, "soundOnWeeklyGoalAchievedEnabled", "sound_on_weekly_goal_achieved_enabled"))
                 {
                     targetSettings.SoundOnWeeklyGoalAchievedEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnBreakStartEnabled && !legacySettings.SoundOnBreakStartEnabled)
+                if (targetSettings.SoundOnBreakStartEnabled && !legacySettings.SoundOnBreakStartEnabled && HasProperty(root, "soundOnBreakStartEnabled", "sound_on_break_start_enabled"))
                 {
                     targetSettings.SoundOnBreakStartEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnBreakEndEnabled && !legacySettings.SoundOnBreakEndEnabled)
+                if (targetSettings.SoundOnBreakEndEnabled && !legacySettings.SoundOnBreakEndEnabled && HasProperty(root, "soundOnBreakEndEnabled", "sound_on_break_end_enabled"))
                 {
                     targetSettings.SoundOnBreakEndEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.SoundOnCheerEnabled && !legacySettings.SoundOnCheerEnabled)
+                if (targetSettings.SoundOnCheerEnabled && !legacySettings.SoundOnCheerEnabled && HasProperty(root, "soundOnCheerEnabled", "sound_on_cheer_enabled"))
                 {
                     targetSettings.SoundOnCheerEnabled = false;
                     anyMerged = true;
                 }
 
                 // Companion & Widget toggles
-                if (targetSettings.CompanionVisible && !legacySettings.CompanionVisible)
+                if (targetSettings.CompanionVisible && !legacySettings.CompanionVisible && HasProperty(root, "companionVisible", "companion_visible", "showCompanion", "companionShow"))
                 {
                     targetSettings.CompanionVisible = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.CompanionExpanded && !legacySettings.CompanionExpanded)
+                if (targetSettings.CompanionExpanded && !legacySettings.CompanionExpanded && HasProperty(root, "companionExpanded", "companion_expanded", "expandCompanion"))
                 {
                     targetSettings.CompanionExpanded = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.MiniWidgetEnabled && !legacySettings.MiniWidgetEnabled)
+                if (targetSettings.MiniWidgetEnabled && !legacySettings.MiniWidgetEnabled && HasProperty(root, "miniWidgetEnabled", "mini_widget_enabled", "showMiniWidget", "show_mini_widget", "enableMiniWidget"))
                 {
                     targetSettings.MiniWidgetEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.WelcomePopupEnabled && !legacySettings.WelcomePopupEnabled)
+                if (targetSettings.WelcomePopupEnabled && !legacySettings.WelcomePopupEnabled && HasProperty(root, "welcomePopupEnabled", "welcome_popup_enabled", "showWelcomeBackPopup", "show_welcome_back_popup", "showWelcomePopup"))
                 {
                     targetSettings.WelcomePopupEnabled = false;
                     anyMerged = true;
@@ -809,31 +862,31 @@ public class FocusCompanionStorage
                 }
 
                 // Notification toggles
-                if (targetSettings.GoalNotificationsEnabled && !legacySettings.GoalNotificationsEnabled)
+                if (targetSettings.GoalNotificationsEnabled && !legacySettings.GoalNotificationsEnabled && HasProperty(root, "goalNotificationsEnabled", "goal_notifications_enabled", "goalNotifications"))
                 {
                     targetSettings.GoalNotificationsEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.DailyGoalNotificationEnabled && !legacySettings.DailyGoalNotificationEnabled)
+                if (targetSettings.DailyGoalNotificationEnabled && !legacySettings.DailyGoalNotificationEnabled && HasProperty(root, "dailyGoalNotificationEnabled", "daily_goal_notification_enabled"))
                 {
                     targetSettings.DailyGoalNotificationEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.WeeklyGoalNotificationEnabled && !legacySettings.WeeklyGoalNotificationEnabled)
+                if (targetSettings.WeeklyGoalNotificationEnabled && !legacySettings.WeeklyGoalNotificationEnabled && HasProperty(root, "weeklyGoalNotificationEnabled", "weekly_goal_notification_enabled"))
                 {
                     targetSettings.WeeklyGoalNotificationEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.ProjectGoalNotificationEnabled && !legacySettings.ProjectGoalNotificationEnabled)
+                if (targetSettings.ProjectGoalNotificationEnabled && !legacySettings.ProjectGoalNotificationEnabled && HasProperty(root, "projectGoalNotificationEnabled", "project_goal_notification_enabled"))
                 {
                     targetSettings.ProjectGoalNotificationEnabled = false;
                     anyMerged = true;
                 }
 
-                if (targetSettings.MilestoneRemindersEnabled && !legacySettings.MilestoneRemindersEnabled)
+                if (targetSettings.MilestoneRemindersEnabled && !legacySettings.MilestoneRemindersEnabled && HasProperty(root, "milestoneRemindersEnabled", "milestone_reminders_enabled"))
                 {
                     targetSettings.MilestoneRemindersEnabled = false;
                     anyMerged = true;
@@ -883,14 +936,13 @@ public class FocusCompanionStorage
     {
         try
         {
-            var dir = Path.GetDirectoryName(SettingsFilePath);
-            if (!string.IsNullOrEmpty(dir))
+            if (File.Exists(SettingsFilePath))
             {
-                StoragePathHelper.EnsureDirectoryExists(dir);
+                BackupService.Instance.CreateAutoBackupIfNeeded("Auto (Settings)");
             }
 
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsFilePath, json);
+            StoragePathHelper.SaveTextAtomic(SettingsFilePath, json);
         }
         catch (Exception ex)
         {

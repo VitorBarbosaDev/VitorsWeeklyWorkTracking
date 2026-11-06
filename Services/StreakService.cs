@@ -20,6 +20,16 @@ public class StreakService
     private static StreakService? _instance;
     public static StreakService Instance => _instance ??= new StreakService();
 
+    public static void SetInstanceForTesting(StreakService? instance)
+    {
+        _instance = instance;
+    }
+
+    public static void ResetInstance()
+    {
+        _instance = null;
+    }
+
     public StreakService(StreakStorage? storage = null, CalendarPlanStorage? planStorage = null)
     {
         _storage = storage ?? StreakStorage.Instance;
@@ -67,7 +77,15 @@ public class StreakService
     public void AddHoliday(DateTime date, string description)
     {
         Profile.Holidays ??= new List<HolidayItem>();
+        Profile.UsedSickDates ??= new List<DateTime>();
+        Profile.RevokedSickDates ??= new List<DateTime>();
+
         var dateOnly = date.Date;
+
+        // Automatically refund and release any sick day that may have been applied to this date
+        Profile.UsedSickDates.RemoveAll(d => d.Date == dateOnly);
+        Profile.RevokedSickDates.RemoveAll(d => d.Date == dateOnly);
+
         var desc = string.IsNullOrWhiteSpace(description) ? "Scheduled Holiday / Vacation" : description.Trim();
         var existing = Profile.Holidays.FirstOrDefault(h => h.Date.Date == dateOnly);
         if (existing != null)
@@ -91,6 +109,9 @@ public class StreakService
     public int AddHolidayRange(DateTime startDate, DateTime endDate, string description)
     {
         Profile.Holidays ??= new List<HolidayItem>();
+        Profile.UsedSickDates ??= new List<DateTime>();
+        Profile.RevokedSickDates ??= new List<DateTime>();
+
         var start = startDate.Date <= endDate.Date ? startDate.Date : endDate.Date;
         var end = startDate.Date <= endDate.Date ? endDate.Date : startDate.Date;
         var desc = string.IsNullOrWhiteSpace(description) ? "Scheduled Holiday / Vacation" : description.Trim();
@@ -98,6 +119,9 @@ public class StreakService
         int affectedCount = 0;
         for (var current = start; current <= end; current = current.AddDays(1))
         {
+            Profile.UsedSickDates.RemoveAll(d => d.Date == current);
+            Profile.RevokedSickDates.RemoveAll(d => d.Date == current);
+
             var existing = Profile.Holidays.FirstOrDefault(h => h.Date.Date == current);
             if (existing != null)
             {
