@@ -65,6 +65,7 @@ public partial class MiniTimerWidget : Window
     private DateTime? _lastCheerTime = null;
     private string? _customCheerMessage = null;
     private bool _isCompanionVisible = true;
+    private bool _isManuallyMoved = false;
     private string _widgetSize = "Medium";
 
     public event Action<string>? WidgetSizeChanged;
@@ -132,6 +133,12 @@ public partial class MiniTimerWidget : Window
         {
             TriggerMiniCheer();
         };
+    }
+
+    public void ResetManualMovement()
+    {
+        _isManuallyMoved = false;
+        ApplyCornerPosition();
     }
 
     private void AnimTimer_Tick(object? sender, EventArgs e)
@@ -243,6 +250,7 @@ public partial class MiniTimerWidget : Window
     public void SetCorner(ScreenCorner corner)
     {
         CurrentCorner = corner;
+        _isManuallyMoved = false;
         ApplyCornerPosition();
         CornerSwitchButton.Content = corner switch
         {
@@ -305,6 +313,7 @@ public partial class MiniTimerWidget : Window
         TargetMonitorId = string.IsNullOrWhiteSpace(monitorId) ? "Primary" : monitorId;
         TargetMonitorIndex = monitorIndex;
         UpdateMonitorButtonText();
+        _isManuallyMoved = false;
         ApplyCornerPosition();
         MonitorChanged?.Invoke(TargetMonitorId, TargetMonitorIndex);
     }
@@ -330,6 +339,12 @@ public partial class MiniTimerWidget : Window
 
     public void ApplyCornerPosition()
     {
+        if (_isManuallyMoved)
+        {
+            EnforceTopmost();
+            return;
+        }
+
         var workArea = VitorsWeeklyWorkTracking.Services.ScreenHelper.GetMonitorWorkArea(TargetMonitorId, TargetMonitorIndex);
         double scale = WidgetScale;
         double defaultHeight = 285 * scale;
@@ -648,7 +663,13 @@ public partial class MiniTimerWidget : Window
         {
             try
             {
+                double oldLeft = Left;
+                double oldTop = Top;
                 DragMove();
+                if (Math.Abs(Left - oldLeft) > 1 || Math.Abs(Top - oldTop) > 1)
+                {
+                    _isManuallyMoved = true;
+                }
             }
             catch
             {

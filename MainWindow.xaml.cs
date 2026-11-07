@@ -804,7 +804,7 @@ public partial class MainWindow : Window
             if (_miniTimerEnabled)
             {
                 EnsureMiniWidget();
-                _miniWidget?.ApplyCornerPosition();
+                _miniWidget?.ResetManualMovement();
                 _miniWidget?.Show();
                 UpdateStatus();
             }
