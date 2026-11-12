@@ -798,7 +798,13 @@ public class ProjectAndActivityColorTests
                     app.InitializeComponent();
                 }
 
-                FocusCompanionStorage.Save(new WorkRestSettings { WelcomePopupEnabled = false, LastWelcomePopupDate = DateTime.Today });
+                FocusCompanionStorage.Save(new WorkRestSettings
+                {
+                    WelcomePopupEnabled = false,
+                    LastWelcomePopupDate = DateTime.Today,
+                    HasSeenTutorial = true,
+                    HasSeenMainWindowTutorial = true
+                });
 
                 var window = new MainWindow();
                 Assert.False(window.ProjectComboBox.IsEditable, "ProjectComboBox must not be editable for new time entries");

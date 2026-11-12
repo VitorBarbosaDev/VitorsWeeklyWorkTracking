@@ -93,6 +93,90 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Feature Tour & App Guide Card -->
+                <Border Background="{DynamicResource Theme.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="14"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🎓 Feature Tour &amp; Screen Guides" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Review the full introductory feature tour or view guides for specific screens anytime. You can also reset all screen tutorials so they automatically display when each screen is opened."
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap"/>
+                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button x:Name="ShowTutorialNowButton"
+                                    Content="🎓 Full Feature Tour"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Height="28"
+                                    Padding="10,0"
+                                    Margin="0,0,6,6"
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    ToolTip="Open and browse the full 5-page feature guide"
+                                    Click="ShowTutorialNowButton_Click"/>
+                            <Button x:Name="ShowMainGuideButton"
+                                    Content="⏱️ Dashboard Guide"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="10,0"
+                                    Margin="0,0,6,6"
+                                    FontSize="11"
+                                    ToolTip="View the Main Dashboard tutorial guide"
+                                    Click="ShowMainGuideButton_Click"/>
+                            <Button x:Name="ShowPlannerGuideButton"
+                                    Content="📅 Planner Guide"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="10,0"
+                                    Margin="0,0,6,6"
+                                    FontSize="11"
+                                    ToolTip="View the Work Planner tutorial guide"
+                                    Click="ShowPlannerGuideButton_Click"/>
+                            <Button x:Name="ShowAnalyticsGuideButton"
+                                    Content="📊 Analytics Guide"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="10,0"
+                                    Margin="0,0,6,6"
+                                    FontSize="11"
+                                    ToolTip="View the Work Analytics tutorial guide"
+                                    Click="ShowAnalyticsGuideButton_Click"/>
+                            <Button x:Name="ShowStreakGuideButton"
+                                    Content="🔥 Streaks Guide"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="10,0"
+                                    Margin="0,0,6,6"
+                                    FontSize="11"
+                                    ToolTip="View the Streak System tutorial guide"
+                                    Click="ShowStreakGuideButton_Click"/>
+                        </WrapPanel>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button x:Name="ResetAllTutorialsButton"
+                                    Content="🔄 Reset All Screen Tutorials"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="12,0"
+                                    Margin="0,0,6,0"
+                                    FontSize="11"
+                                    ToolTip="Reset all screen tutorials so they will pop up automatically the next time each screen is opened"
+                                    Click="ResetAllTutorialsButton_Click"/>
+                            <Button x:Name="ForceTutorialNextLaunchButton"
+                                    Content="Show Tutorials on next launch"
+                                    Style="{StaticResource GhostButton}"
+                                    Height="28"
+                                    Padding="12,0"
+                                    FontSize="11"
+                                    ToolTip="Force all screen tutorials to appear again on the next launch"
+                                    Click="ForceTutorialNextLaunchButton_Click"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Project Milestone Reminders Card -->
                 <Border Background="{DynamicResource Theme.CardBackground}"
                         BorderBrush="{DynamicResource Theme.CardBorder}"
@@ -1256,7 +1340,7 @@
                         <TextBlock Text="⚙️ Transition &amp; Companion Options" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Theme.Foreground}" Margin="0,0,0,8"/>
 
                         <CheckBox x:Name="AutoAdvanceCheckBox"
-                                  Content="⏩ Automatically advance to next session (Work → Break → Work → Break)"
+                                  Content="⏩ Automatically advance to next session (Work → Break → Work)"
                                   ToolTip="When enabled, automatically transitions between Focus sprints and Rest breaks (Work → Break → Work → Break) when each timer finishes."
                                   IsChecked="False"
                                   Margin="0,0,0,8"/>

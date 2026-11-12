@@ -50,6 +50,36 @@ public partial class CalendarPlannerWindow : Window
 
         ThemeManager.ThemeChanged += OnThemeChanged;
         Closed += (s, e) => ThemeManager.ThemeChanged -= OnThemeChanged;
+        Loaded += CalendarPlannerWindow_Loaded;
+    }
+
+    private void CalendarPlannerWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        CheckFirstTimeTutorial();
+    }
+
+    private void CheckFirstTimeTutorial()
+    {
+        if (_settings != null && _settings.ShouldShowTutorial(TutorialScreen.Planner))
+        {
+            _settings.MarkTutorialShown(TutorialScreen.Planner);
+            FocusCompanionStorage.Save(_settings);
+
+            var tutorialDialog = new TutorialDialog(TutorialScreen.Planner)
+            {
+                Owner = this
+            };
+            tutorialDialog.ShowDialog();
+        }
+    }
+
+    private void OpenPlannerTutorial_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Planner)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
     }
 
     private void OnThemeChanged(AppTheme theme)

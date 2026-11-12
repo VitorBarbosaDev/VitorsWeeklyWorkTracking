@@ -1,0 +1,899 @@
+<Window x:Class="VitorsWeeklyWorkTracking.TutorialDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Welcome to CosyQueue - Feature Guide"
+        Icon="VitorWeeklyWorkTracking.ico"
+        Width="640"
+        Height="620"
+        MinWidth="560"
+        MinHeight="540"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource Theme.WindowBackground}"
+        Foreground="{DynamicResource Theme.Foreground}">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <!-- Header Progress -->
+            <RowDefinition Height="Auto"/>
+            <!-- Carousel Content -->
+            <RowDefinition Height="*"/>
+            <!-- Footer Navigation -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="14 10"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="HeaderIconTextBlock" Text="✨" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="HeaderTitleTextBlock"
+                                   Text="CosyQueue Feature Tour"
+                                   FontSize="15"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource Theme.Foreground}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="StepSubtitleTextBlock"
+                               Text="Discover everything CosyQueue has to offer for your daily productivity."
+                               FontSize="11"
+                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                            BorderBrush="{DynamicResource Theme.CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="10 4"
+                            Margin="0 0 10 0">
+                        <TextBlock x:Name="StepIndicatorTextBlock"
+                                   Text="Step 1 of 5"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource Theme.Primary}"/>
+                    </Border>
+                    <Button x:Name="SkipTourButton"
+                            Content="Skip Tour ✕"
+                            Style="{DynamicResource GhostButton}"
+                            Height="26"
+                            Padding="8,0"
+                            FontSize="11"
+                            ToolTip="Close this guide and go straight to the app"
+                            Click="SkipTourButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Carousel Content Area -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource Theme.CardBackground}"
+                BorderBrush="{DynamicResource Theme.CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="16"
+                Margin="0,0,0,12">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid>
+                    <!-- PAGE 0 (Tour): Overview & Streaks -->
+                    <StackPanel x:Name="Page0" Visibility="Visible">
+                        <!-- Hero Banner -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="👋 Welcome to CosyQueue!"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Productivity with personality — track work, maintain focus intervals, build streaks, and stay motivated."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="🚀" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Feature Cards Grid (2x2) -->
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="⏱️ Smart Time Tracking" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Log hours with count-up timers, custom goals, and instant project switching." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📊 Deep Work Analytics" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Track daily and weekly productivity trends, project time breakdowns, and export visual summaries." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🐾 Animated Companions" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Focus alongside animated animal buddies that level up and celebrate your wins." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📅 Calendar &amp; Streaks" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Plan your weekly schedule, set project milestones, and build unbroken daily focus streaks." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- PAGE 1 (Tour): Timers, Sprints & Mini Widget -->
+                    <StackPanel x:Name="Page1" Visibility="Collapsed">
+                        <!-- Hero Banner -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="⏱️ Focus Timers &amp; Intervals"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Work your way with Pomodoro sprint cycles, custom countdown targets, and floating desktop widgets."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="⏳" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🍅 Pomodoro Presets" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Switch between Classic 25/5 and Deep Focus 50/10 intervals with automatic audio chime alerts." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🎯 Custom Target Goals" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Set daily or project target times with real-time percentage rings and celebration fanfares upon completion." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="↘ Floating Mini Widget" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Minimize to a compact corner overlay with play/pause controls, companion art, and progress bar." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🔔 Relaxing Sound Packs" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Customize start, break, and completion tones with Marimba, Zen Bowls, Lo-Fi, and cosmic melodies." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- PAGE 2 (Tour): Focus Companions & Gamification -->
+                    <StackPanel x:Name="Page2" Visibility="Collapsed">
+                        <!-- Hero Banner -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🐾 Animated Companions &amp; XP"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Stay motivated with delightful focus buddies that earn XP, level up, and cheer for your milestones."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="🐱" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🚴 8 Unique Focus Scenes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Choose Cycling Dog, Cafe Cat, Jazz Sax, Metro Train, Cozy Bear, Space Rocket, Running Fox, and more." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📟 Vector &amp; Retro ASCII Modes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Toggle between modern vector graphics and nostalgic ASCII terminal art with 1-click." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="⭐ Earn Focus XP &amp; Levels" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Every completed focus session grants XP. Watch your level grow and unlock new celebration animations." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🎉 Interactive Cheer Reactions" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Click your companion anytime for cheerful animations, motivational sound effects, and funny reactions." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- PAGE 3 (Tour): Calendar Planner & Milestones -->
+                    <StackPanel x:Name="Page3" Visibility="Collapsed">
+                        <!-- Hero Banner -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="📅 Work Planner &amp; Milestones"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Schedule weekly targets, balance daily project workloads, and keep deadlines on track."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="🗓️" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🗓️ Weekly Schedule Board" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Plan expected hours per project across Mon–Sun with target comparison and actual recorded progress." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📋 1-Click Schedule Copying" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Easily copy daily plans to other days of the week, saving time on recurring schedules." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🚩 Project Milestones" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Set milestone dates with live urgency countdowns and reminders on your main dashboard." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🌅 Daily Welcome Briefing" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Start each morning with a greeting showing today's planned goals, streak status, and active milestones." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- PAGE 4 (Tour): Streaks & Analytics -->
+                    <StackPanel x:Name="Page4" Visibility="Collapsed">
+                        <!-- Hero Banner -->
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🔥 Streaks, Badges &amp; Backups"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Build lasting habits, gain deep insights into your time, and keep your data safe."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="🔥" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🔥 Habit Streaks &amp; Tiers" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Build daily momentum! Earn Bronze, Silver, Gold, Platinum, Diamond, Master, and Legend tiers." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📈 Rich Visual Analytics" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Analyze project breakdowns, activity distributions, and export shareable visual summary cards." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🛡️ Automated Snapshots" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Automated snapshots protect your data with 1-click backup creation, zip exports, and instant restores." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🎨 Custom Workspace Themes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Choose from Light, Dark, Sepia, and Midnight themes to keep your eyes comfortable all day long." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DEDICATED SCREEN PAGE: MAIN DASHBOARD -->
+                    <StackPanel x:Name="PageMainWindow" Visibility="Collapsed">
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="👋 Welcome to your Main Dashboard!"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Your command center for daily productivity. Start timers, monitor live stats, stay motivated with companion scenes, and access all tools."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="⏱️" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🔥 Quick Streaks &amp; Top Header" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Click the 🔥 Streak button on top anytime to view your streak status, tier badges, rest days, and 365-day heatmap! You can also toggle 🎨 Companion scenes and ↘ minimize to floating widget." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="⏱️ Focus Timers &amp; Pomodoro" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Start flexible focus sessions, select Pomodoro sprint intervals (25/5, 50/10), or set custom duration targets with live countdowns." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🧭 Fast Navigation Bar" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Jump directly to 📅 Work Planner, 📁 Manage Projects, 🏷️ Manage Activities, and 📊 Analytics from the bottom action buttons." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📊 Live KPI Cards &amp; Milestones" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Monitor total time worked today, session counts, and live project milestone countdown badges directly above your statistics bar." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DEDICATED SCREEN PAGE: WORK PLANNER -->
+                    <StackPanel x:Name="PagePlanner" Visibility="Collapsed">
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🗓️ Work Planner &amp; Goal Calendar"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Plan ahead and balance your workload. Set daily target hours for each project from Monday to Sunday and monitor your progress."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="📅" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🗓️ Mon–Sun Schedule Planning" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Add planned hours for any project on any day of the week to create clear daily targets and stay organized." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📋 1-Click Quick Copying" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Quickly duplicate your planned hours from one day to multiple days across the week using the 'Copy to other days' tool." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🎯 Planned vs Actual Progress" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Compare planned hours against actual recorded time with live completion percentages and weekly KPI summaries." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🚩 Milestones &amp; Reminders" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Create release targets and milestone deadlines with countdown badges displayed on your planner and home dashboard." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DEDICATED SCREEN PAGE: WORK ANALYTICS -->
+                    <StackPanel x:Name="PageAnalytics" Visibility="Collapsed">
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="📈 Work Analytics &amp; Reports"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Gain deep insights into your focus patterns, project breakdowns, daily trends, and hourly distributions."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="📊" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📅 Time Periods &amp; Custom Ranges" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Switch between This Week, Last Week, This Month, Last Month, All Time, or select custom start and end dates." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🏷️ Project &amp; Activity Filtering" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Filter analytics by specific projects and activity tags to drill down into dedicated workloads and task distributions." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📊 Interactive Charts &amp; Breakdown" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Explore daily trend bar charts, project time share percentages, and hourly activity heatmaps across the week." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="📤 CSV Export &amp; Snapshots" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Export comprehensive reports to CSV or create shareable visual snapshot cards to celebrate and showcase your progress." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- DEDICATED SCREEN PAGE: STREAK SYSTEM -->
+                    <StackPanel x:Name="PageStreak" Visibility="Collapsed">
+                        <Border Background="{DynamicResource Theme.CardBackgroundAlt}"
+                                BorderBrush="{DynamicResource Theme.CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14 12"
+                                Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🔥 Streak System &amp; Tier Rewards"
+                                               FontSize="17"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource Theme.Foreground}"/>
+                                    <TextBlock Text="Build daily focus momentum, unlock achievement tier badges, track habit consistency, and protect your streak."
+                                               FontSize="11.5"
+                                               Foreground="{DynamicResource Theme.ForegroundMuted}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="🔥" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="0 0 0 8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🏆 7 Tier Achievement Badges" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Earn Bronze, Silver, Gold, Platinum, Diamond, Master, and Legend badges as your consecutive daily streak grows." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🛡️ Rest Days, Holidays &amp; Sick Days" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Protect your streak! Configure excluded weekend rest days, plan holidays in advance, or use monthly sick days so rest never resets your streak." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="0"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="🗺️ 365-Day Activity Heatmap" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Inspect your full year in focus with a GitHub-style 365-day contribution matrix color-coded by daily tier achievement." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Grid.Column="2"
+                                    Background="{DynamicResource Theme.WindowBackground}"
+                                    BorderBrush="{DynamicResource Theme.CardBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10 8">
+                                <StackPanel>
+                                    <TextBlock Text="⭐ Gold Stars &amp; Rewards" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Earn 1 Gold Star for every hour worked. Use stars in the shop to purchase additional rest day protections and celebrate milestones." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer Navigation -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Controls: Dot Indicators (Full Tour) OR View Full Tour button (Screen Guide) -->
+            <StackPanel x:Name="DotsPanel" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="Dot0" Content="●" Style="{DynamicResource GhostButton}" Width="26" Height="26" Padding="0" FontSize="13" Foreground="{DynamicResource Theme.Primary}" FontWeight="Bold" ToolTip="Overview" Click="DotButton_Click" Tag="0"/>
+                <Button x:Name="Dot1" Content="○" Style="{DynamicResource GhostButton}" Width="26" Height="26" Padding="0" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Timers &amp; Intervals" Click="DotButton_Click" Tag="1"/>
+                <Button x:Name="Dot2" Content="○" Style="{DynamicResource GhostButton}" Width="26" Height="26" Padding="0" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Companions &amp; Gamification" Click="DotButton_Click" Tag="2"/>
+                <Button x:Name="Dot3" Content="○" Style="{DynamicResource GhostButton}" Width="26" Height="26" Padding="0" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Planner &amp; Milestones" Click="DotButton_Click" Tag="3"/>
+                <Button x:Name="Dot4" Content="○" Style="{DynamicResource GhostButton}" Width="26" Height="26" Padding="0" FontSize="13" Foreground="{DynamicResource Theme.ForegroundMuted}" ToolTip="Streaks &amp; Analytics" Click="DotButton_Click" Tag="4"/>
+            </StackPanel>
+
+            <Button x:Name="ViewFullTourButton"
+                    Grid.Column="0"
+                    Content="📖 View Full App Tour"
+                    Style="{DynamicResource GhostButton}"
+                    Height="32"
+                    Padding="12,0"
+                    FontSize="11.5"
+                    FontWeight="SemiBold"
+                    Visibility="Collapsed"
+                    ToolTip="Open the full 5-screen tour of CosyQueue features"
+                    Click="ViewFullTourButton_Click"/>
+
+            <!-- Right Controls: Navigation Buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="PreviousButton"
+                        Content="◀ Previous"
+                        Style="{DynamicResource GhostButton}"
+                        Height="32"
+                        Padding="14,0"
+                        FontSize="11.5"
+                        Margin="0,0,8,0"
+                        IsEnabled="False"
+                        Click="PreviousButton_Click"/>
+
+                <Button x:Name="NextButton"
+                        Content="Next ▶"
+                        Style="{DynamicResource PrimaryButton}"
+                        Height="32"
+                        Padding="16,0"
+                        FontSize="11.5"
+                        FontWeight="Bold"
+                        Click="NextButton_Click"/>
+
+                <Button x:Name="FinishButton"
+                        Content="🚀 Get Started"
+                        Style="{DynamicResource SuccessButton}"
+                        Height="32"
+                        Padding="18,0"
+                        FontSize="11.5"
+                        FontWeight="Bold"
+                        Visibility="Collapsed"
+                        Click="FinishButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

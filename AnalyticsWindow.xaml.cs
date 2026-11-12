@@ -14,6 +14,7 @@ public partial class AnalyticsWindow : Window
     private readonly List<TimeEntry> _allEntries;
     private readonly List<Project> _allProjects;
     private readonly List<ActivityItem> _allActivities;
+    private readonly WorkRestSettings _settings;
     private bool _isInitializing = true;
 
     private List<TimeEntry> _currentFilteredEntries = new();
@@ -27,6 +28,7 @@ public partial class AnalyticsWindow : Window
         InitializeComponent();
         WindowTitleBarHelper.ApplyThemeTitleBar(this);
 
+        _settings = FocusCompanionStorage.Load();
         _allEntries = entries ?? new List<TimeEntry>();
         _allProjects = projects ?? new List<Project>();
         _allActivities = activities ?? new List<ActivityItem>();
@@ -39,6 +41,37 @@ public partial class AnalyticsWindow : Window
 
         _isInitializing = false;
         RecalculateAnalytics();
+
+        Loaded += AnalyticsWindow_Loaded;
+    }
+
+    private void AnalyticsWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        CheckFirstTimeTutorial();
+    }
+
+    private void CheckFirstTimeTutorial()
+    {
+        if (_settings != null && _settings.ShouldShowTutorial(TutorialScreen.Analytics))
+        {
+            _settings.MarkTutorialShown(TutorialScreen.Analytics);
+            FocusCompanionStorage.Save(_settings);
+
+            var tutorialDialog = new TutorialDialog(TutorialScreen.Analytics)
+            {
+                Owner = this
+            };
+            tutorialDialog.ShowDialog();
+        }
+    }
+
+    private void OpenAnalyticsTutorial_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Analytics)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
     }
 
     private void PopulateProjectFilter()

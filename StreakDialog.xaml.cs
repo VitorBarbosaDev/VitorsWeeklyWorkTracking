@@ -12,6 +12,7 @@ public partial class StreakDialog : Window
 {
     private readonly StreakService _streakService;
     private readonly List<TimeEntry> _entries;
+    private readonly WorkRestSettings _workRestSettings;
     private bool _isInitializing = true;
     private DateTime _selectedMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private bool _showingMonthView = false;
@@ -27,6 +28,7 @@ public partial class StreakDialog : Window
     {
         InitializeComponent();
 
+        _workRestSettings = FocusCompanionStorage.Load();
         _streakService = streakService ?? StreakService.Instance;
         _entries = entries ?? new TimeEntryStorage().Load();
 
@@ -41,6 +43,37 @@ public partial class StreakDialog : Window
         UpdateHolidayRangePreview();
 
         _isInitializing = false;
+
+        Loaded += StreakDialog_Loaded;
+    }
+
+    private void StreakDialog_Loaded(object sender, RoutedEventArgs e)
+    {
+        CheckFirstTimeTutorial();
+    }
+
+    private void CheckFirstTimeTutorial()
+    {
+        if (_workRestSettings != null && _workRestSettings.ShouldShowTutorial(TutorialScreen.Streak))
+        {
+            _workRestSettings.MarkTutorialShown(TutorialScreen.Streak);
+            FocusCompanionStorage.Save(_workRestSettings);
+
+            var tutorialDialog = new TutorialDialog(TutorialScreen.Streak)
+            {
+                Owner = this
+            };
+            tutorialDialog.ShowDialog();
+        }
+    }
+
+    private void OpenStreakTutorial_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Streak)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
     }
 
     private void LoadProfileToUI()

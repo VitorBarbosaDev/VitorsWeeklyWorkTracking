@@ -133,6 +133,7 @@ public partial class WorkRestSettingsDialog : Window
             UserNameTextBox.Text = Settings.UserName ?? string.Empty;
             WelcomePopupEnabledCheckBox.IsChecked = Settings.WelcomePopupEnabled;
             UpdateForceWelcomeButtonState();
+            UpdateForceTutorialButtonState();
 
             // Reward Icon, Color & Goal Notification preferences
             RewardIconComboBox.ItemsSource = RewardIconHelper.AvailableIcons;
@@ -1100,6 +1101,103 @@ public partial class WorkRestSettingsDialog : Window
         FocusCompanionStorage.Save(saved);
 
         UpdateForceWelcomeButtonState();
+    }
+
+    private void UpdateForceTutorialButtonState()
+    {
+        if (ForceTutorialNextLaunchButton == null) return;
+
+        if (Settings.ForceTutorialOnNextLaunch)
+        {
+            ForceTutorialNextLaunchButton.Content = "✓ Will show TUTORIALS on next launch";
+            ForceTutorialNextLaunchButton.ToolTip = "Screen tutorials are set to display on next launch. Click to cancel.";
+        }
+        else
+        {
+            ForceTutorialNextLaunchButton.Content = "Show Tutorials on next launch";
+            ForceTutorialNextLaunchButton.ToolTip = "Show screen tutorials again next time each screen is opened.";
+        }
+    }
+
+    private void ForceTutorialNextLaunchButton_Click(object sender, RoutedEventArgs e)
+    {
+        Settings.ForceTutorialOnNextLaunch = !Settings.ForceTutorialOnNextLaunch;
+        if (Settings.ForceTutorialOnNextLaunch)
+        {
+            Settings.ResetTutorial();
+        }
+
+        // Persist immediately to settings storage so it takes effect even if closed without Save
+        var saved = FocusCompanionStorage.Load();
+        saved.ForceTutorialOnNextLaunch = Settings.ForceTutorialOnNextLaunch;
+        if (Settings.ForceTutorialOnNextLaunch)
+        {
+            saved.ResetTutorial();
+        }
+        FocusCompanionStorage.Save(saved);
+
+        UpdateForceTutorialButtonState();
+    }
+
+    private void ShowTutorialNowButton_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.General)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
+    }
+
+    private void ShowMainGuideButton_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.MainWindow)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
+    }
+
+    private void ShowPlannerGuideButton_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Planner)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
+    }
+
+    private void ShowAnalyticsGuideButton_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Analytics)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
+    }
+
+    private void ShowStreakGuideButton_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.Streak)
+        {
+            Owner = this
+        };
+        tutorialDialog.ShowDialog();
+    }
+
+    private void ResetAllTutorialsButton_Click(object sender, RoutedEventArgs e)
+    {
+        Settings.ResetTutorial();
+
+        var saved = FocusCompanionStorage.Load();
+        saved.ResetTutorial();
+        FocusCompanionStorage.Save(saved);
+
+        UpdateForceTutorialButtonState();
+
+        ThemedMessageBox.ShowSuccess(
+            this,
+            "All screen tutorials have been reset!\n\nWhen you next open the Main Dashboard, Work Planner, Analytics, or Streak System, their respective guides will pop up automatically.",
+            "Tutorials Reset");
     }
 
     private void PreviewWelcomeButton_Click(object sender, RoutedEventArgs e)

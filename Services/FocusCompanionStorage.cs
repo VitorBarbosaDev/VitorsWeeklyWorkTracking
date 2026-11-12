@@ -137,6 +137,98 @@ public class FocusCompanionStorage
                     }
                 }
 
+                // 2b. HasSeenTutorial aliases
+                string[] tutorialAliases =
+                {
+                    "hasSeenTutorial", "has_seen_tutorial", "hasCompletedTutorial", "has_completed_tutorial",
+                    "tutorialCompleted", "tutorial_completed", "tutorialShown", "tutorial_shown",
+                    "hasSeenOnboarding", "has_seen_onboarding"
+                };
+                foreach (var alias in tutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.HasSeenTutorial = bVal;
+                        break;
+                    }
+                }
+
+                // HasSeenMainWindowTutorial aliases
+                string[] mainTutorialAliases =
+                {
+                    "hasSeenMainWindowTutorial", "has_seen_main_window_tutorial",
+                    "hasSeenMainTutorial", "has_seen_main_tutorial",
+                    "hasSeenDashboardTutorial", "has_seen_dashboard_tutorial"
+                };
+                foreach (var alias in mainTutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.HasSeenMainWindowTutorial = bVal;
+                        break;
+                    }
+                }
+
+                // HasSeenPlannerTutorial aliases
+                string[] plannerTutorialAliases =
+                {
+                    "hasSeenPlannerTutorial", "has_seen_planner_tutorial",
+                    "hasSeenCalendarTutorial", "has_seen_calendar_tutorial",
+                    "hasSeenWorkPlannerTutorial", "has_seen_work_planner_tutorial"
+                };
+                foreach (var alias in plannerTutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.HasSeenPlannerTutorial = bVal;
+                        break;
+                    }
+                }
+
+                // HasSeenAnalyticsTutorial aliases
+                string[] analyticsTutorialAliases =
+                {
+                    "hasSeenAnalyticsTutorial", "has_seen_analytics_tutorial",
+                    "hasSeenReportsTutorial", "has_seen_reports_tutorial"
+                };
+                foreach (var alias in analyticsTutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.HasSeenAnalyticsTutorial = bVal;
+                        break;
+                    }
+                }
+
+                // HasSeenStreakTutorial aliases
+                string[] streakTutorialAliases =
+                {
+                    "hasSeenStreakTutorial", "has_seen_streak_tutorial",
+                    "hasSeenStreaksTutorial", "has_seen_streaks_tutorial"
+                };
+                foreach (var alias in streakTutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.HasSeenStreakTutorial = bVal;
+                        break;
+                    }
+                }
+
+                // 2c. ForceTutorialOnNextLaunch aliases
+                string[] forceTutorialAliases =
+                {
+                    "forceTutorialOnNextLaunch", "force_tutorial_on_next_launch", "forceTutorialNextLaunch", "force_tutorial_next_launch"
+                };
+                foreach (var alias in forceTutorialAliases)
+                {
+                    if (TryGetBoolProperty(root, alias, out var bVal))
+                    {
+                        settings.ForceTutorialOnNextLaunch = bVal;
+                        break;
+                    }
+                }
+
                 // 3. CompletionRewardIcon aliases
                 string[] iconAliases =
                 {
@@ -858,6 +950,42 @@ public class FocusCompanionStorage
                 if (!targetSettings.ForceWelcomePopupOnNextLaunch && legacySettings.ForceWelcomePopupOnNextLaunch)
                 {
                     targetSettings.ForceWelcomePopupOnNextLaunch = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.HasSeenTutorial && legacySettings.HasSeenTutorial && HasProperty(root, "hasSeenTutorial", "has_seen_tutorial", "tutorialCompleted", "tutorialShown", "hasSeenOnboarding"))
+                {
+                    targetSettings.HasSeenTutorial = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.HasSeenMainWindowTutorial && legacySettings.HasSeenMainWindowTutorial && HasProperty(root, "hasSeenMainWindowTutorial", "has_seen_main_window_tutorial", "hasSeenMainTutorial", "has_seen_main_tutorial"))
+                {
+                    targetSettings.HasSeenMainWindowTutorial = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.HasSeenPlannerTutorial && legacySettings.HasSeenPlannerTutorial && HasProperty(root, "hasSeenPlannerTutorial", "has_seen_planner_tutorial", "hasSeenCalendarTutorial", "has_seen_calendar_tutorial"))
+                {
+                    targetSettings.HasSeenPlannerTutorial = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.HasSeenAnalyticsTutorial && legacySettings.HasSeenAnalyticsTutorial && HasProperty(root, "hasSeenAnalyticsTutorial", "has_seen_analytics_tutorial"))
+                {
+                    targetSettings.HasSeenAnalyticsTutorial = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.HasSeenStreakTutorial && legacySettings.HasSeenStreakTutorial && HasProperty(root, "hasSeenStreakTutorial", "has_seen_streak_tutorial", "hasSeenStreaksTutorial", "has_seen_streaks_tutorial"))
+                {
+                    targetSettings.HasSeenStreakTutorial = true;
+                    anyMerged = true;
+                }
+
+                if (!targetSettings.ForceTutorialOnNextLaunch && legacySettings.ForceTutorialOnNextLaunch && HasProperty(root, "forceTutorialOnNextLaunch", "force_tutorial_on_next_launch"))
+                {
+                    targetSettings.ForceTutorialOnNextLaunch = true;
                     anyMerged = true;
                 }
 

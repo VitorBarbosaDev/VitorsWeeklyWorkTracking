@@ -12,6 +12,15 @@ public enum IntervalPhase
     LongBreak
 }
 
+public enum TutorialScreen
+{
+    General,
+    MainWindow,
+    Planner,
+    Analytics,
+    Streak
+}
+
 public class WorkRestSettings
 {
     public bool IntervalModeEnabled { get; set; } = false;
@@ -64,6 +73,12 @@ public class WorkRestSettings
     public bool WelcomePopupEnabled { get; set; } = true;
     public DateTime? LastWelcomePopupDate { get; set; } = null;
     public bool ForceWelcomePopupOnNextLaunch { get; set; } = false;
+    public bool HasSeenTutorial { get; set; } = false;
+    public bool HasSeenMainWindowTutorial { get; set; } = false;
+    public bool HasSeenPlannerTutorial { get; set; } = false;
+    public bool HasSeenAnalyticsTutorial { get; set; } = false;
+    public bool HasSeenStreakTutorial { get; set; } = false;
+    public bool ForceTutorialOnNextLaunch { get; set; } = false;
     public int FocusXp { get; set; } = 0;
     public int FocusStreak { get; set; } = 0;
     public int TotalSessionsCompleted { get; set; } = 0;
@@ -105,6 +120,12 @@ public class WorkRestSettings
             WelcomePopupEnabled = this.WelcomePopupEnabled,
             LastWelcomePopupDate = this.LastWelcomePopupDate,
             ForceWelcomePopupOnNextLaunch = this.ForceWelcomePopupOnNextLaunch,
+            HasSeenTutorial = this.HasSeenTutorial,
+            HasSeenMainWindowTutorial = this.HasSeenMainWindowTutorial,
+            HasSeenPlannerTutorial = this.HasSeenPlannerTutorial,
+            HasSeenAnalyticsTutorial = this.HasSeenAnalyticsTutorial,
+            HasSeenStreakTutorial = this.HasSeenStreakTutorial,
+            ForceTutorialOnNextLaunch = this.ForceTutorialOnNextLaunch,
             FocusXp = this.FocusXp,
             FocusStreak = this.FocusStreak,
             TotalSessionsCompleted = this.TotalSessionsCompleted,
@@ -137,6 +158,83 @@ public class WorkRestSettings
     {
         ForceWelcomePopupOnNextLaunch = false;
         LastWelcomePopupDate = currentDate.Date;
+    }
+
+    public bool ShouldShowTutorial(TutorialScreen screen = TutorialScreen.General)
+    {
+        if (ForceTutorialOnNextLaunch)
+            return true;
+
+        return screen switch
+        {
+            TutorialScreen.MainWindow => !HasSeenMainWindowTutorial && !HasSeenTutorial,
+            TutorialScreen.Planner => !HasSeenPlannerTutorial,
+            TutorialScreen.Analytics => !HasSeenAnalyticsTutorial,
+            TutorialScreen.Streak => !HasSeenStreakTutorial,
+            _ => !HasSeenTutorial && !HasSeenMainWindowTutorial
+        };
+    }
+
+    public void MarkTutorialShown(TutorialScreen screen = TutorialScreen.General)
+    {
+        switch (screen)
+        {
+            case TutorialScreen.MainWindow:
+                HasSeenMainWindowTutorial = true;
+                HasSeenTutorial = true;
+                break;
+            case TutorialScreen.Planner:
+                HasSeenPlannerTutorial = true;
+                break;
+            case TutorialScreen.Analytics:
+                HasSeenAnalyticsTutorial = true;
+                break;
+            case TutorialScreen.Streak:
+                HasSeenStreakTutorial = true;
+                break;
+            default:
+                HasSeenTutorial = true;
+                HasSeenMainWindowTutorial = true;
+                HasSeenPlannerTutorial = true;
+                HasSeenAnalyticsTutorial = true;
+                HasSeenStreakTutorial = true;
+                break;
+        }
+
+        ForceTutorialOnNextLaunch = false;
+    }
+
+    public void ResetTutorial(TutorialScreen? screen = null)
+    {
+        if (screen == null || screen == TutorialScreen.General)
+        {
+            HasSeenTutorial = false;
+            HasSeenMainWindowTutorial = false;
+            HasSeenPlannerTutorial = false;
+            HasSeenAnalyticsTutorial = false;
+            HasSeenStreakTutorial = false;
+        }
+        else
+        {
+            switch (screen.Value)
+            {
+                case TutorialScreen.MainWindow:
+                    HasSeenMainWindowTutorial = false;
+                    HasSeenTutorial = false;
+                    break;
+                case TutorialScreen.Planner:
+                    HasSeenPlannerTutorial = false;
+                    break;
+                case TutorialScreen.Analytics:
+                    HasSeenAnalyticsTutorial = false;
+                    break;
+                case TutorialScreen.Streak:
+                    HasSeenStreakTutorial = false;
+                    break;
+            }
+        }
+
+        ForceTutorialOnNextLaunch = true;
     }
 
     // Goal Milestone Rewards & Notification Settings

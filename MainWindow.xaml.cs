@@ -205,7 +205,34 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        CheckFirstTimeTutorial();
         CheckDailyWelcome();
+    }
+
+    private void CheckFirstTimeTutorial()
+    {
+        if (!_workRestSettings.ShouldShowTutorial(TutorialScreen.MainWindow))
+            return;
+
+        _workRestSettings.MarkTutorialShown(TutorialScreen.MainWindow);
+        FocusCompanionStorage.Save(_workRestSettings);
+
+        var tutorialDialog = new TutorialDialog(TutorialScreen.MainWindow)
+        {
+            Owner = this
+        };
+
+        tutorialDialog.ShowDialog();
+    }
+
+    private void OpenMainWindowTutorial_Click(object sender, RoutedEventArgs e)
+    {
+        var tutorialDialog = new TutorialDialog(TutorialScreen.MainWindow)
+        {
+            Owner = this
+        };
+
+        tutorialDialog.ShowDialog();
     }
 
     private void CheckDailyWelcome()
@@ -1460,7 +1487,7 @@ public partial class MainWindow : Window
                     GoalProgressContainer.Visibility = Visibility.Visible;
 
                     StatusTextBlock.Text = $"☕ REST TIME: {projectName} ({displayTime})";
-                    Title = $"☕ [{displayTime}] Rest Break - Fun Work Tracker";
+                    Title = $"☕ [{displayTime}] Rest Break - CosyQueue";
                     AppTaskbarItemInfo.Description = $"☕ [{displayTime}] Rest Break ({projectName})";
                     AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
                     AppTaskbarItemInfo.ProgressValue = Math.Clamp(_intervalManager.Elapsed.TotalSeconds / Math.Max(1, _intervalManager.CurrentPhaseTargetDuration.TotalSeconds), 0.01, 1.0);
@@ -1496,7 +1523,7 @@ public partial class MainWindow : Window
 
                     StatusTextBlock.Text = $"🔴 FOCUS: {projectName}{activitySuffix} ({displayTime})";
                     var modeLabel = _isCountDownMode ? "⏳" : "⏱️";
-                    Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
+                    Title = $"🔴 [{displayTime}] {projectName} - CosyQueue";
                     AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
                     AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal;
                     AppTaskbarItemInfo.ProgressValue = Math.Clamp(focusElapsed.TotalSeconds / Math.Max(1, focusTarget.TotalSeconds), 0.01, 1.0);
@@ -1573,7 +1600,7 @@ public partial class MainWindow : Window
                 StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
 
                 var modeLabel = _isCountDownMode && hasGoal ? "⏳" : "⏱️";
-                Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
+                Title = $"🔴 [{displayTime}] {projectName} - CosyQueue";
                 AppTaskbarItemInfo.Description = $"{modeLabel} [{displayTime}] {projectName}{activitySuffix}";
                 AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: goalReached);
             }
@@ -1595,7 +1622,7 @@ public partial class MainWindow : Window
                 TimerDisplayTextBlock.Text = displayTime;
                 StatusTextBlock.Text = $"🔴 RECORDING: {projectName}{activitySuffix} ({displayTime})";
 
-                Title = $"🔴 [{displayTime}] {projectName} - Fun Work Tracker";
+                Title = $"🔴 [{displayTime}] {projectName} - CosyQueue";
                 AppTaskbarItemInfo.Description = $"⏱️ [{displayTime}] {projectName}{activitySuffix}";
                 AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: true, goalReached: false);
             }
@@ -1712,8 +1739,8 @@ public partial class MainWindow : Window
             HeroStatusSubhead.Text = $"Duration: {displayTime} — Click Save Entry, Resume, or Discard.";
             GoalProgressContainer.Visibility = Visibility.Collapsed;
 
-            StatusTextBlock.Text = "Status: Session paused — save entry, resume, or discard.";
-            Title = $"⏸ [{displayTime}] Paused - Fun Work Tracker";
+            StatusTextBlock.Text = "Session paused — save entry, resume, or discard.";
+            Title = $"⏸ [{displayTime}] Paused - CosyQueue";
             AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
             AppTaskbarItemInfo.Description = $"⏸ [{displayTime}] Paused ({projectName})";
             AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
@@ -1779,11 +1806,11 @@ public partial class MainWindow : Window
             GoalProgressContainer.Visibility = Visibility.Collapsed;
 
             StatusTextBlock.Text = isIntervalMode
-                ? $"Status: Ready ({_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest)"
-                : "Status: Idle";
-            Title = "Fun Work Tracker";
+                ? $"Ready ({_intervalManager.Settings.FocusMinutes}m Focus / {_intervalManager.Settings.ShortBreakMinutes}m Rest)"
+                : "Idle";
+            Title = "CosyQueue";
             AppTaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
-            AppTaskbarItemInfo.Description = "Fun Work Tracker";
+            AppTaskbarItemInfo.Description = "CosyQueue";
             AppTaskbarItemInfo.Overlay = CreateTaskbarOverlayImage(isRecording: false, goalReached: false);
 
             CompanionControl.UpdateDisplay(

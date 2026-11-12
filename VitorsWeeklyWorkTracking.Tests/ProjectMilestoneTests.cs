@@ -18,6 +18,10 @@ public class ProjectMilestoneTests
         var tempDir = Path.Combine(Path.GetTempPath(), "MilestoneTests_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         StoragePathHelper.OverrideAppDataFolder = tempDir;
+        StreakStorage.ResetInstance();
+        StreakService.ResetInstance();
+        CalendarPlanStorage.ResetInstance();
+        BackupService.ResetInstance();
         var dataDir = StoragePathHelper.GetDataFolder();
         return (tempDir, dataDir);
     }
@@ -25,6 +29,10 @@ public class ProjectMilestoneTests
     private static void CleanupSandbox(string tempDir)
     {
         StoragePathHelper.OverrideAppDataFolder = null;
+        StreakStorage.ResetInstance();
+        StreakService.ResetInstance();
+        CalendarPlanStorage.ResetInstance();
+        BackupService.ResetInstance();
         if (Directory.Exists(tempDir))
         {
             try
@@ -421,7 +429,13 @@ public class ProjectMilestoneTests
                 }
 
                 ThemeManager.ApplyTheme(AppTheme.ModernLight);
-                FocusCompanionStorage.Save(new WorkRestSettings { WelcomePopupEnabled = false, LastWelcomePopupDate = DateTime.Today });
+                FocusCompanionStorage.Save(new WorkRestSettings
+                {
+                    WelcomePopupEnabled = false,
+                    LastWelcomePopupDate = DateTime.Today,
+                    HasSeenTutorial = true,
+                    HasSeenMainWindowTutorial = true
+                });
 
                 var projectStorage = new ProjectStorage();
                 var sampleProjects = new List<Project>
