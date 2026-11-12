@@ -154,8 +154,8 @@
                                     BorderBrush="{DynamicResource Theme.CardBorder}"
                                     BorderThickness="1" CornerRadius="6" Padding="10 8">
                                 <StackPanel>
-                                    <TextBlock Text="🐾 Animated Companions" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
-                                    <TextBlock Text="Focus alongside animated animal buddies that level up and celebrate your wins." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="🐾 Animated Companion Scenes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="10 interactive animated scenes with unique soundscapes, ASCII mode, and Focus Pet XP leveling." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
 
@@ -269,17 +269,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🐾 Animated Companions &amp; XP"
+                                    <TextBlock Text="🐾 Animated Companion Scenes"
                                                FontSize="17"
                                                FontWeight="Bold"
                                                Foreground="{DynamicResource Theme.Foreground}"/>
-                                    <TextBlock Text="Stay motivated with delightful focus buddies that earn XP, level up, and cheer for your milestones."
+                                    <TextBlock Text="Stay immersed with 10 handcrafted animated scenes featuring unique soundscapes, interactive cheers, and XP leveling for your Retro Focus Pet."
                                                FontSize="11.5"
                                                Foreground="{DynamicResource Theme.ForegroundMuted}"
                                                Margin="0,4,0,0"
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="🐱" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="👾" FontSize="32" Margin="12 0 4 0" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
@@ -300,8 +300,8 @@
                                     BorderBrush="{DynamicResource Theme.CardBorder}"
                                     BorderThickness="1" CornerRadius="6" Padding="10 8">
                                 <StackPanel>
-                                    <TextBlock Text="🚴 8 Unique Focus Scenes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
-                                    <TextBlock Text="Choose Cycling Dog, Cafe Cat, Jazz Sax, Metro Train, Cozy Bear, Space Rocket, Running Fox, and more." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="🎨 10 Handcrafted Scenes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Choose Tokyo Metro Lo-Fi, Rainy Cafe, Jazz Sax, Cycling Puppy, Space Rocket, Chibi Runner, Ice Cream Truck, Lumberjack, and Retro Focus Pet." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
 
@@ -310,8 +310,8 @@
                                     BorderBrush="{DynamicResource Theme.CardBorder}"
                                     BorderThickness="1" CornerRadius="6" Padding="10 8">
                                 <StackPanel>
-                                    <TextBlock Text="📟 Vector &amp; Retro ASCII Modes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
-                                    <TextBlock Text="Toggle between modern vector graphics and nostalgic ASCII terminal art with 1-click." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="✨ Unique Scene Specials &amp; Sounds" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Each scene has something special! Click them anytime for themed effects—like bicycle bells, train chimes, jazz piano, and axe chops." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
 
@@ -320,8 +320,8 @@
                                     BorderBrush="{DynamicResource Theme.CardBorder}"
                                     BorderThickness="1" CornerRadius="6" Padding="10 8">
                                 <StackPanel>
-                                    <TextBlock Text="⭐ Earn Focus XP &amp; Levels" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
-                                    <TextBlock Text="Every completed focus session grants XP. Watch your level grow and unlock new celebration animations." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="👾 Focus Pet XP &amp; Leveling" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="The Retro Focus Pet is your leveling companion! Complete focus sessions to earn XP, level up, and trigger milestone celebrations and sparkles." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
 
@@ -330,8 +330,8 @@
                                     BorderBrush="{DynamicResource Theme.CardBorder}"
                                     BorderThickness="1" CornerRadius="6" Padding="10 8">
                                 <StackPanel>
-                                    <TextBlock Text="🎉 Interactive Cheer Reactions" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
-                                    <TextBlock Text="Click your companion anytime for cheerful animations, motivational sound effects, and funny reactions." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="📟 Vector &amp; Retro ASCII Modes" FontWeight="Bold" FontSize="11.5" Foreground="{DynamicResource Theme.Foreground}" Margin="0 0 0 3"/>
+                                    <TextBlock Text="Toggle between modern vector graphics and nostalgic ASCII terminal art with 1-click in the companion control." FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </Grid>

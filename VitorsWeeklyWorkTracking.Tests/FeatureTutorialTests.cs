@@ -103,11 +103,17 @@ public class FeatureTutorialTests
         // Mark only Main Window
         settings.MarkTutorialShown(TutorialScreen.MainWindow);
         Assert.True(settings.HasSeenMainWindowTutorial);
-        Assert.True(settings.HasSeenTutorial);
+        Assert.False(settings.HasSeenTutorial);
         Assert.False(settings.ShouldShowTutorial(TutorialScreen.MainWindow));
+        Assert.True(settings.ShouldShowTutorial(TutorialScreen.General));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Planner));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Analytics));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Streak));
+
+        // Mark General
+        settings.MarkTutorialShown(TutorialScreen.General);
+        Assert.True(settings.HasSeenTutorial);
+        Assert.False(settings.ShouldShowTutorial(TutorialScreen.General));
 
         // Mark Planner
         settings.MarkTutorialShown(TutorialScreen.Planner);
@@ -141,6 +147,7 @@ public class FeatureTutorialTests
             ForceTutorialOnNextLaunch = true
         };
 
+        Assert.True(settings.ShouldShowTutorial(TutorialScreen.General));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.MainWindow));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Planner));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Analytics));
@@ -156,6 +163,12 @@ public class FeatureTutorialTests
     {
         var settings = new WorkRestSettings();
         settings.MarkTutorialShown(TutorialScreen.General);
+        settings.MarkTutorialShown(TutorialScreen.MainWindow);
+        settings.MarkTutorialShown(TutorialScreen.Planner);
+        settings.MarkTutorialShown(TutorialScreen.Analytics);
+        settings.MarkTutorialShown(TutorialScreen.Streak);
+
+        Assert.False(settings.ShouldShowTutorial(TutorialScreen.General));
         Assert.False(settings.ShouldShowTutorial(TutorialScreen.MainWindow));
         Assert.False(settings.ShouldShowTutorial(TutorialScreen.Planner));
         Assert.False(settings.ShouldShowTutorial(TutorialScreen.Analytics));
@@ -170,6 +183,7 @@ public class FeatureTutorialTests
         Assert.False(settings.HasSeenStreakTutorial);
         Assert.True(settings.ForceTutorialOnNextLaunch);
 
+        Assert.True(settings.ShouldShowTutorial(TutorialScreen.General));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.MainWindow));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Planner));
         Assert.True(settings.ShouldShowTutorial(TutorialScreen.Analytics));
@@ -554,6 +568,39 @@ public class FeatureTutorialTests
             {
                 CleanupSandbox(tempDir);
             }
+        });
+    }
+
+    [Fact]
+    public void WorkRestSettingsDialog_STA_SoundOnCheerCheckBox_HasWrappedTextBlockAndRightMargin()
+    {
+        RunInSta(() =>
+        {
+            var dialog = new WorkRestSettingsDialog(new WorkRestSettings());
+
+            Assert.NotNull(dialog.SoundOnCheerCheckBox);
+            Assert.True(dialog.SoundOnCheerCheckBox.Margin.Right >= 8, "SoundOnCheerCheckBox must have right margin gap to prevent overlapping adjacent test button");
+
+            var textBlock = dialog.SoundOnCheerCheckBox.Content as TextBlock;
+            Assert.NotNull(textBlock);
+            Assert.Equal(TextWrapping.Wrap, textBlock.TextWrapping);
+            Assert.Contains("Companion Scene Interaction", textBlock.Text);
+            Assert.Contains("Pet Sounds", textBlock.Text);
+        });
+    }
+
+    [Fact]
+    public void TutorialDialog_STA_Page2_EmphasizesAnimatedScenesAndFocusPetLeveling()
+    {
+        RunInSta(() =>
+        {
+            var dialog = new TutorialDialog(TutorialScreen.General);
+            dialog.GoToPage(2);
+
+            Assert.Equal(2, dialog.CurrentPageIndex);
+            Assert.Equal(Visibility.Visible, dialog.Page2.Visibility);
+            Assert.Contains("10 animated companion scenes", dialog.StepSubtitleTextBlock.Text);
+            Assert.Contains("Focus Pet XP leveling", dialog.StepSubtitleTextBlock.Text);
         });
     }
 }

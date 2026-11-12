@@ -62,9 +62,15 @@
   - 🐱 **Playful Focus Kitty**: Kitten playing with yarn and chasing treats.
   - 🚀 **Space Rocket Launch**: Blasting off through starry galaxies towards the Moon.
   - 🏃 **Chibi Marathon Runner**: Sprinting along the track toward the victory cup.
-  - 👾 **Focus Pet Tamagotchi**: Virtual pocket companion that levels up and glitters as you focus.
+  - 👾 **Retro Focus Pet**: Virtual pocket companion that levels up and glitters as you focus.
   - 🌲 **Lumberjack Wood Chopping**: Hardworking lumberjack chops down a dense forest tree by tree, packing his van full of timber logs to take home.
 - **ASCII Engine Mode**: Switch any scene to retro terminal-style ASCII character rendering.
+
+### 🎓 Feature Tour & Screen Tutorial Guides
+- **Interactive First-Time Onboarding Tour**: 5-screen interactive carousel introducing timers, companion animations, calendar planning, streak tracking, and deep analytics.
+- **Dedicated Screen Guides**: Tailored, single-screen onboarding guides for Main Dashboard, Work Planner, Analytics, and Duo Habit Streaks.
+- **Header Guide Shortcuts**: Quick one-click graduation cap (`🎓`) buttons in each window header to revisit screen-specific tips on demand.
+- **Settings Re-Launch & Reset**: Launch any guide or reset all tutorials directly from Settings.
 
 ### 📊 Analytics & Reporting
 - **Interactive Pie & Ring Charts**: Breakdown of time spent across projects and tasks.

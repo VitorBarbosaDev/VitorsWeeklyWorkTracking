@@ -930,7 +930,7 @@ public static class SoundEffectManager
             }
         },
 
-        // --- 9. Focus Pet Tamagotchi ("tamagotchi") ---
+        // --- 9. Retro Focus Pet ("tamagotchi") ---
         new()
         {
             Id = "cheer_pet_happy",

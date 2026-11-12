@@ -941,7 +941,7 @@ public static class AsciiArtEngine
 
     #endregion
 
-    #region Scene 6: 👾 Tamagotchi & Focus Pet
+    #region Scene 6: 👾 Retro Focus Pet
 
     private static RenderedArtScene RenderTamagotchiScene(
         int frameTick,
@@ -974,7 +974,7 @@ public static class AsciiArtEngine
 
         if (isRestPhase)
         {
-            sb.AppendLine(" ╔═══════════════════════[ 👾 VIRTUAL FOCUS PET TAMAGOTCHI ]═══════════════════════╗ ");
+            sb.AppendLine(" ╔═══════════════════════[ 👾 RETRO VIRTUAL FOCUS PET ]═══════════════════════╗ ");
             sb.AppendLine($" ║  ⭐ Level {level,-2} ({currentXp,2}% XP)     💖 Happiness: {happiness,3}%     💤 Energy: [{hpDisplay}] (Recharge)║ ");
             sb.AppendLine(" ║  ┌────────────────────────────────────────────────────────────────────────┐  ║ ");
             sb.AppendLine(" ║  │   👾  ( - . - ) z Z Z   Pet is sleeping peacefully in nightcap... 💤   │  ║ ");
@@ -985,7 +985,7 @@ public static class AsciiArtEngine
         }
         else if (isGoalReached)
         {
-            sb.AppendLine(" ╔═══════════════════════[ 👾 VIRTUAL FOCUS PET TAMAGOTCHI ]═══════════════════════╗ ");
+            sb.AppendLine(" ╔═══════════════════════[ 👾 RETRO VIRTUAL FOCUS PET ]═══════════════════════╗ ");
             sb.AppendLine($" ║  ⭐ Level {level,-2} ({currentXp,2}% XP)     💖 Happiness: {happiness,3}%     ✨ Energy: [■■■■■] (MAX)   ║ ");
             sb.AppendLine(" ║  ┌────────────────────────────────────────────────────────────────────────┐  ║ ");
             sb.AppendLine(" ║  │   💖  \\(^ヮ^)/ ✨💖   QUEST COMPLETE! Level up & star candy party! ✨   │  ║ ");
@@ -996,7 +996,7 @@ public static class AsciiArtEngine
         }
         else if (!isTracking)
         {
-            sb.AppendLine(" ╔═══════════════════════[ 👾 VIRTUAL FOCUS PET TAMAGOTCHI ]═══════════════════════╗ ");
+            sb.AppendLine(" ╔═══════════════════════[ 👾 RETRO VIRTUAL FOCUS PET ]═══════════════════════╗ ");
             sb.AppendLine($" ║  ⭐ Level {level,-2} ({currentXp,2}% XP)     💖 Happiness: {happiness,3}%     💎 Energy: [{hpDisplay}]       ║ ");
             sb.AppendLine(" ║  ┌────────────────────────────────────────────────────────────────────────┐  ║ ");
             sb.AppendLine(" ║  │   👾  ( • ‿ • ) 💬   Focus pet is ready on console for adventure!       │  ║ ");
@@ -1007,7 +1007,7 @@ public static class AsciiArtEngine
         }
         else
         {
-            sb.AppendLine(" ╔═══════════════════════[ 👾 VIRTUAL FOCUS PET TAMAGOTCHI ]═══════════════════════╗ ");
+            sb.AppendLine(" ╔═══════════════════════[ 👾 RETRO VIRTUAL FOCUS PET ]═══════════════════════╗ ");
             sb.AppendLine($" ║  ⭐ Level {level,-2} ({currentXp,2}% XP)     💖 Happiness: {happiness,3}%     💎 Energy: [{hpDisplay}]       ║ ");
             sb.AppendLine(" ║  ┌────────────────────────────────────────────────────────────────────────┐  ║ ");
             sb.AppendLine($" ║  │   👾  {moodFace,-18}   Cheering your focus sprint! Keep going! ✨     │  ║ ");

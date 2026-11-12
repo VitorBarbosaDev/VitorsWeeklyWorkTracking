@@ -8051,7 +8051,7 @@ public partial class VisualCompanionControl : UserControl
 
     #endregion
 
-    #region 👾 Scene 6: Ultra-Kawaii Focus Pet Tamagotchi
+    #region 👾 Scene 6: Ultra-Kawaii Retro Focus Pet
 
     private enum TamagotchiPetState
     {

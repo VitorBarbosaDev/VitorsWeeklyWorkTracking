@@ -36,7 +36,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🎨 Scene:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Theme.ForegroundMuted}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <ComboBox x:Name="SceneComboBox"
-                              Width="180"
+                              Width="195"
                               Height="26"
                               FontFamily="Segoe UI Emoji, Segoe UI, sans-serif"
                               SelectedValuePath="Id"

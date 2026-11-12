@@ -211,18 +211,31 @@ public partial class MainWindow : Window
 
     private void CheckFirstTimeTutorial()
     {
-        if (!_workRestSettings.ShouldShowTutorial(TutorialScreen.MainWindow))
+        if (!_workRestSettings.ShouldShowTutorial(TutorialScreen.General))
             return;
 
-        _workRestSettings.MarkTutorialShown(TutorialScreen.MainWindow);
+        _workRestSettings.MarkTutorialShown(TutorialScreen.General);
         FocusCompanionStorage.Save(_workRestSettings);
 
-        var tutorialDialog = new TutorialDialog(TutorialScreen.MainWindow)
+        var tutorialDialog = new TutorialDialog(TutorialScreen.General)
         {
             Owner = this
         };
 
         tutorialDialog.ShowDialog();
+
+        if (!_workRestSettings.HasSeenMainWindowTutorial)
+        {
+            _workRestSettings.MarkTutorialShown(TutorialScreen.MainWindow);
+            FocusCompanionStorage.Save(_workRestSettings);
+
+            var mainGuideDialog = new TutorialDialog(TutorialScreen.MainWindow)
+            {
+                Owner = this
+            };
+
+            mainGuideDialog.ShowDialog();
+        }
     }
 
     private void OpenMainWindowTutorial_Click(object sender, RoutedEventArgs e)

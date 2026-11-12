@@ -17,7 +17,7 @@ public partial class TutorialDialog : Window
     {
         "Discover everything CosyQueue has to offer for your daily productivity.",
         "Master focus sprints, timers, custom countdowns, and floating widgets.",
-        "Level up animated companion scenes, earn XP rewards, and customize sounds.",
+        "Explore 10 animated companion scenes with unique soundscapes and Focus Pet XP leveling.",
         "Schedule weekly workloads, duplicate plans, and track milestone deadlines.",
         "Build daily habit streaks, analyze charts, and keep your snapshots safe."
     };

@@ -167,11 +167,11 @@ public class WorkRestSettings
 
         return screen switch
         {
-            TutorialScreen.MainWindow => !HasSeenMainWindowTutorial && !HasSeenTutorial,
+            TutorialScreen.MainWindow => !HasSeenMainWindowTutorial,
             TutorialScreen.Planner => !HasSeenPlannerTutorial,
             TutorialScreen.Analytics => !HasSeenAnalyticsTutorial,
             TutorialScreen.Streak => !HasSeenStreakTutorial,
-            _ => !HasSeenTutorial && !HasSeenMainWindowTutorial
+            _ => !HasSeenTutorial
         };
     }
 
@@ -181,7 +181,6 @@ public class WorkRestSettings
         {
             case TutorialScreen.MainWindow:
                 HasSeenMainWindowTutorial = true;
-                HasSeenTutorial = true;
                 break;
             case TutorialScreen.Planner:
                 HasSeenPlannerTutorial = true;
@@ -194,10 +193,6 @@ public class WorkRestSettings
                 break;
             default:
                 HasSeenTutorial = true;
-                HasSeenMainWindowTutorial = true;
-                HasSeenPlannerTutorial = true;
-                HasSeenAnalyticsTutorial = true;
-                HasSeenStreakTutorial = true;
                 break;
         }
 
@@ -220,7 +215,6 @@ public class WorkRestSettings
             {
                 case TutorialScreen.MainWindow:
                     HasSeenMainWindowTutorial = false;
-                    HasSeenTutorial = false;
                     break;
                 case TutorialScreen.Planner:
                     HasSeenPlannerTutorial = false;

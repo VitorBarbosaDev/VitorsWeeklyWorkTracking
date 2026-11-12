@@ -979,13 +979,15 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <CheckBox x:Name="SoundOnCheerCheckBox"
-                                                      Content="🐾 Companion Scene Interaction &amp; Pet Sounds"
                                                       FontWeight="SemiBold"
                                                       FontSize="12"
                                                       VerticalAlignment="Center"
+                                                      Margin="0,0,8,0"
                                                       IsChecked="True"
                                                       Checked="SoundEventToggle_Changed"
-                                                      Unchecked="SoundEventToggle_Changed"/>
+                                                      Unchecked="SoundEventToggle_Changed">
+                                                <TextBlock Text="🐾 Companion Scene Interaction &amp; Pet Sounds" TextWrapping="Wrap"/>
+                                            </CheckBox>
                                             <Button Tag="Cheer"
                                                     Grid.Column="1"
                                                     Content="🎲 Test Random"
@@ -1206,12 +1208,12 @@
                                                 </StackPanel>
                                             </Border>
 
-                                            <!-- Tamagotchi -->
+                                            <!-- Retro Focus Pet -->
                                             <Border Background="{DynamicResource Theme.Background}" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1" CornerRadius="4" Padding="8,6">
                                                 <StackPanel>
                                                     <Grid Margin="0,0,0,4">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                        <TextBlock Text="👾 Focus Pet Tamagotchi" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="👾 Retro Focus Pet" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
                                                         <Button Tag="tamagotchi" Grid.Column="1" Content="🎲 Test Scene" Style="{StaticResource GhostButton}" Height="18" Padding="6,0" FontSize="9.5" Click="TestSceneButton_Click"/>
                                                     </Grid>
                                                     <Grid Margin="6,0,0,2">
