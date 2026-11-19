@@ -91,7 +91,7 @@ public static class StreakColorHelper
     {
         if (summary == null || !summary.IsEnabled)
         {
-            return "Duo Streak System is currently disabled in Settings.\nClick to view or enable streak tracking.";
+            return "Streak System is currently disabled in Settings.\nClick to view or enable streak tracking.";
         }
 
         int currentStreak = summary.CurrentStreak;
@@ -131,7 +131,7 @@ public static class StreakColorHelper
                 _ => "🛡️ Protected Day"
             };
 
-            return $"Duo Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} (Safe & Protected Today)\n" +
+            return $"Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} (Safe & Protected Today)\n" +
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Status: {protectionType} (Streak preserved)\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
@@ -142,7 +142,7 @@ public static class StreakColorHelper
 
         if (currentStreak > 0)
         {
-            return $"Duo Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} (Pending Today)\n" +
+            return $"Streak: {currentStreak} Day{(currentStreak == 1 ? "" : "s")} (Pending Today)\n" +
                    $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                    $"Best Streak: {longestStreak} Day{(longestStreak == 1 ? "" : "s")}\n" +
                    $"Log and save work today to set your streak on fire! 🔥\n" +
@@ -151,7 +151,7 @@ public static class StreakColorHelper
                    $"Click to view streak tiers, buy rest days & manage holidays.";
         }
 
-        return $"Duo Streak: 0 Days\n" +
+        return $"Streak: 0 Days\n" +
                $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
                $"Log and save work today to start your streak and set it on fire! 🔥\n" +
                $"🛡️ Rest Days Available: {restDaysLeft}\n" +

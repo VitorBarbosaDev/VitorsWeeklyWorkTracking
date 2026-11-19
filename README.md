@@ -68,7 +68,7 @@
 
 ### 🎓 Feature Tour & Screen Tutorial Guides
 - **Interactive First-Time Onboarding Tour**: 5-screen interactive carousel introducing timers, companion animations, calendar planning, streak tracking, and deep analytics.
-- **Dedicated Screen Guides**: Tailored, single-screen onboarding guides for Main Dashboard, Work Planner, Analytics, and Duo Habit Streaks.
+- **Dedicated Screen Guides**: Tailored, single-screen onboarding guides for Main Dashboard, Work Planner, Analytics, and Habit Streaks.
 - **Header Guide Shortcuts**: Quick one-click graduation cap (`🎓`) buttons in each window header to revisit screen-specific tips on demand.
 - **Settings Re-Launch & Reset**: Launch any guide or reset all tutorials directly from Settings.
 
